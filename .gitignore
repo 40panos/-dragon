@@ -1,0 +1,9 @@
+# Godot 4 — προσωρινά αρχεία μηχανής
+.godot/
+/android/
+export_presets.cfg
+*.translation
+
+# Windows
+Thumbs.db
+desktop.ini
