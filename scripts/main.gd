@@ -59,6 +59,13 @@ var aoe_mode := false
 var special_charge := 0.0
 var inferno_active := false
 
+# ---------------------------------------------------------------- ζωντάνια
+var sparks: Array = []
+var shake := 0.0
+var recoil := 0.0          # κλωτσιά όταν φεύγει μπάλα, σβήνει γρήγορα
+var tilt := 0.0            # στροφή κεφαλιού προς τη στόχευση, με εξομάλυνση
+var fx: Node2D
+
 var grid: BattleGrid
 var boss = null
 
@@ -94,8 +101,18 @@ func _ready() -> void:
 	_load_content()
 	save = SaveManager.load_data()
 	_build_walls()
+	_make_fx()
 	_make_hud()
 	_start()
+
+
+## Τα εφέ μπαίνουν σε ψηλό z_index, πάνω από τους εχθρούς.
+func _make_fx() -> void:
+	fx = Node2D.new()
+	fx.set_script(load("res://scripts/fx.gd"))
+	fx.z_index = 50
+	add_child(fx)
+	fx.m = self
 
 
 ## Το HUD μπαίνει σε CanvasLayer ώστε να μένει πάνω από εχθρούς και μπάλες.
@@ -226,6 +243,72 @@ func _announce(text: String) -> void:
 	banner_time = 2.6
 
 
+# ---------------------------------------------------------------- ζωντάνια
+
+const MAX_SPARKS := 240
+
+
+func add_sparks(pos: Vector2, count: int, col: Color, speed: float, size := 4.0) -> void:
+	if sparks.size() > MAX_SPARKS:
+		return
+	for i in count:
+		var a := randf() * TAU
+		var life := randf_range(0.16, 0.40)
+		sparks.append({
+			"p": pos,
+			"v": Vector2(cos(a), sin(a)) * randf_range(speed * 0.35, speed),
+			"life": life,
+			"max": life,
+			"c": col,
+			"r": randf_range(size * 0.5, size),
+		})
+
+
+func add_shake(amount: float) -> void:
+	shake = minf(shake + amount, 9.0)
+
+
+## Θέση στόματος, ακολουθώντας τη στροφή του κεφαλιού — από εκεί βγαίνει η φωτιά.
+func mouth_pos() -> Vector2:
+	var h := 60.0
+	if dragon:
+		var dt := dragon.sprite_for(phase, aiming)
+		if dt:
+			h = dragon.draw_width * float(dt.get_height()) / float(dt.get_width())
+	return Vector2(launch_x, floor_y) + Vector2(0, -h * 0.45).rotated(tilt)
+
+
+func _update_life(delta: float) -> void:
+	recoil = maxf(0.0, recoil - delta * 5.5)
+
+	# το κεφάλι στρέφεται προς εκεί που σημαδεύεις
+	var want := 0.0
+	if phase == "aim" and aiming:
+		want = clampf(aim_dir.x, -1.0, 1.0) * 0.30
+	elif phase == "shoot":
+		want = clampf(aim_dir.x, -1.0, 1.0) * 0.20
+	tilt = lerpf(tilt, want, clampf(delta * 9.0, 0.0, 1.0))
+
+	var drag := 1.0 - minf(delta * 5.0, 0.9)
+	var i := sparks.size() - 1
+	while i >= 0:
+		var s: Dictionary = sparks[i]
+		s["life"] -= delta
+		if s["life"] <= 0.0:
+			sparks.remove_at(i)
+		else:
+			s["p"] += s["v"] * delta
+			s["v"] *= drag
+			s["v"].y += 260.0 * delta
+		i -= 1
+
+	if shake > 0.01:
+		shake = maxf(0.0, shake - delta * 26.0)
+		position = Vector2(randf_range(-shake, shake), randf_range(-shake, shake))
+	elif position != Vector2.ZERO:
+		position = Vector2.ZERO
+
+
 # ---------------------------------------------------------------- πλέγμα
 
 func block_center(col: int, row: int, cw: int, ch: int) -> Vector2:
@@ -350,6 +433,7 @@ func _on_orb_taken(_body: Node, orb: Node) -> void:
 func _on_ball_struck(block, ball) -> void:
 	if not is_instance_valid(block):
 		return
+	add_sparks(ball.position, 5, Color("ffd07a"), 190.0, 4.0)
 	var dealt := _hurt(block, ball.damage)
 	if aoe_mode:
 		for nb in grid.neighbors(block):
@@ -370,6 +454,8 @@ func _on_block_damaged(destroyed: bool, _amount: float, block) -> void:
 	score += PTS_KILL if destroyed else PTS_HIT
 	if not destroyed:
 		return
+	add_sparks(block.position, 16, Color("ffb35c"), 280.0, 6.0)
+	add_shake(7.0 if block.is_boss else 2.5)
 	grid.erase(block)
 	if block == boss:
 		boss = null
@@ -520,6 +606,8 @@ func _process(delta: float) -> void:
 		banner_time = maxf(0.0, banner_time - delta)
 		if banner_time == 0.0:
 			banner = ""
+	if not paused:
+		_update_life(delta)
 	queue_redraw()
 	if paused or phase != "shoot":
 		return
@@ -556,6 +644,8 @@ func _make_ball(dir: Vector2) -> void:
 	b.struck.connect(_on_ball_struck)
 	live_balls += 1
 	balls_fired += 1
+	recoil = 1.0
+	add_sparks(mouth_pos(), 7, Color("ff9e2c"), 230.0, 5.0)
 
 
 func _ball_damage() -> float:
@@ -633,6 +723,7 @@ func _end_turn() -> void:
 
 func _game_over() -> void:
 	phase = "over"
+	add_shake(9.0)
 	paused = false
 	get_tree().paused = false
 	var dirty := false
@@ -729,12 +820,27 @@ func _draw_dragon() -> void:
 	if dt:
 		var w: float = dragon.draw_width
 		var h := w * float(dt.get_height()) / float(dt.get_width())
-		# ήπιο ανάσαιμα μόνο σε ηρεμία· τις καταστάσεις τις δείχνουν τα sprites
+
+		var bob := 0.0
 		var breathe := 1.0
 		if phase == "aim" and not aiming:
-			breathe = 1.0 + sin(t * 2.2) * 0.015
-		draw_texture_rect(dt, Rect2(base.x - w * 0.5, base.y - h * breathe, w, h * breathe),
-			false, dragon.tint)
+			bob = sin(t * 2.1) * 2.5                      # ήρεμη ανάσα
+			breathe = 1.0 + sin(t * 2.1) * 0.018
+		elif phase == "aim" and aiming:
+			bob = 3.0 + sin(t * 26.0) * 0.9               # τρέμουλο έντασης
+
+		# η κλωτσιά σπρώχνει το κεφάλι αντίθετα από τη βολή
+		var kick := -aim_dir * recoil * 9.0
+		var pivot := base + Vector2(0, bob) + kick
+
+		draw_set_transform(pivot, tilt, Vector2(1.0, breathe))
+		draw_texture_rect(dt, Rect2(-w * 0.5, -h, w, h), false, dragon.tint)
+		# λάμψη στο στόμα την ώρα που φεύγει η μπάλα
+		if recoil > 0.05:
+			var g := recoil
+			draw_circle(Vector2(0, -h * 0.45), 26.0 * g, Color(1.0, 0.62, 0.18, 0.30 * g))
+			draw_circle(Vector2(0, -h * 0.45), 12.0 * g, Color(1.0, 0.92, 0.70, 0.55 * g))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		return
 
 	var px := 7.0
