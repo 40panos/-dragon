@@ -78,6 +78,10 @@ var area_index := 0
 var dragon: DragonType
 
 var fireball_tex: Texture2D
+var tex_frame_left: Texture2D
+var tex_frame_right: Texture2D
+var tex_frame_top: Texture2D
+var tex_frame_floor: Texture2D
 var font: Font
 
 
@@ -95,8 +99,11 @@ func _ready() -> void:
 	death_row = int(floor((floor_y - PF_TOP) / cell))
 	launch_x = W * 0.5
 
-	if ResourceLoader.exists("res://art/fireball.png"):
-		fireball_tex = load("res://art/fireball.png")
+	fireball_tex = _load_tex("fireball")
+	tex_frame_left = _load_tex("frame_left")
+	tex_frame_right = _load_tex("frame_right")
+	tex_frame_top = _load_tex("frame_top")
+	tex_frame_floor = _load_tex("frame_floor")
 
 	_load_content()
 	save = SaveManager.load_data()
@@ -128,6 +135,11 @@ func _make_hud() -> void:
 
 
 # ---------------------------------------------------------------- περιεχόμενο
+
+func _load_tex(name_: String) -> Texture2D:
+	var p := "res://art/%s.png" % name_
+	return load(p) if ResourceLoader.exists(p) else null
+
 
 func _load_content() -> void:
 	areas = _load_dir("res://data/areas")
@@ -769,10 +781,21 @@ func _draw_field() -> void:
 
 
 func _draw_frame() -> void:
+	var top := PF_TOP - 36.0
+
+	# ζωγραφισμένο πλαίσιο, όταν υπάρχουν τα γραφικά
+	if tex_frame_left and tex_frame_right and tex_frame_top:
+		draw_texture_rect(tex_frame_left,
+			Rect2(frame_left(), top, BORDER, H - top), false)
+		draw_texture_rect(tex_frame_right,
+			Rect2(pf_right, top, BORDER, H - top), false)
+		draw_texture_rect(tex_frame_top,
+			Rect2(frame_left(), top, frame_right() - frame_left(), 40.0), false)
+		return
+
 	var stone := Color("58596e")
 	var dark := Color("3a3b4e")
 	var bh := 30.0
-	var top := PF_TOP - 36.0
 	for side in 2:
 		var x0 := frame_left() if side == 0 else pf_right
 		draw_rect(Rect2(x0, top, BORDER, H - top), dark)
@@ -791,6 +814,8 @@ func _draw_frame() -> void:
 
 
 func _draw_torches() -> void:
+	if tex_frame_left:
+		return          # οι δάδες είναι ήδη μέσα στο ζωγραφισμένο πλαίσιο
 	var flick := 1.0 + sin(t * 9.0) * 0.12
 	for side in 2:
 		var x := BORDER * 0.5 if side == 0 else W - BORDER * 0.5
@@ -802,6 +827,14 @@ func _draw_torches() -> void:
 
 
 func _draw_ground() -> void:
+	if tex_frame_floor:
+		draw_rect(Rect2(0, floor_y, W, H - floor_y), Color("1a1119"))
+		draw_texture_rect(tex_frame_floor,
+			Rect2(frame_left(), floor_y, frame_right() - frame_left(), ui_top - floor_y), false)
+		draw_line(Vector2(pf_left, floor_y), Vector2(pf_right, floor_y),
+			Color(1, 0.4, 0.3, 0.22), 2.0)
+		return
+
 	draw_rect(Rect2(0, floor_y, W, H - floor_y), Color("2c2d3f"))
 	var i := 0
 	var x := 0.0
