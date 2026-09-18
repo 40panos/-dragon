@@ -1,3 +1,4 @@
+class_name Game
 extends Node2D
 ## BBdragon — κύρια ροή παιχνιδιού.
 ##
@@ -62,9 +63,8 @@ var inferno_active := false
 # ---------------------------------------------------------------- ζωντάνια
 var sparks: Array = []
 var shake := 0.0
-var recoil := 0.0          # κλωτσιά όταν φεύγει μπάλα, σβήνει γρήγορα
-var tilt := 0.0            # στροφή κεφαλιού προς τη στόχευση, με εξομάλυνση
 var fx: Node2D
+var dragon_view: Node2D    # η εμφάνιση του δράκου ζει στο dragon_view.gd
 
 var grid: BattleGrid
 var boss = null
@@ -108,9 +108,21 @@ func _ready() -> void:
 	_load_content()
 	save = SaveManager.load_data()
 	_build_walls()
+	_make_dragon_view()
 	_make_fx()
 	_make_hud()
 	_start()
+
+
+## Μπαίνει πριν από τους εχθρούς, ώστε να σχεδιάζεται πίσω τους, και κάτω από τα εφέ.
+##
+## Φορτώνεται με load() και όχι preload(): το dragon_view.gd δηλώνει `m: Game`,
+## οπότε ένα preload εδώ θα ζητούσε τον τύπο Game ενώ αυτό το αρχείο
+## μεταγλωττίζεται ακόμα — κύκλος που ο Godot αναφέρει ως «Parse Error: Busy».
+func _make_dragon_view() -> void:
+	dragon_view = load("res://scenes/dragon_view.tscn").instantiate()
+	add_child(dragon_view)
+	dragon_view.m = self
 
 
 ## Τα εφέ μπαίνουν σε ψηλό z_index, πάνω από τους εχθρούς.
@@ -280,27 +292,14 @@ func add_shake(amount: float) -> void:
 	shake = minf(shake + amount, 9.0)
 
 
-## Θέση στόματος, ακολουθώντας τη στροφή του κεφαλιού — από εκεί βγαίνει η φωτιά.
+## Από πού βγαίνει η φωτιά — το ξέρει η εμφάνιση, όχι η λογική.
 func mouth_pos() -> Vector2:
-	var h := 60.0
-	if dragon:
-		var dt := dragon.frame_for(phase, aiming, t)
-		if dt:
-			h = dragon.draw_width * float(dt.get_height()) / float(dt.get_width())
-	return Vector2(launch_x, floor_y) + Vector2(0, -h * 0.45).rotated(tilt)
+	if dragon_view:
+		return dragon_view.mouth_pos()
+	return Vector2(launch_x, floor_y)
 
 
 func _update_life(delta: float) -> void:
-	recoil = maxf(0.0, recoil - delta * 5.5)
-
-	# το κεφάλι στρέφεται προς εκεί που σημαδεύεις
-	var want := 0.0
-	if phase == "aim" and aiming:
-		want = clampf(aim_dir.x, -1.0, 1.0) * 0.30
-	elif phase == "shoot":
-		want = clampf(aim_dir.x, -1.0, 1.0) * 0.20
-	tilt = lerpf(tilt, want, clampf(delta * 9.0, 0.0, 1.0))
-
 	var drag := 1.0 - minf(delta * 5.0, 0.9)
 	var i := sparks.size() - 1
 	while i >= 0:
@@ -656,7 +655,8 @@ func _make_ball(dir: Vector2) -> void:
 	b.struck.connect(_on_ball_struck)
 	live_balls += 1
 	balls_fired += 1
-	recoil = 1.0
+	if dragon_view:
+		dragon_view.kick()
 	add_sparks(mouth_pos(), 7, Color("ff9e2c"), 230.0, 5.0)
 
 
@@ -756,7 +756,7 @@ func _draw() -> void:
 	_draw_frame()
 	_draw_torches()
 	_draw_ground()
-	_draw_dragon()
+	# ο δράκος σχεδιάζεται στο dragon_view.gd
 	_draw_aim()
 	# το HUD σχεδιάζεται σε CanvasLayer, δες scripts/hud.gd
 
@@ -845,57 +845,6 @@ func _draw_ground() -> void:
 		i += 1
 	draw_rect(Rect2(0, floor_y + 52.0, W, H - floor_y - 52.0), Color("42435a"))
 	draw_line(Vector2(pf_left, floor_y), Vector2(pf_right, floor_y), Color(1, 0.4, 0.3, 0.25), 2.0)
-
-
-func _draw_dragon() -> void:
-	var base := Vector2(launch_x, floor_y)
-	var dt: Texture2D = dragon.frame_for(phase, aiming, t) if dragon else null
-	if dt:
-		var w: float = dragon.draw_width
-		var h := w * float(dt.get_height()) / float(dt.get_width())
-
-		var bob := 0.0
-		var breathe := 1.0
-		if phase == "aim" and not aiming:
-			bob = sin(t * 2.1) * 2.5                      # ήρεμη ανάσα
-			breathe = 1.0 + sin(t * 2.1) * 0.018
-		elif phase == "aim" and aiming:
-			bob = 3.0 + sin(t * 26.0) * 0.9               # τρέμουλο έντασης
-
-		# η κλωτσιά σπρώχνει το κεφάλι αντίθετα από τη βολή
-		var kick := -aim_dir * recoil * 9.0
-		var pivot := base + Vector2(0, bob) + kick
-
-		draw_set_transform(pivot, tilt, Vector2(1.0, breathe))
-		draw_texture_rect(dt, Rect2(-w * 0.5, -h, w, h), false, dragon.tint)
-		# λάμψη στο στόμα την ώρα που φεύγει η μπάλα
-		if recoil > 0.05:
-			var g := recoil
-			draw_circle(Vector2(0, -h * 0.45), 26.0 * g, Color(1.0, 0.62, 0.18, 0.30 * g))
-			draw_circle(Vector2(0, -h * 0.45), 12.0 * g, Color(1.0, 0.92, 0.70, 0.55 * g))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		return
-
-	var px := 7.0
-	var map := [
-		"......RR....", ".WW..RRRR...", ".WWW.RRERR..", ".WWWWRRRRRR.",
-		"..WWRRRRRR..", "...RRRRRR...", "..T.RR.RR...", "....RR.RR..."
-	]
-	var o := base + Vector2(-map[0].length() * px * 0.5, -map.size() * px)
-	for r in map.size():
-		var line: String = map[r]
-		for c in line.length():
-			var ch_ := line[c]
-			if ch_ == ".":
-				continue
-			var col := Color("d4453a")
-			if ch_ == "W":
-				col = Color("a33028")
-			elif ch_ == "E":
-				col = Color.WHITE
-			elif ch_ == "T":
-				col = Color("8e2a22")
-			draw_rect(Rect2(o + Vector2(c * px, r * px), Vector2(px, px)), col)
 
 
 func _draw_aim() -> void:

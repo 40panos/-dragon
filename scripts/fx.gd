@@ -2,7 +2,7 @@ extends Node2D
 ## Σπίθες και λάμψεις. Ζει σε ψηλό z_index ώστε να σχεδιάζεται πάνω από τους
 ## εχθρούς, αλλά μέσα στο Main ώστε να ακολουθεί το screen shake.
 
-var m
+var m: Game
 
 
 func _process(_delta: float) -> void:

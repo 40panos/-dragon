@@ -2,7 +2,7 @@ extends Node2D
 ## Το HUD ζει σε CanvasLayer ώστε να σχεδιάζεται πάντα πάνω από εχθρούς και μπάλες.
 ## Διαβάζει κατάσταση από το main· δεν κρατάει δική του.
 
-var m
+var m: Game
 
 
 func _process(_delta: float) -> void:
@@ -35,10 +35,10 @@ func _draw() -> void:
 
 	# ---------------- ζωή boss ή ένδειξη power-up
 	if m.boss != null and is_instance_valid(m.boss):
-		var bw: float = m.frame_right() - m.frame_left() - 48.0
+		var bw := m.frame_right() - m.frame_left() - 48.0
 		var br := Rect2(m.frame_left() + 24.0, 96.0, bw, 20.0)
 		draw_rect(br, Color("2a1420"))
-		var bf: float = clampf(m.boss.hp / maxf(m.boss.max_hp, 1.0), 0.0, 1.0)
+		var bf := clampf(m.boss.hp / maxf(m.boss.max_hp, 1.0), 0.0, 1.0)
 		draw_rect(Rect2(br.position + Vector2(2, 2), Vector2((bw - 4.0) * bf, 16.0)), Color("d4453a"))
 		draw_string(font, Vector2(br.position.x, br.position.y + 16.0), "BOSS",
 			HORIZONTAL_ALIGNMENT_CENTER, bw, 15, Color("ffd7c2"))
@@ -59,7 +59,7 @@ func _draw() -> void:
 	# ---------------- κάτω μπάρα
 	draw_rect(Rect2(0, m.ui_top, W, H - m.ui_top), Color("15162b"))
 
-	var shown: int = (m.live_balls + m.to_fire) if m.phase == "shoot" else m.ball_count
+	var shown := (m.live_balls + m.to_fire) if m.phase == "shoot" else m.ball_count
 	var bc := Vector2(m.frame_left() + 78.0, m.ui_top + 56.0)
 	draw_circle(bc, 38.0, Color("2a2740"))
 	draw_circle(bc, 34.0, Color("1d1b2e"))
@@ -91,7 +91,7 @@ func _draw() -> void:
 	draw_rect(Rect2(sr.position.x + 3.0, sr.end.y - 3.0 - (sr.size.y - 6.0) * charge,
 		sr.size.x - 6.0, (sr.size.y - 6.0) * charge), Color(0.42, 0.76, 1.0, 0.30))
 	var sc := sr.position + sr.size * 0.5
-	var ready: bool = m.special_ready()
+	var ready := m.special_ready()
 	draw_circle(sc, 24.0, Color("6fc3ff") if ready else Color("3b3757"))
 	if ready:
 		draw_circle(sc, 30.0 + sin(m.t * 6.0) * 2.0, Color(0.42, 0.76, 1.0, 0.18))

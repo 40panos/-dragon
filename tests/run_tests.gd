@@ -146,6 +146,32 @@ func _initialize() -> void:
 			misplaced += 1
 	ok("κόμβοι συγχρονισμένοι με το πλέγμα", misplaced == 0, "(%d εκτός)" % misplaced)
 
+	print("--- όριο DragonView ---")
+	ok("ο κόμβος εμφάνισης υπάρχει", m.dragon_view != null)
+	ok("το main δεν κρατάει πια tilt/recoil",
+		not ("tilt" in m) and not ("recoil" in m))
+	ok("το main δεν ζωγραφίζει πια τον δράκο", not m.has_method("_draw_dragon"))
+	ok("η εμφάνιση κρατάει tilt/recoil",
+		("tilt" in m.dragon_view) and ("recoil" in m.dragon_view))
+	m.dragon_view.recoil = 0.0
+	m.dragon_view.kick()
+	ok("το kick() φορτίζει την κλωτσιά", m.dragon_view.recoil > 0.9,
+		"(%.2f)" % m.dragon_view.recoil)
+	var mp: Vector2 = m.mouth_pos()
+	ok("το στόμα είναι πάνω από το δάπεδο", mp.y < m.floor_y and mp.y > m.PF_TOP,
+		"(y=%.0f, floor=%.0f)" % [mp.y, m.floor_y])
+	ok("το main δίνει το ίδιο στόμα με την εμφάνιση",
+		m.mouth_pos().distance_to(m.dragon_view.mouth_pos()) < 0.01)
+	ok("η εμφάνιση σχεδιάζεται κάτω από τα εφέ",
+		m.dragon_view.z_index < m.fx.z_index,
+		"(%d < %d)" % [m.dragon_view.z_index, m.fx.z_index])
+	var probe = m._make_block(0, 0, m.enemy_by_id["goblin"], 3.0, 1, 1, false)
+	ok("η εμφάνιση μπαίνει πριν από τους εχθρούς, άρα σχεδιάζεται πίσω τους",
+		m.dragon_view.get_index() < probe.get_index(),
+		"(%d < %d)" % [m.dragon_view.get_index(), probe.get_index()])
+	m.grid.erase(probe)
+	probe.queue_free()
+
 	print("--- animation δράκου ---")
 	var dg = m.dragon
 	ok("φορτώθηκαν καρέ και στις 3 καταστάσεις",
