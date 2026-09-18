@@ -1,0 +1,16 @@
+# Ενιαία τερματικά γραμμής, ώστε δύο μηχανήματα να μη βλέπουν ψεύτικες διαφορές
+* text=auto eol=lf
+
+*.gd     text eol=lf
+*.tscn   text eol=lf
+*.tres   text eol=lf
+*.godot  text eol=lf
+*.import text eol=lf
+*.md     text eol=lf
+
+*.png binary
+*.jpg binary
+*.webp binary
+*.ogg binary
+*.wav binary
+*.ttf binary

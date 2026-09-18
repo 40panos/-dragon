@@ -1,12 +1,20 @@
 extends CharacterBody2D
 ## Σφαίρα φωτιάς. Η ανάκλαση γίνεται με move_and_collide + bounce(normal).
+##
+## Η μπάλα δεν αποφασίζει ζημιά — αναφέρει το χτύπημα και το παιχνίδι
+## εφαρμόζει τους κανόνες (splash, passive, special).
 
 signal died(x: float)
+signal struck(block, ball)
 
 var speed := 950.0
 var floor_y := 0.0
+var damage := 1.0
 var sprite: Texture2D = null
 var trail: Array[Vector2] = []
+
+## Ποια blocks έχει ήδη πιτσιλίσει αυτή η μπάλα — το splash μετράει μία φορά ανά μπάλα.
+var splashed := {}
 
 
 func _physics_process(delta: float) -> void:
@@ -18,8 +26,8 @@ func _physics_process(delta: float) -> void:
 			break
 		velocity = velocity.bounce(col.get_normal())
 		var other := col.get_collider()
-		if other and other.has_method("hit"):
-			other.hit()
+		if other and other.is_in_group("block"):
+			struck.emit(other, self)
 		motion = velocity.normalized() * col.get_remainder().length()
 
 	# anti-stuck: ποτέ σχεδόν οριζόντια τροχιά
@@ -39,7 +47,6 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
-	# ουρά
 	for i in trail.size():
 		var p := to_local(trail[i])
 		var f := float(i + 1) / float(trail.size())

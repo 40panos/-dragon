@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyType" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="1_i47py"]
+[ext_resource type="Script" path="res://scripts/data/enemy_type.gd" id="2_j0eox"]
+[ext_resource type="Texture2D" path="res://art/warlock.png" id="3_fr1xy"]
+
+[sub_resource type="Resource" id="Resource_6qt3e"]
+script = ExtResource("1_i47py")
+every = 3
+hp_ratio = 0.5
+min_row = 2
+minion_id = "goblin"
+
+[resource]
+script = ExtResource("2_j0eox")
+id = "warlock"
+display_name = "Warlock"
+sprite = ExtResource("3_fr1xy")
+hp_mult = 1.2
+tier = 4
+ability = SubResource("Resource_6qt3e")

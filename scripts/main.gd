@@ -1,0 +1,879 @@
+extends Node2D
+## BBdragon — κύρια ροή παιχνιδιού.
+##
+## Το περιεχόμενο (εχθροί, δράκοι, περιοχές) ζει σε αρχεία .tres μέσα στο
+## res://data/ και φορτώνεται δυναμικά· η προσθήκη νέων δεν αγγίζει κώδικα.
+
+const COLS := 8
+const BALL_SPEED := 950.0
+const FIRE_GAP := 0.08
+const PF_W := 600.0           # σταθερό πλάτος πεδίου ώστε τα κελιά να μένουν τετράγωνα
+const BORDER := 60.0
+const PF_TOP := 190.0
+const DEATH_GAP := 218.0
+const UI_BAND := 142.0
+const HUD_BAND := 154.0
+const TRIPLE_TURNS := 3
+const PTS_HIT := 5
+const PTS_KILL := 25
+
+const ROUNDS_PER_AREA := 20   # ο boss εμφανίζεται στον τελευταίο γύρο κάθε περιοχής
+const SPLASH_RATIO := 0.33    # ζημιά σε λειτουργία AoE, στον στόχο και στους γείτονες
+
+const BlockScene := preload("res://scenes/block.tscn")
+const BallScene := preload("res://scenes/ball.tscn")
+const OrbScene := preload("res://scenes/orb.tscn")
+
+# ---------------------------------------------------------------- διάταξη
+var W := 0.0
+var H := 0.0
+var cell := 0.0
+var pf_left := 0.0
+var pf_right := 0.0
+var floor_y := 0.0
+var ui_top := 0.0
+var death_row := 11
+
+# ---------------------------------------------------------------- κατάσταση
+var phase := "aim"
+var paused := false
+var score := 0
+var level := 1
+var ball_count := 1
+var gained := 0
+var launch_x := 0.0
+var next_x := -1.0
+var aim_dir := Vector2.UP
+var aiming := false
+var to_fire := 0
+var fire_timer := 0.0
+var shot_time := 0.0
+var live_balls := 0
+var triple_turns := 0
+var balls_fired := 0
+var t := 0.0
+var banner := ""
+var banner_time := 0.0
+
+var aoe_mode := false
+var special_charge := 0.0
+var inferno_active := false
+
+var grid: BattleGrid
+var boss = null
+
+# ---------------------------------------------------------------- περιεχόμενο
+var save := {}
+var areas: Array = []
+var dragons: Array = []
+var enemy_by_id := {}
+var area_index := 0
+var dragon: DragonType
+
+var fireball_tex: Texture2D
+var font: Font
+
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	font = ThemeDB.fallback_font
+	var vs := get_viewport_rect().size
+	W = vs.x
+	H = vs.y
+	cell = PF_W / float(COLS)
+	pf_left = (W - PF_W) * 0.5
+	pf_right = pf_left + PF_W
+	floor_y = H - DEATH_GAP
+	ui_top = H - UI_BAND
+	death_row = int(floor((floor_y - PF_TOP) / cell))
+	launch_x = W * 0.5
+
+	if ResourceLoader.exists("res://art/fireball.png"):
+		fireball_tex = load("res://art/fireball.png")
+
+	_load_content()
+	save = SaveManager.load_data()
+	_build_walls()
+	_start()
+
+
+# ---------------------------------------------------------------- περιεχόμενο
+
+func _load_content() -> void:
+	areas = _load_dir("res://data/areas")
+	dragons = _load_dir("res://data/dragons")
+	for a in areas:
+		for e in a.enemies:
+			enemy_by_id[e.id] = e
+		if a.boss:
+			enemy_by_id[a.boss.id] = a.boss
+
+
+func _load_dir(dir_path: String) -> Array:
+	var names := []
+	var d := DirAccess.open(dir_path)
+	if d == null:
+		return []
+	d.list_dir_begin()
+	var f := d.get_next()
+	while f != "":
+		if not d.current_is_dir():
+			var n := f.trim_suffix(".remap")
+			if n.ends_with(".tres") and not names.has(n):
+				names.append(n)
+		f = d.get_next()
+	d.list_dir_end()
+	names.sort()
+	var out := []
+	for n in names:
+		var r = load(dir_path + "/" + n)
+		if r:
+			out.append(r)
+	return out
+
+
+func current_area() -> AreaDef:
+	if areas.is_empty():
+		return null
+	return areas[clampi(area_index, 0, areas.size() - 1)]
+
+
+func _pick_dragon() -> void:
+	var unlocked: Array = save.get("unlocked_dragons", ["ember"])
+	var want: String = save.get("selected_dragon", "ember")
+	dragon = null
+	for d in dragons:
+		if d.id == want and unlocked.has(d.id):
+			dragon = d
+	if dragon == null:
+		for d in dragons:
+			if unlocked.has(d.id):
+				dragon = d
+				break
+	if dragon == null and not dragons.is_empty():
+		dragon = dragons[0]
+
+
+# ---------------------------------------------------------------- στήσιμο
+
+func _build_walls() -> void:
+	_wall(Vector2(pf_left - 100.0, H * 0.5), Vector2(200.0, H * 3.0))
+	_wall(Vector2(pf_right + 100.0, H * 0.5), Vector2(200.0, H * 3.0))
+	_wall(Vector2(W * 0.5, PF_TOP - 106.0), Vector2(W * 3.0, 200.0))
+
+
+func _wall(pos: Vector2, size: Vector2) -> void:
+	var body := StaticBody2D.new()
+	body.position = pos
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var cs := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = size
+	cs.shape = rect
+	body.add_child(cs)
+	add_child(body)
+
+
+func _start() -> void:
+	Engine.time_scale = 1.0
+	paused = false
+	get_tree().paused = false
+	for g in ["block", "orb", "ball"]:
+		for n in get_tree().get_nodes_in_group(g):
+			n.queue_free()
+
+	grid = BattleGrid.new(COLS)
+	boss = null
+	_pick_dragon()
+
+	# ξεκινάμε από την τελευταία ξεκλείδωτη περιοχή
+	area_index = clampi(int(save.get("unlocked_areas", 1)) - 1, 0, maxi(areas.size() - 1, 0))
+	level = area_index * ROUNDS_PER_AREA + 1
+
+	score = 0
+	ball_count = 1
+	gained = 0
+	live_balls = 0
+	to_fire = 0
+	next_x = -1.0
+	triple_turns = 0
+	balls_fired = 0
+	special_charge = 0.0
+	inferno_active = false
+	aoe_mode = false
+	launch_x = W * 0.5
+	phase = "aim"
+	_announce("%s — γύρος %d" % [current_area().display_name if current_area() else "", level])
+	_add_row()
+
+
+func _announce(text: String) -> void:
+	banner = text
+	banner_time = 2.6
+
+
+# ---------------------------------------------------------------- πλέγμα
+
+func block_center(col: int, row: int, cw: int, ch: int) -> Vector2:
+	return Vector2(
+		pf_left + (col + cw * 0.5) * cell,
+		PF_TOP + (row + ch * 0.5) * cell)
+
+
+func _add_row() -> void:
+	if level % ROUNDS_PER_AREA == 0 and boss == null:
+		_spawn_boss()
+		return
+
+	var free_cols: Array = []
+	var placed := 0
+	for c in COLS:
+		if not grid.is_free(c, 0):
+			continue
+		if randf() < 0.62:
+			_spawn_enemy(c, 0, _roll_enemy(), level)
+			placed += 1
+		else:
+			free_cols.append(c)
+	if placed == 0 and not free_cols.is_empty():
+		var idx := randi() % free_cols.size()
+		_spawn_enemy(free_cols[idx], 0, _roll_enemy(), level)
+		free_cols.remove_at(idx)
+	if not free_cols.is_empty() and randf() < 0.85:
+		var k := "ball"
+		if randf() < 0.12:
+			k = "triple"
+		_spawn_orb(free_cols[randi() % free_cols.size()], k)
+
+
+func _roll_enemy() -> EnemyType:
+	var area := current_area()
+	if area == null:
+		return null
+	return area.pick(randf())
+
+
+func _spawn_enemy(col: int, row: int, type: EnemyType, hp_level: float) -> void:
+	if type == null:
+		return
+	var hp := maxf(1.0, round(hp_level * type.hp_mult))
+	_make_block(col, row, type, hp, 1, 1, false)
+
+
+func _spawn_boss() -> void:
+	var area := current_area()
+	if area == null or area.boss == null:
+		return
+	var cw: int = area.boss_cols
+	var ch: int = area.boss_rows
+	var col := int((COLS - cw) * 0.5)
+	if not grid.fits(col, 0, cw, ch):
+		for b in grid.blocks():
+			if b.row < ch:
+				grid.erase(b)
+				b.queue_free()
+	var hp := maxf(10.0, round(level * area.boss_hp_mult))
+	boss = _make_block(col, 0, area.boss, hp, cw, ch, true)
+	_announce("BOSS — %s" % area.boss.display_name)
+
+
+func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: int, as_boss: bool):
+	var b := BlockScene.instantiate()
+	add_child(b)
+	b.add_to_group("block")
+	b.col = col
+	b.row = row
+	b.is_boss = as_boss
+	var box := Vector2(cw * cell - 6.0, ch * cell - 6.0)
+	b.setup(hp, box, type.id, type.sprite, type.ability, cw, ch)
+	b.position = block_center(col, row, cw, ch)
+	var area := current_area()
+	if area:
+		b.modulate = area.tint
+	grid.place(b)
+	b.damaged.connect(_on_block_damaged.bind(b))
+	return b
+
+
+## Καλείται από το SummonerAbility.
+func summon_minion(source, minion_id: String, hp_ratio: float, min_row: int) -> void:
+	var type: EnemyType = enemy_by_id.get(minion_id)
+	if type == null:
+		return
+	var cells := grid.free_cells(min_row, death_row - 1)
+	if cells.is_empty():
+		return
+	var spot: Vector2i = cells[randi() % cells.size()]
+	# όσο πιο μπροστά γεννιέται, τόσο λιγότερη ζωή
+	var depth := clampf(float(spot.y) / float(maxi(death_row, 1)), 0.0, 1.0)
+	var hp := maxf(1.0, round(source.max_hp * hp_ratio * (1.0 - depth * 0.5)))
+	_make_block(spot.x, spot.y, type, hp, 1, 1, false)
+
+
+func _spawn_orb(col: int, kind: String) -> void:
+	var o := OrbScene.instantiate()
+	add_child(o)
+	o.add_to_group("orb")
+	o.kind = kind
+	o.col = col
+	o.row = 0
+	o.position = block_center(col, 0, 1, 1)
+	o.body_entered.connect(_on_orb_taken.bind(o))
+
+
+func _on_orb_taken(_body: Node, orb: Node) -> void:
+	if not is_instance_valid(orb):
+		return
+	if orb.kind == "triple":
+		triple_turns = TRIPLE_TURNS
+	else:
+		gained += 1
+	orb.queue_free()
+
+
+# ---------------------------------------------------------------- ζημιά
+
+func _on_ball_struck(block, ball) -> void:
+	if not is_instance_valid(block):
+		return
+	var dealt := _hurt(block, ball.damage)
+	if aoe_mode:
+		for nb in grid.neighbors(block):
+			if ball.splashed.has(nb):
+				continue          # κάθε μπάλα πιτσιλίζει ένα block μία φορά
+			ball.splashed[nb] = true
+			dealt += _hurt(nb, ball.damage)
+	special_charge += dealt
+
+
+func _hurt(block, amount: float) -> float:
+	if not is_instance_valid(block):
+		return 0.0
+	return block.take_damage(amount)
+
+
+func _on_block_damaged(destroyed: bool, _amount: float, block) -> void:
+	score += PTS_KILL if destroyed else PTS_HIT
+	if not destroyed:
+		return
+	grid.erase(block)
+	if block == boss:
+		boss = null
+		_clear_area()
+
+
+func _clear_area() -> void:
+	var next_area := area_index + 2        # 1-based αριθμός επόμενης περιοχής
+	var unlocked := int(save.get("unlocked_areas", 1))
+	if next_area > unlocked and next_area <= areas.size():
+		save["unlocked_areas"] = next_area
+	# ξεκλείδωμα δράκου που ανοίγει με αυτή την περιοχή
+	var list: Array = save.get("unlocked_dragons", ["ember"])
+	for d in dragons:
+		if d.unlock_after_area == area_index + 1 and not list.has(d.id):
+			list.append(d.id)
+			save["selected_dragon"] = d.id
+			_announce("ΝΕΟΣ ΔΡΑΚΟΣ: %s" % d.display_name)
+	save["unlocked_dragons"] = list
+	SaveManager.save_data(save)
+	if banner == "":
+		_announce("Η περιοχή καθαρίστηκε!")
+
+
+# ---------------------------------------------------------------- χειρισμός
+
+func frame_left() -> float:
+	return pf_left - BORDER
+
+
+func frame_right() -> float:
+	return pf_right + BORDER
+
+
+func pause_rect() -> Rect2:
+	return Rect2(frame_right() - 84.0, 16.0, 56.0, 56.0)
+
+
+func special_rect() -> Rect2:
+	return Rect2(frame_right() - 120.0, ui_top + 10.0, 86.0, 86.0)
+
+
+func aoe_rect() -> Rect2:
+	return Rect2(frame_right() - 232.0, ui_top + 10.0, 86.0, 86.0)
+
+
+func special_ready() -> bool:
+	return dragon != null and special_charge >= dragon.special_cost
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		if phase == "aim" and aiming:
+			_set_aim(get_global_mouse_position())
+		return
+
+	if not (event is InputEventMouseButton):
+		return
+	var mb := event as InputEventMouseButton
+	if mb.button_index != MOUSE_BUTTON_LEFT:
+		return
+
+	var p := get_global_mouse_position()
+	if mb.pressed and pause_rect().has_point(p):
+		_toggle_pause()
+		return
+	if paused:
+		return
+	if mb.pressed and aoe_rect().has_point(p):
+		aoe_mode = not aoe_mode
+		return
+	if mb.pressed and special_rect().has_point(p):
+		_use_special()
+		return
+	# πατήματα στην κάτω μπάρα χειριστηρίων δεν ξεκινούν στόχευση
+	if mb.pressed and p.y >= ui_top:
+		return
+
+	match phase:
+		"aim":
+			if mb.pressed:
+				aiming = true
+				_set_aim(get_global_mouse_position())
+			elif aiming:
+				aiming = false
+				_fire()
+		"shoot":
+			if mb.pressed:
+				Engine.time_scale = 1.0 if Engine.time_scale > 1.0 else 3.0
+		"over":
+			if mb.pressed:
+				_start()
+
+
+func _use_special() -> void:
+	if not special_ready():
+		return
+	match dragon.special:
+		"swarm":
+			if phase == "shoot":
+				to_fire += ball_count
+			else:
+				inferno_active = false
+				_fire()
+				to_fire += ball_count
+			_announce("SWARM!")
+		_:
+			inferno_active = true
+			_announce("INFERNO!")
+	special_charge = 0.0
+
+
+func _toggle_pause() -> void:
+	if phase == "over":
+		return
+	paused = not paused
+	get_tree().paused = paused
+
+
+func _set_aim(p: Vector2) -> void:
+	var d := p - Vector2(launch_x, floor_y - 18.0)
+	if d.y > -20.0:
+		d.y = -20.0
+	d = d.normalized()
+	var min_y := 0.2
+	if -d.y < min_y:
+		var sx := 1.0 if d.x >= 0.0 else -1.0
+		d = Vector2(sx * sqrt(1.0 - min_y * min_y), -min_y)
+	aim_dir = d
+
+
+func _fire() -> void:
+	phase = "shoot"
+	to_fire = ball_count
+	fire_timer = 0.0
+	shot_time = 0.0
+	next_x = -1.0
+	gained = 0
+	live_balls = 0
+	Engine.time_scale = 1.0
+
+
+# ---------------------------------------------------------------- βρόχος
+
+func _process(delta: float) -> void:
+	t += delta
+	if banner_time > 0.0:
+		banner_time = maxf(0.0, banner_time - delta)
+		if banner_time == 0.0:
+			banner = ""
+	queue_redraw()
+	if paused or phase != "shoot":
+		return
+	shot_time += delta
+	if shot_time > 9.0:
+		Engine.time_scale = 3.0
+	if to_fire > 0:
+		fire_timer -= delta
+		while to_fire > 0 and fire_timer <= 0.0:
+			_shoot_once()
+			to_fire -= 1
+			fire_timer += FIRE_GAP
+
+
+func _shoot_once() -> void:
+	if triple_turns > 0:
+		for a in PackedFloat32Array([-0.13, 0.0, 0.13]):
+			_make_ball(aim_dir.rotated(a))
+	else:
+		_make_ball(aim_dir)
+
+
+func _make_ball(dir: Vector2) -> void:
+	var b := BallScene.instantiate()
+	add_child(b)
+	b.add_to_group("ball")
+	b.position = Vector2(launch_x, floor_y - 18.0)
+	b.velocity = dir * BALL_SPEED
+	b.speed = BALL_SPEED
+	b.floor_y = floor_y
+	b.sprite = fireball_tex
+	b.damage = _ball_damage()
+	b.died.connect(_on_ball_died)
+	b.struck.connect(_on_ball_struck)
+	live_balls += 1
+	balls_fired += 1
+
+
+func _ball_damage() -> float:
+	var dmg := 1.0
+	if dragon and dragon.passive == "every5_double" and balls_fired % 5 == 4:
+		dmg *= 2.0                      # κάθε 5η μπάλα
+	if inferno_active:
+		dmg *= 3.0
+	if aoe_mode:
+		dmg *= SPLASH_RATIO
+	return dmg
+
+
+func _on_ball_died(x: float) -> void:
+	if next_x < 0.0:
+		next_x = clampf(x, pf_left + 20.0, pf_right - 20.0)
+	live_balls -= 1
+	if live_balls <= 0 and to_fire == 0:
+		_end_turn()
+
+
+func _end_turn() -> void:
+	Engine.time_scale = 1.0
+	inferno_active = false
+	ball_count += gained
+	if next_x >= 0.0:
+		launch_x = next_x
+	level += 1
+	if triple_turns > 0:
+		triple_turns -= 1
+	if dragon and dragon.passive == "ball_every5" and level % 5 == 0:
+		ball_count += 1
+
+	var new_area := clampi(int((level - 1) / ROUNDS_PER_AREA), 0, maxi(areas.size() - 1, 0))
+	if new_area != area_index:
+		area_index = new_area
+		_announce(current_area().display_name if current_area() else "")
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+
+	# κατέβασμα: από κάτω προς τα πάνω, ώστε να ελευθερώνεται χώρος μπροστά
+	var ordered := grid.blocks()
+	ordered.sort_custom(func(a, b): return (a.row + a.ch) > (b.row + b.ch))
+	for b in ordered:
+		var want := 1
+		if b.ability:
+			want = b.ability.advance_rows(b, 1)
+		var step := want
+		while step > 0 and not grid.fits(b.col, b.row + step, b.cw, b.ch, b):
+			step -= 1
+		if step > 0:
+			grid.move_to(b, b.col, b.row + step)
+			tween.tween_property(b, "position:y", block_center(b.col, b.row, b.cw, b.ch).y, 0.18)
+
+	for o in get_tree().get_nodes_in_group("orb"):
+		o.row += 1
+		if o.row >= death_row:
+			o.queue_free()
+		else:
+			tween.tween_property(o, "position:y", block_center(o.col, o.row, 1, 1).y, 0.18)
+
+	for b in grid.blocks():
+		if b.ability:
+			b.ability.on_round_end(b, self)
+
+	for b in grid.blocks():
+		if b.row + b.ch > death_row:
+			_game_over()
+			return
+
+	_add_row()
+	phase = "aim"
+
+
+func _game_over() -> void:
+	phase = "over"
+	paused = false
+	get_tree().paused = false
+	var dirty := false
+	if score > int(save.get("best_score", 0)):
+		save["best_score"] = score
+		dirty = true
+	if level > int(save.get("best_round", 0)):
+		save["best_round"] = level
+		dirty = true
+	if dirty:
+		SaveManager.save_data(save)
+
+
+# ---------------------------------------------------------------- σχεδίαση
+
+func _draw() -> void:
+	_draw_field()
+	_draw_frame()
+	_draw_torches()
+	_draw_ground()
+	_draw_dragon()
+	_draw_aim()
+	_draw_hud()
+	if phase == "over":
+		_draw_over()
+
+
+func _draw_field() -> void:
+	draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color("141024"))
+	var area := current_area()
+	var bg: Texture2D = area.background if area else null
+	if bg:
+		draw_texture_rect(bg, Rect2(pf_left, PF_TOP, pf_right - pf_left, floor_y - PF_TOP),
+			false, area.tint)
+	else:
+		var steps := 14
+		for i in steps:
+			var f := float(i) / float(steps)
+			draw_rect(Rect2(0, H * f * 0.75, W, H * 0.75 / steps + 1.0),
+				Color("1a1b3a").lerp(Color("3d2a4f"), f))
+		draw_rect(Rect2(0, floor_y - 170, W, 170), Color("23402f"))
+	for c in range(1, COLS):
+		var gx := pf_left + c * cell
+		draw_line(Vector2(gx, PF_TOP), Vector2(gx, floor_y), Color(1, 1, 1, 0.045), 1.0)
+
+
+func _draw_frame() -> void:
+	var stone := Color("58596e")
+	var dark := Color("3a3b4e")
+	var bh := 30.0
+	var top := PF_TOP - 36.0
+	for side in 2:
+		var x0 := frame_left() if side == 0 else pf_right
+		draw_rect(Rect2(x0, top, BORDER, H - top), dark)
+		var row := 0
+		var y := top
+		while y < H:
+			var off := 0.0 if row % 2 == 0 else 8.0
+			draw_rect(Rect2(x0 + 4.0 + off * 0.3, y + 3.0, BORDER - 10.0, bh - 6.0), stone)
+			y += bh
+			row += 1
+	draw_rect(Rect2(frame_left(), top, frame_right() - frame_left(), 36.0), dark)
+	var x2 := frame_left()
+	while x2 < frame_right():
+		draw_rect(Rect2(x2 + 5.0, top + 4.0, 44.0, 28.0), stone)
+		x2 += 58.0
+
+
+func _draw_torches() -> void:
+	var flick := 1.0 + sin(t * 9.0) * 0.12
+	for side in 2:
+		var x := BORDER * 0.5 if side == 0 else W - BORDER * 0.5
+		var y := floor_y - 430.0
+		draw_rect(Rect2(x - 4.0, y, 8.0, 34.0), Color("4a3524"))
+		draw_circle(Vector2(x, y - 4.0), 26.0 * flick, Color(1.0, 0.55, 0.15, 0.20))
+		draw_circle(Vector2(x, y - 6.0), 11.0 * flick, Color("ff9e2c"))
+		draw_circle(Vector2(x, y - 10.0), 6.0 * flick, Color("ffe9a8"))
+
+
+func _draw_ground() -> void:
+	draw_rect(Rect2(0, floor_y, W, H - floor_y), Color("2c2d3f"))
+	var i := 0
+	var x := 0.0
+	while x < W:
+		if i % 2 == 0:
+			draw_rect(Rect2(x, floor_y + 6.0, 54.0, 46.0), Color("4e4f63"))
+		x += 62.0
+		i += 1
+	draw_rect(Rect2(0, floor_y + 52.0, W, H - floor_y - 52.0), Color("42435a"))
+	draw_line(Vector2(pf_left, floor_y), Vector2(pf_right, floor_y), Color(1, 0.4, 0.3, 0.25), 2.0)
+
+
+func _draw_dragon() -> void:
+	var base := Vector2(launch_x, floor_y)
+	var dt: Texture2D = dragon.sprite if dragon else null
+	if dt:
+		var w := 120.0
+		var h := w * float(dt.get_height()) / float(dt.get_width())
+		# ελαφρύ "ανάσαιμα" σε ηρεμία, μάζεμα όταν ετοιμάζεται να ρίξει
+		var squash := 1.0 + sin(t * 2.2) * 0.02
+		if phase == "aim" and aiming:
+			squash = 0.94
+		elif phase == "shoot":
+			squash = 1.0 + sin(t * 18.0) * 0.04
+		draw_texture_rect(dt, Rect2(base.x - w * 0.5, base.y - h * squash, w, h * squash),
+			false, dragon.tint)
+		return
+
+	var px := 7.0
+	var map := [
+		"......RR....", ".WW..RRRR...", ".WWW.RRERR..", ".WWWWRRRRRR.",
+		"..WWRRRRRR..", "...RRRRRR...", "..T.RR.RR...", "....RR.RR..."
+	]
+	var o := base + Vector2(-map[0].length() * px * 0.5, -map.size() * px)
+	for r in map.size():
+		var line: String = map[r]
+		for c in line.length():
+			var ch_ := line[c]
+			if ch_ == ".":
+				continue
+			var col := Color("d4453a")
+			if ch_ == "W":
+				col = Color("a33028")
+			elif ch_ == "E":
+				col = Color.WHITE
+			elif ch_ == "T":
+				col = Color("8e2a22")
+			draw_rect(Rect2(o + Vector2(c * px, r * px), Vector2(px, px)), col)
+
+
+func _draw_aim() -> void:
+	if phase != "aim" or not aiming:
+		return
+	var p := Vector2(launch_x, floor_y - 18.0)
+	var v := aim_dir
+	for i in 64:
+		p += v * 16.0
+		if p.x < pf_left + 8.0 or p.x > pf_right - 8.0:
+			v.x = -v.x
+			p.x = clampf(p.x, pf_left + 8.0, pf_right - 8.0)
+		if p.y < PF_TOP:
+			break
+		if i % 2 == 0:
+			draw_circle(p, 3.0, Color(1.0, 0.75, 0.35, 0.7))
+
+
+func _draw_hud() -> void:
+	# πάνω μπάρα
+	draw_rect(Rect2(0, 0, W, HUD_BAND), Color("15162b"))
+	draw_string(font, Vector2(frame_left() + 24.0, 50.0), "SCORE: %d" % score,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color("fff2cf"))
+	draw_string(font, Vector2(frame_right() - 400.0, 50.0), "ROUND: %d" % level,
+		HORIZONTAL_ALIGNMENT_RIGHT, 300.0, 32, Color("fff2cf"))
+	var area := current_area()
+	if area:
+		draw_string(font, Vector2(frame_left() + 24.0, 76.0), area.display_name,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("8d85a3"))
+
+	var pr := pause_rect()
+	draw_rect(pr, Color("2a2740"))
+	draw_rect(Rect2(pr.position + Vector2(3, 3), pr.size - Vector2(6, 6)), Color("3b3757"))
+	draw_rect(Rect2(pr.position.x + 18.0, pr.position.y + 15.0, 6.0, 26.0), Color("e8e2f2"))
+	draw_rect(Rect2(pr.position.x + 32.0, pr.position.y + 15.0, 6.0, 26.0), Color("e8e2f2"))
+
+	# ζωή boss
+	if boss != null and is_instance_valid(boss):
+		var bw := frame_right() - frame_left() - 48.0
+		var br := Rect2(frame_left() + 24.0, 96.0, bw, 20.0)
+		draw_rect(br, Color("2a1420"))
+		var bf := clampf(boss.hp / maxf(boss.max_hp, 1.0), 0.0, 1.0)
+		draw_rect(Rect2(br.position + Vector2(2, 2), Vector2((bw - 4.0) * bf, 16.0)), Color("d4453a"))
+		draw_string(font, Vector2(br.position.x, br.position.y + 16.0), "BOSS",
+			HORIZONTAL_ALIGNMENT_CENTER, bw, 15, Color("ffd7c2"))
+	elif triple_turns > 0:
+		var pw := 288.0
+		var r := Rect2(W * 0.5 - pw * 0.5, 88.0, pw, 62.0)
+		draw_rect(r, Color("1d1b2e"))
+		draw_rect(Rect2(r.position + Vector2(3, 3), r.size - Vector2(6, 6)), Color("2a2740"))
+		var f := float(triple_turns) / float(TRIPLE_TURNS)
+		var bar := Rect2(r.position.x + 14.0, r.position.y + 12.0, 9.0, r.size.y - 24.0)
+		draw_rect(bar, Color("15162b"))
+		draw_rect(Rect2(bar.position.x, bar.position.y + bar.size.y * (1.0 - f),
+			bar.size.x, bar.size.y * f), Color("6fc3ff"))
+		draw_circle(Vector2(r.position.x + 50.0, r.position.y + 31.0), 14.0, Color("ff9e2c"))
+		draw_string(font, Vector2(r.position.x + 74.0, r.position.y + 40.0), "Triple Shot",
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color("ffe1ad"))
+
+	# κάτω μπάρα
+	draw_rect(Rect2(0, ui_top, W, H - ui_top), Color("15162b"))
+
+	var shown := (live_balls + to_fire) if phase == "shoot" else ball_count
+	var bc := Vector2(frame_left() + 78.0, ui_top + 56.0)
+	draw_circle(bc, 38.0, Color("2a2740"))
+	draw_circle(bc, 34.0, Color("1d1b2e"))
+	draw_string(font, Vector2(bc.x - 40.0, bc.y + 11.0), "x%d" % shown,
+		HORIZONTAL_ALIGNMENT_CENTER, 80.0, 30, Color("ffd98a"))
+
+	# διακόπτης single / AoE
+	var ar := aoe_rect()
+	draw_rect(ar, Color("2a2740"))
+	draw_rect(Rect2(ar.position + Vector2(3, 3), ar.size - Vector2(6, 6)),
+		Color("3b3757") if aoe_mode else Color("1d1b2e"))
+	var ac := ar.position + ar.size * 0.5
+	if aoe_mode:
+		draw_circle(ac, 22.0, Color(1.0, 0.55, 0.15, 0.30))
+		for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+			draw_circle(ac + d * 20.0, 6.0, Color("ff9e2c"))
+	draw_circle(ac, 11.0, Color("ff8a1f"))
+	draw_string(font, Vector2(ar.position.x - 22.0, ar.end.y + 24.0),
+		"AOE" if aoe_mode else "SINGLE",
+		HORIZONTAL_ALIGNMENT_CENTER, ar.size.x + 44.0, 20, Color("c9c2d6"))
+
+	# special με μπάρα φόρτισης
+	var sr := special_rect()
+	draw_rect(sr, Color("2a2740"))
+	draw_rect(Rect2(sr.position + Vector2(3, 3), sr.size - Vector2(6, 6)), Color("1d1b2e"))
+	var charge := 0.0
+	if dragon:
+		charge = clampf(special_charge / maxf(dragon.special_cost, 1.0), 0.0, 1.0)
+	draw_rect(Rect2(sr.position.x + 3.0, sr.end.y - 3.0 - (sr.size.y - 6.0) * charge,
+		sr.size.x - 6.0, (sr.size.y - 6.0) * charge), Color(0.42, 0.76, 1.0, 0.30))
+	var sc := sr.position + sr.size * 0.5
+	var ready := special_ready()
+	draw_circle(sc, 24.0, Color("6fc3ff") if ready else Color("3b3757"))
+	if ready:
+		draw_circle(sc, 30.0 + sin(t * 6.0) * 2.0, Color(0.42, 0.76, 1.0, 0.18))
+	draw_string(font, Vector2(sr.position.x - 30.0, sr.end.y + 24.0),
+		dragon.special_name() if dragon else "SPECIAL",
+		HORIZONTAL_ALIGNMENT_CENTER, sr.size.x + 60.0, 20,
+		Color("ffe1ad") if ready else Color("77708a"))
+
+	if phase == "aim" and not aiming:
+		draw_string(font, Vector2(0, ui_top + 66.0), "σύρε για στόχευση",
+			HORIZONTAL_ALIGNMENT_CENTER, W, 22, Color(1, 1, 1, 0.30))
+
+	if banner != "":
+		var alpha := clampf(banner_time, 0.0, 1.0)
+		var plate := Rect2(frame_left(), PF_TOP + 26.0, frame_right() - frame_left(), 50.0)
+		draw_rect(plate, Color(0.06, 0.05, 0.10, 0.82 * alpha))
+		draw_string(font, Vector2(0, plate.position.y + 35.0), banner,
+			HORIZONTAL_ALIGNMENT_CENTER, W, 30, Color(1.0, 0.72, 0.36, alpha))
+
+	if paused:
+		draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color(0.04, 0.03, 0.06, 0.72))
+		draw_string(font, Vector2(0, H * 0.46), "ΠΑΥΣΗ",
+			HORIZONTAL_ALIGNMENT_CENTER, W, 56, Color("ffb35c"))
+
+
+func _draw_over() -> void:
+	draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color(0.04, 0.03, 0.06, 0.82))
+	draw_string(font, Vector2(0, H * 0.44), "GAME OVER",
+		HORIZONTAL_ALIGNMENT_CENTER, W, 64, Color("ff9b3d"))
+	draw_string(font, Vector2(0, H * 0.44 + 58.0),
+		"SCORE %d  •  ROUND %d  •  ρεκόρ %d" % [score, level, int(save.get("best_score", 0))],
+		HORIZONTAL_ALIGNMENT_CENTER, W, 28, Color("9b93ad"))
+	draw_string(font, Vector2(0, H * 0.44 + 126.0), "tap για νέο παιχνίδι",
+		HORIZONTAL_ALIGNMENT_CENTER, W, 26, Color(1, 1, 1, 0.5))

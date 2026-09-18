@@ -1,6 +1,7 @@
 extends Area2D
 ## Pickup: "ball" = +1 μπάλα, "triple" = Triple Shot για 3 γύρους.
 
+var col := 0
 var row := 0
 var kind := "ball"
 var t := 0.0

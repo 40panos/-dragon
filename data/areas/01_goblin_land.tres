@@ -1,0 +1,100 @@
+[gd_resource type="Resource" script_class="AreaDef" load_steps=22 format=3]
+
+[ext_resource type="Texture2D" path="res://art/background.png" id="1_q6tll"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="2_q7sd1"]
+[ext_resource type="Script" path="res://scripts/data/enemy_type.gd" id="3_8loov"]
+[ext_resource type="Texture2D" path="res://art/warlock.png" id="4_ojamh"]
+[ext_resource type="Texture2D" path="res://art/goblin.png" id="5_0tsod"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_rider.gd" id="6_q04hl"]
+[ext_resource type="Texture2D" path="res://art/orc.png" id="7_2jov4"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_shield.gd" id="8_nycdk"]
+[ext_resource type="Texture2D" path="res://art/knight.png" id="9_ci3o3"]
+[ext_resource type="Texture2D" path="res://art/brute.png" id="10_g4j03"]
+[ext_resource type="Script" path="res://scripts/data/area_def.gd" id="11_ccceq"]
+
+[sub_resource type="Resource" id="Resource_y72qm"]
+script = ExtResource("2_q7sd1")
+every = 2
+hp_ratio = 0.35
+min_row = 2
+minion_id = "goblin"
+
+[sub_resource type="Resource" id="Resource_77lvw"]
+script = ExtResource("3_8loov")
+id = "warlock_boss"
+display_name = "Warlock Lord"
+sprite = ExtResource("4_ojamh")
+hp_mult = 1.0
+tier = 5
+ability = SubResource("Resource_y72qm")
+
+[sub_resource type="Resource" id="Resource_k23ck"]
+script = ExtResource("3_8loov")
+id = "goblin"
+display_name = "Goblin"
+sprite = ExtResource("5_0tsod")
+hp_mult = 0.7
+tier = 0
+
+[sub_resource type="Resource" id="Resource_tikl1"]
+script = ExtResource("6_q04hl")
+every = 2
+step = 2
+
+[sub_resource type="Resource" id="Resource_ock6s"]
+script = ExtResource("3_8loov")
+id = "orc"
+display_name = "Orc Rider"
+sprite = ExtResource("7_2jov4")
+hp_mult = 0.6
+tier = 1
+ability = SubResource("Resource_tikl1")
+
+[sub_resource type="Resource" id="Resource_5v0a2"]
+script = ExtResource("8_nycdk")
+ratio = 1.0
+
+[sub_resource type="Resource" id="Resource_00qy8"]
+script = ExtResource("3_8loov")
+id = "knight"
+display_name = "Shield Knight"
+sprite = ExtResource("9_ci3o3")
+hp_mult = 1.1
+tier = 2
+ability = SubResource("Resource_5v0a2")
+
+[sub_resource type="Resource" id="Resource_kigvc"]
+script = ExtResource("3_8loov")
+id = "brute"
+display_name = "Brute"
+sprite = ExtResource("10_g4j03")
+hp_mult = 1.6
+tier = 3
+
+[sub_resource type="Resource" id="Resource_6qt3e"]
+script = ExtResource("2_q7sd1")
+every = 3
+hp_ratio = 0.5
+min_row = 2
+minion_id = "goblin"
+
+[sub_resource type="Resource" id="Resource_yx2hu"]
+script = ExtResource("3_8loov")
+id = "warlock"
+display_name = "Warlock"
+sprite = ExtResource("4_ojamh")
+hp_mult = 1.2
+tier = 4
+ability = SubResource("Resource_6qt3e")
+
+[resource]
+script = ExtResource("11_ccceq")
+id = "goblin_land"
+display_name = "Goblin Land"
+background = ExtResource("1_q6tll")
+tint = Color(1, 1, 1, 1)
+enemies = Array[ExtResource("3_8loov")]([SubResource("Resource_k23ck"), SubResource("Resource_ock6s"), SubResource("Resource_00qy8"), SubResource("Resource_kigvc"), SubResource("Resource_yx2hu")])
+boss = SubResource("Resource_77lvw")
+boss_cols = 3
+boss_rows = 2
+boss_hp_mult = 14.0

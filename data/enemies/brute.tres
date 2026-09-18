@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EnemyType" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_type.gd" id="1_mcqqg"]
+[ext_resource type="Texture2D" path="res://art/brute.png" id="2_f2dvm"]
+
+[resource]
+script = ExtResource("1_mcqqg")
+id = "brute"
+display_name = "Brute"
+sprite = ExtResource("2_f2dvm")
+hp_mult = 1.6
+tier = 3
