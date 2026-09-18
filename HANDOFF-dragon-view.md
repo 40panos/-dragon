@@ -17,6 +17,11 @@ That means every animation change and every balance change land in the same file
 the two of us conflict on every single merge. This document describes the split we
 agreed on, so both sides implement the same structure.
 
+The `Animate the dragon from a 9-frame sheet` commit is a good example of the problem:
+the frame playback itself landed cleanly in `dragon_type.gd`, but wiring it up still
+required editing `main.gd` in two places — `mouth_pos()` and `_draw_dragon()`. After
+this split, that same change would have touched only `dragon_view.gd`.
+
 Nothing has been pushed except this file. Implement the change yourself, in this repo,
 on a branch.
 
@@ -35,7 +40,9 @@ child `Node2D` that holds a back-reference `m` to main, reads state off it, and 
 
 **The view owns:**
 
-- sprite selection via `dragon.sprite_for(phase, aiming)`
+- frame selection via `dragon.frame_for(phase, aiming, t)` — the ping-pong sheet
+  playback added in `Animate the dragon from a 9-frame sheet` stays in
+  `dragon_type.gd`; the view is simply the only caller of it
 - the idle breathing bob and scale
 - the tense shake while aiming
 - head tilt smoothing toward the aim direction
@@ -84,7 +91,8 @@ Godot is not necessarily on `PATH` — use the full path to the executable.
    silently at runtime:
    `<godot> --headless --path <project> --import`
 
-2. Run the test suite (34 tests today, all passing):
+2. Run the test suite (38 tests as of `Animate the dragon from a 9-frame sheet`, all
+   passing):
    `<godot> --headless --path <project> --script tests/run_tests.gd`
 
 3. **Render real frames.** The tests run headless and never call `_draw()`, so this
