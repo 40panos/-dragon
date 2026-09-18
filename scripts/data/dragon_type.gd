@@ -13,13 +13,46 @@ extends Resource
 @export var sprite_ready: Texture2D
 @export var sprite_fire: Texture2D
 
+## Καρέ animation ανά κατάσταση. Αν είναι άδεια, πέφτει στα sprite_* παραπάνω.
+@export var frames_idle: Array[Texture2D] = []
+@export var frames_ready: Array[Texture2D] = []
+@export var frames_fire: Array[Texture2D] = []
+
+@export var fps_idle := 3.0
+@export var fps_ready := 7.0
+@export var fps_fire := 11.0
+
 ## Πλάτος σχεδίασης σε pixel· το ύψος βγαίνει από την αναλογία της εικόνας.
 @export var draw_width := 120.0
 
 @export var tint := Color.WHITE
 
 
-## Επιστρέφει το sprite που ταιριάζει στη φάση του παιχνιδιού.
+## Το καρέ που πρέπει να φαίνεται τώρα. Τα καρέ παίζουν ping-pong (0,1,2,1…)
+## ώστε ο βρόχος να μην κάνει άλμα στο γύρισμα.
+func frame_for(phase: String, aiming: bool, time: float) -> Texture2D:
+	var arr: Array[Texture2D] = frames_idle
+	var fps := fps_idle
+	if phase == "shoot":
+		arr = frames_fire
+		fps = fps_fire
+	elif aiming:
+		arr = frames_ready
+		fps = fps_ready
+
+	if arr.is_empty():
+		return sprite_for(phase, aiming)
+	if arr.size() == 1:
+		return arr[0]
+
+	var period := arr.size() * 2 - 2
+	var i := int(time * fps) % period
+	if i >= arr.size():
+		i = period - i
+	return arr[i]
+
+
+## Επιστρέφει το στατικό sprite που ταιριάζει στη φάση του παιχνιδιού.
 func sprite_for(phase: String, aiming: bool) -> Texture2D:
 	var chosen: Texture2D = null
 	if phase == "shoot":

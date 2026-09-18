@@ -284,7 +284,7 @@ func add_shake(amount: float) -> void:
 func mouth_pos() -> Vector2:
 	var h := 60.0
 	if dragon:
-		var dt := dragon.sprite_for(phase, aiming)
+		var dt := dragon.frame_for(phase, aiming, t)
 		if dt:
 			h = dragon.draw_width * float(dt.get_height()) / float(dt.get_width())
 	return Vector2(launch_x, floor_y) + Vector2(0, -h * 0.45).rotated(tilt)
@@ -849,7 +849,7 @@ func _draw_ground() -> void:
 
 func _draw_dragon() -> void:
 	var base := Vector2(launch_x, floor_y)
-	var dt: Texture2D = dragon.sprite_for(phase, aiming) if dragon else null
+	var dt: Texture2D = dragon.frame_for(phase, aiming, t) if dragon else null
 	if dt:
 		var w: float = dragon.draw_width
 		var h := w * float(dt.get_height()) / float(dt.get_width())

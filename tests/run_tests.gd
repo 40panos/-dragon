@@ -146,6 +146,26 @@ func _initialize() -> void:
 			misplaced += 1
 	ok("κόμβοι συγχρονισμένοι με το πλέγμα", misplaced == 0, "(%d εκτός)" % misplaced)
 
+	print("--- animation δράκου ---")
+	var dg = m.dragon
+	ok("φορτώθηκαν καρέ και στις 3 καταστάσεις",
+		dg.frames_idle.size() > 0 and dg.frames_ready.size() > 0 and dg.frames_fire.size() > 0,
+		"(%d/%d/%d)" % [dg.frames_idle.size(), dg.frames_ready.size(), dg.frames_fire.size()])
+	var seq := []
+	for step in 8:
+		var time: float = step / dg.fps_idle
+		seq.append(dg.frames_idle.find(dg.frame_for("aim", false, time)))
+	ok("ping-pong χωρίς άλμα στο γύρισμα", seq == [0, 1, 2, 1, 0, 1, 2, 1], str(seq))
+	var a = dg.frame_for("aim", false, 0.0)
+	var b = dg.frame_for("aim", true, 0.0)
+	var c = dg.frame_for("shoot", false, 0.0)
+	ok("οι τρεις καταστάσεις δείχνουν διαφορετικό καρέ", a != b and b != c and a != c)
+	var sizes := {}
+	for tex in dg.frames_idle + dg.frames_ready + dg.frames_fire:
+		sizes[tex.get_size()] = true
+	ok("όλα τα καρέ ίδιο μέγεθος, ώστε να μην πηδάει", sizes.size() == 1,
+		"(%d διαφορετικά)" % sizes.size())
+
 	print("--- αποθήκευση ---")
 	var d = SaveManager.defaults()
 	d["best_score"] = 4242

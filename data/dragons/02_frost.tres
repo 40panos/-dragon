@@ -1,20 +1,32 @@
-[gd_resource type="Resource" script_class="DragonType" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="DragonType" load_steps=11 format=3]
 
-[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="1_wiq1d"]
-[ext_resource type="Texture2D" path="res://art/dragon_idle.png" id="2_ksetp"]
-[ext_resource type="Texture2D" path="res://art/dragon_fire.png" id="3_7id34"]
-[ext_resource type="Texture2D" path="res://art/dragon_ready.png" id="4_ydoom"]
+[ext_resource type="Texture2D" path="res://art/drake_fire_1.png" id="1_rt5gg"]
+[ext_resource type="Texture2D" path="res://art/drake_fire_2.png" id="2_ifkph"]
+[ext_resource type="Texture2D" path="res://art/drake_fire_3.png" id="3_fakt4"]
+[ext_resource type="Texture2D" path="res://art/drake_idle_1.png" id="4_sjbdx"]
+[ext_resource type="Texture2D" path="res://art/drake_idle_2.png" id="5_63o5j"]
+[ext_resource type="Texture2D" path="res://art/drake_idle_3.png" id="6_ys7hu"]
+[ext_resource type="Texture2D" path="res://art/drake_ready_1.png" id="7_pha4y"]
+[ext_resource type="Texture2D" path="res://art/drake_ready_2.png" id="8_vatx4"]
+[ext_resource type="Texture2D" path="res://art/drake_ready_3.png" id="9_hsv1f"]
+[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="10_cpbes"]
 
 [resource]
-script = ExtResource("1_wiq1d")
+script = ExtResource("10_cpbes")
 id = "frost"
 display_name = "Frost"
-sprite = ExtResource("2_ksetp")
-sprite_idle = ExtResource("2_ksetp")
-sprite_ready = ExtResource("4_ydoom")
-sprite_fire = ExtResource("3_7id34")
-draw_width = 105.0
-tint = Color(0.62, 0.84, 1.15, 1)
+sprite = ExtResource("4_sjbdx")
+sprite_idle = ExtResource("4_sjbdx")
+sprite_ready = ExtResource("7_pha4y")
+sprite_fire = ExtResource("1_rt5gg")
+frames_idle = Array[Texture2D]([ExtResource("4_sjbdx"), ExtResource("5_63o5j"), ExtResource("6_ys7hu")])
+frames_ready = Array[Texture2D]([ExtResource("7_pha4y"), ExtResource("8_vatx4"), ExtResource("9_hsv1f")])
+frames_fire = Array[Texture2D]([ExtResource("1_rt5gg"), ExtResource("2_ifkph"), ExtResource("3_fakt4")])
+fps_idle = 3.0
+fps_ready = 7.0
+fps_fire = 11.0
+draw_width = 120.0
+tint = Color(0.66, 0.86, 1.18, 1)
 special = "swarm"
 special_cost = 180.0
 passive = "ball_every5"
