@@ -94,7 +94,20 @@ func _ready() -> void:
 	_load_content()
 	save = SaveManager.load_data()
 	_build_walls()
+	_make_hud()
 	_start()
+
+
+## Το HUD μπαίνει σε CanvasLayer ώστε να μένει πάνω από εχθρούς και μπάλες.
+func _make_hud() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 10
+	add_child(layer)
+	var hud := Node2D.new()
+	hud.set_script(load("res://scripts/hud.gd"))
+	hud.process_mode = Node.PROCESS_MODE_ALWAYS
+	layer.add_child(hud)
+	hud.m = self
 
 
 # ---------------------------------------------------------------- περιεχόμενο
@@ -642,9 +655,7 @@ func _draw() -> void:
 	_draw_ground()
 	_draw_dragon()
 	_draw_aim()
-	_draw_hud()
-	if phase == "over":
-		_draw_over()
+	# το HUD σχεδιάζεται σε CanvasLayer, δες scripts/hud.gd
 
 
 func _draw_field() -> void:
@@ -766,114 +777,3 @@ func _draw_aim() -> void:
 			draw_circle(p, 3.0, Color(1.0, 0.75, 0.35, 0.7))
 
 
-func _draw_hud() -> void:
-	# πάνω μπάρα
-	draw_rect(Rect2(0, 0, W, HUD_BAND), Color("15162b"))
-	draw_string(font, Vector2(frame_left() + 24.0, 50.0), "SCORE: %d" % score,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color("fff2cf"))
-	draw_string(font, Vector2(frame_right() - 400.0, 50.0), "ROUND: %d" % level,
-		HORIZONTAL_ALIGNMENT_RIGHT, 300.0, 32, Color("fff2cf"))
-	var area := current_area()
-	if area:
-		draw_string(font, Vector2(frame_left() + 24.0, 76.0), area.display_name,
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("8d85a3"))
-
-	var pr := pause_rect()
-	draw_rect(pr, Color("2a2740"))
-	draw_rect(Rect2(pr.position + Vector2(3, 3), pr.size - Vector2(6, 6)), Color("3b3757"))
-	draw_rect(Rect2(pr.position.x + 18.0, pr.position.y + 15.0, 6.0, 26.0), Color("e8e2f2"))
-	draw_rect(Rect2(pr.position.x + 32.0, pr.position.y + 15.0, 6.0, 26.0), Color("e8e2f2"))
-
-	# ζωή boss
-	if boss != null and is_instance_valid(boss):
-		var bw := frame_right() - frame_left() - 48.0
-		var br := Rect2(frame_left() + 24.0, 96.0, bw, 20.0)
-		draw_rect(br, Color("2a1420"))
-		var bf := clampf(boss.hp / maxf(boss.max_hp, 1.0), 0.0, 1.0)
-		draw_rect(Rect2(br.position + Vector2(2, 2), Vector2((bw - 4.0) * bf, 16.0)), Color("d4453a"))
-		draw_string(font, Vector2(br.position.x, br.position.y + 16.0), "BOSS",
-			HORIZONTAL_ALIGNMENT_CENTER, bw, 15, Color("ffd7c2"))
-	elif triple_turns > 0:
-		var pw := 288.0
-		var r := Rect2(W * 0.5 - pw * 0.5, 88.0, pw, 62.0)
-		draw_rect(r, Color("1d1b2e"))
-		draw_rect(Rect2(r.position + Vector2(3, 3), r.size - Vector2(6, 6)), Color("2a2740"))
-		var f := float(triple_turns) / float(TRIPLE_TURNS)
-		var bar := Rect2(r.position.x + 14.0, r.position.y + 12.0, 9.0, r.size.y - 24.0)
-		draw_rect(bar, Color("15162b"))
-		draw_rect(Rect2(bar.position.x, bar.position.y + bar.size.y * (1.0 - f),
-			bar.size.x, bar.size.y * f), Color("6fc3ff"))
-		draw_circle(Vector2(r.position.x + 50.0, r.position.y + 31.0), 14.0, Color("ff9e2c"))
-		draw_string(font, Vector2(r.position.x + 74.0, r.position.y + 40.0), "Triple Shot",
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color("ffe1ad"))
-
-	# κάτω μπάρα
-	draw_rect(Rect2(0, ui_top, W, H - ui_top), Color("15162b"))
-
-	var shown := (live_balls + to_fire) if phase == "shoot" else ball_count
-	var bc := Vector2(frame_left() + 78.0, ui_top + 56.0)
-	draw_circle(bc, 38.0, Color("2a2740"))
-	draw_circle(bc, 34.0, Color("1d1b2e"))
-	draw_string(font, Vector2(bc.x - 40.0, bc.y + 11.0), "x%d" % shown,
-		HORIZONTAL_ALIGNMENT_CENTER, 80.0, 30, Color("ffd98a"))
-
-	# διακόπτης single / AoE
-	var ar := aoe_rect()
-	draw_rect(ar, Color("2a2740"))
-	draw_rect(Rect2(ar.position + Vector2(3, 3), ar.size - Vector2(6, 6)),
-		Color("3b3757") if aoe_mode else Color("1d1b2e"))
-	var ac := ar.position + ar.size * 0.5
-	if aoe_mode:
-		draw_circle(ac, 22.0, Color(1.0, 0.55, 0.15, 0.30))
-		for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
-			draw_circle(ac + d * 20.0, 6.0, Color("ff9e2c"))
-	draw_circle(ac, 11.0, Color("ff8a1f"))
-	draw_string(font, Vector2(ar.position.x - 22.0, ar.end.y + 24.0),
-		"AOE" if aoe_mode else "SINGLE",
-		HORIZONTAL_ALIGNMENT_CENTER, ar.size.x + 44.0, 20, Color("c9c2d6"))
-
-	# special με μπάρα φόρτισης
-	var sr := special_rect()
-	draw_rect(sr, Color("2a2740"))
-	draw_rect(Rect2(sr.position + Vector2(3, 3), sr.size - Vector2(6, 6)), Color("1d1b2e"))
-	var charge := 0.0
-	if dragon:
-		charge = clampf(special_charge / maxf(dragon.special_cost, 1.0), 0.0, 1.0)
-	draw_rect(Rect2(sr.position.x + 3.0, sr.end.y - 3.0 - (sr.size.y - 6.0) * charge,
-		sr.size.x - 6.0, (sr.size.y - 6.0) * charge), Color(0.42, 0.76, 1.0, 0.30))
-	var sc := sr.position + sr.size * 0.5
-	var ready := special_ready()
-	draw_circle(sc, 24.0, Color("6fc3ff") if ready else Color("3b3757"))
-	if ready:
-		draw_circle(sc, 30.0 + sin(t * 6.0) * 2.0, Color(0.42, 0.76, 1.0, 0.18))
-	draw_string(font, Vector2(sr.position.x - 30.0, sr.end.y + 24.0),
-		dragon.special_name() if dragon else "SPECIAL",
-		HORIZONTAL_ALIGNMENT_CENTER, sr.size.x + 60.0, 20,
-		Color("ffe1ad") if ready else Color("77708a"))
-
-	if phase == "aim" and not aiming:
-		draw_string(font, Vector2(0, ui_top + 66.0), "σύρε για στόχευση",
-			HORIZONTAL_ALIGNMENT_CENTER, W, 22, Color(1, 1, 1, 0.30))
-
-	if banner != "":
-		var alpha := clampf(banner_time, 0.0, 1.0)
-		var plate := Rect2(frame_left(), PF_TOP + 26.0, frame_right() - frame_left(), 50.0)
-		draw_rect(plate, Color(0.06, 0.05, 0.10, 0.82 * alpha))
-		draw_string(font, Vector2(0, plate.position.y + 35.0), banner,
-			HORIZONTAL_ALIGNMENT_CENTER, W, 30, Color(1.0, 0.72, 0.36, alpha))
-
-	if paused:
-		draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color(0.04, 0.03, 0.06, 0.72))
-		draw_string(font, Vector2(0, H * 0.46), "ΠΑΥΣΗ",
-			HORIZONTAL_ALIGNMENT_CENTER, W, 56, Color("ffb35c"))
-
-
-func _draw_over() -> void:
-	draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color(0.04, 0.03, 0.06, 0.82))
-	draw_string(font, Vector2(0, H * 0.44), "GAME OVER",
-		HORIZONTAL_ALIGNMENT_CENTER, W, 64, Color("ff9b3d"))
-	draw_string(font, Vector2(0, H * 0.44 + 58.0),
-		"SCORE %d  •  ROUND %d  •  ρεκόρ %d" % [score, level, int(save.get("best_score", 0))],
-		HORIZONTAL_ALIGNMENT_CENTER, W, 28, Color("9b93ad"))
-	draw_string(font, Vector2(0, H * 0.44 + 126.0), "tap για νέο παιχνίδι",
-		HORIZONTAL_ALIGNMENT_CENTER, W, 26, Color(1, 1, 1, 0.5))
