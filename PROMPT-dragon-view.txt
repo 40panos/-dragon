@@ -1,0 +1,32 @@
+Paste the block below into Claude Code, from the root of this repo.
+It kicks off the DragonView split described in HANDOFF-dragon-view.md.
+
+------------------------------------------------------------------------
+
+Pull the latest main and read HANDOFF-dragon-view.md in the repo root. It's a
+proposal from my collaborator's side about splitting the dragon's rendering out
+of main.gd into its own DragonView node, so that my animation work and his
+mechanics work stop colliding in the same file.
+
+Read the whole thing first. If you think any part of the split is wrong, tell me
+before you write code — I'd rather argue about it now than unpick it later.
+
+If it looks right, implement it on a branch called art/dragon-view. Follow the
+structure in the doc exactly, since he's building against the same contract.
+
+Do not tell me it works until you have done all three verification steps in the
+doc, in order: import, run the test suite, and render real frames with
+--quit-after 240. The render step is the important one — the tests run headless
+and never call _draw(), so a broken draw path passes them silently. Godot isn't
+on PATH, so use the full path to the exe.
+
+Also add tests guarding the new boundary, so the rendering can't leak back into
+main.gd later without something going red.
+
+Keep code comments in Greek and the commit message in English, like the rest of
+the repo.
+
+------------------------------------------------------------------------
+
+If it pushes back and finds a real problem with the split, send that back to the
+collaborator before either side builds on it.
