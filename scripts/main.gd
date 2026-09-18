@@ -725,17 +725,15 @@ func _draw_ground() -> void:
 
 func _draw_dragon() -> void:
 	var base := Vector2(launch_x, floor_y)
-	var dt: Texture2D = dragon.sprite if dragon else null
+	var dt: Texture2D = dragon.sprite_for(phase, aiming) if dragon else null
 	if dt:
-		var w := 120.0
+		var w: float = dragon.draw_width
 		var h := w * float(dt.get_height()) / float(dt.get_width())
-		# ελαφρύ "ανάσαιμα" σε ηρεμία, μάζεμα όταν ετοιμάζεται να ρίξει
-		var squash := 1.0 + sin(t * 2.2) * 0.02
-		if phase == "aim" and aiming:
-			squash = 0.94
-		elif phase == "shoot":
-			squash = 1.0 + sin(t * 18.0) * 0.04
-		draw_texture_rect(dt, Rect2(base.x - w * 0.5, base.y - h * squash, w, h * squash),
+		# ήπιο ανάσαιμα μόνο σε ηρεμία· τις καταστάσεις τις δείχνουν τα sprites
+		var breathe := 1.0
+		if phase == "aim" and not aiming:
+			breathe = 1.0 + sin(t * 2.2) * 0.015
+		draw_texture_rect(dt, Rect2(base.x - w * 0.5, base.y - h * breathe, w, h * breathe),
 			false, dragon.tint)
 		return
 

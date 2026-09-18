@@ -1,13 +1,19 @@
-[gd_resource type="Resource" script_class="DragonType" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="DragonType" load_steps=5 format=3]
 
-[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="1_j46lp"]
-[ext_resource type="Texture2D" path="res://art/dragon.png" id="2_gkisb"]
+[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="1_wiq1d"]
+[ext_resource type="Texture2D" path="res://art/dragon_idle.png" id="2_ksetp"]
+[ext_resource type="Texture2D" path="res://art/dragon_fire.png" id="3_7id34"]
+[ext_resource type="Texture2D" path="res://art/dragon_ready.png" id="4_ydoom"]
 
 [resource]
-script = ExtResource("1_j46lp")
+script = ExtResource("1_wiq1d")
 id = "frost"
 display_name = "Frost"
-sprite = ExtResource("2_gkisb")
+sprite = ExtResource("2_ksetp")
+sprite_idle = ExtResource("2_ksetp")
+sprite_ready = ExtResource("4_ydoom")
+sprite_fire = ExtResource("3_7id34")
+draw_width = 105.0
 tint = Color(0.62, 0.84, 1.15, 1)
 special = "swarm"
 special_cost = 180.0
