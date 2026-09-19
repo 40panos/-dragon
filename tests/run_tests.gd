@@ -188,6 +188,25 @@ func _initialize() -> void:
 	orc_block.idle_t = 8.0 / orc_block.fps_idle
 	ok("μετά το τέλος ο βρόχος ξαναρχίζει από το 0",
 		orc_block.frames_idle.find(orc_block.idle_frame()) == 0)
+
+	print("--- animation εχθρού (orc hit) ---")
+	ok("φορτώθηκαν 9 καρέ hit", orc_type.frames_hit.size() == 9,
+		"(%d)" % orc_type.frames_hit.size())
+	var hit_sizes := {}
+	for tex in orc_type.frames_hit:
+		hit_sizes[tex.get_size()] = true
+	ok("όλα τα καρέ hit ίδιο μέγεθος με το idle", hit_sizes.size() == 1 and orc_sizes.keys()[0] == hit_sizes.keys()[0],
+		"(%s vs %s)" % [str(hit_sizes.keys()), str(orc_sizes.keys())])
+	ok("πριν το χτύπημα δείχνει idle", not orc_block.hit_playing)
+	orc_block.take_damage(1.0)
+	ok("το χτύπημα ξεκινάει την αντίδραση", orc_block.hit_playing and orc_block.hit_t == 0.0)
+	ok("πρώτο καρέ της αντίδρασης", orc_block.frames_hit.find(orc_block.portrait_frame()) == 0)
+	orc_block._process(0.2)      # 0.2s * 12fps = καρέ 2 (μέσα στη διάρκεια)
+	ok("προχωράει στα καρέ της αντίδρασης, όχι idle",
+		orc_block.hit_playing and orc_block.frames_hit.find(orc_block.portrait_frame()) == 2,
+		"(%d)" % orc_block.frames_hit.find(orc_block.portrait_frame()))
+	orc_block._process(1.0)      # σίγουρα πέρασε η συνολική διάρκεια (9/12 ≈ 0.75s)
+	ok("μετά το τέλος ξαναγυρίζει στο idle", not orc_block.hit_playing)
 	orc_block.queue_free()
 
 	print("--- αποθήκευση ---")

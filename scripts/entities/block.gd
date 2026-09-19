@@ -25,6 +25,12 @@ var frames_idle: Array[Texture2D] = []
 var fps_idle := 6.0
 var idle_t := 0.0
 
+# αντίδραση σε χτύπημα — παίζει ΜΙΑ φορά κάθε φορά που δέχεται ζημιά
+var frames_hit: Array[Texture2D] = []
+var fps_hit := 12.0
+var hit_t := 0.0
+var hit_playing := false
+
 # placeholder πορτρέτα 8x8, όταν λείπει sprite
 const ART := {
 	"goblin": [
@@ -44,7 +50,8 @@ const ART := {
 
 func setup(p_hp: float, p_box: Vector2, p_kind: String, p_sprite: Texture2D,
 		p_ability: EnemyAbility, p_cw: int = 1, p_ch: int = 1,
-		p_frames_idle: Array[Texture2D] = [], p_fps_idle: float = 6.0) -> void:
+		p_frames_idle: Array[Texture2D] = [], p_fps_idle: float = 6.0,
+		p_frames_hit: Array[Texture2D] = [], p_fps_hit: float = 12.0) -> void:
 	hp = p_hp
 	max_hp = p_hp
 	box = p_box
@@ -54,6 +61,8 @@ func setup(p_hp: float, p_box: Vector2, p_kind: String, p_sprite: Texture2D,
 	ch = p_ch
 	frames_idle = p_frames_idle
 	fps_idle = p_fps_idle
+	frames_hit = p_frames_hit
+	fps_hit = p_fps_hit
 	# ξεκίνα από τυχαίο σημείο του βρόχου, ώστε τα ίδια πλάσματα να μην
 	# χτυπάνε συγχρονισμένα σαν στρατός
 	idle_t = randf() * 10.0
@@ -72,6 +81,9 @@ func take_damage(amount: float) -> float:
 	if ability:
 		through = ability.absorb(self, amount)
 	flash = 1.0
+	if not frames_hit.is_empty():
+		hit_t = 0.0
+		hit_playing = true
 	if through <= 0.0:
 		queue_redraw()
 		damaged.emit(false, amount)
@@ -94,7 +106,12 @@ func _process(delta: float) -> void:
 	if flash > 0.0:
 		flash = maxf(0.0, flash - delta * 6.0)
 		queue_redraw()
-	if frames_idle.size() > 1:
+	if hit_playing:
+		hit_t += delta
+		if hit_t >= float(frames_hit.size()) / fps_hit:
+			hit_playing = false      # τέλειωσε η αντίδραση, γύρνα στο idle
+		queue_redraw()
+	elif frames_idle.size() > 1:
 		idle_t += delta
 		queue_redraw()
 
@@ -108,6 +125,18 @@ func idle_frame() -> Texture2D:
 		return frames_idle[0]
 	var i := int(idle_t * fps_idle) % frames_idle.size()
 	return frames_idle[i]
+
+
+## Το πορτρέτο που πρέπει να φαίνεται τώρα: η αντίδραση σε χτύπημα παίζει
+## ΜΙΑ φορά (δεν κάνει loop, σταματάει στο τελευταίο καρέ αν προλάβει να
+## ξαναζωγραφιστεί πριν το _process την κλείσει) και έχει προτεραιότητα
+## έναντι του idle.
+func portrait_frame() -> Texture2D:
+	if hit_playing and not frames_hit.is_empty():
+		var i := int(hit_t * fps_hit)
+		i = clampi(i, 0, frames_hit.size() - 1)
+		return frames_hit[i]
+	return idle_frame()
 
 
 ## Σχεδιάζει κείμενο με μαύρο περίγραμμα, ώστε να διαβάζεται πάνω σε οτιδήποτε.
@@ -132,8 +161,8 @@ func _draw() -> void:
 	draw_rect(Rect2(-half, box), Color("232338"))
 	draw_rect(Rect2(-half + Vector2(2, 2), box - Vector2(4, 4)), Color("31314d"))
 
-	# πορτρέτο — παίζει το idle loop αν υπάρχει, αλλιώς το στατικό sprite
-	var portrait := idle_frame()
+	# πορτρέτο — αντίδραση σε χτύπημα > idle loop > στατικό sprite
+	var portrait := portrait_frame()
 	if portrait:
 		draw_texture_rect(portrait, Rect2(-half + Vector2(3, 3), box - Vector2(6, 6)), false)
 	else:
