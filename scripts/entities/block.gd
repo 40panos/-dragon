@@ -3,6 +3,10 @@ extends StaticBody2D
 
 signal damaged(destroyed: bool, amount: float)
 
+const HEART_TEX := preload("res://art/ui_heart.png")
+const SHIELD_TEX := preload("res://art/ui_shield.png")
+const OUTLINE_OFFSETS := [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]
+
 var hp := 1.0
 var max_hp := 1.0
 var box := Vector2(72, 72)      # μέγεθος σε pixel
@@ -81,9 +85,24 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 
+## Σχεδιάζει κείμενο με μαύρο περίγραμμα, ώστε να διαβάζεται πάνω σε οτιδήποτε.
+func _draw_outline_text(pos: Vector2, text: String, size: int, color: Color) -> void:
+	for off in OUTLINE_OFFSETS:
+		draw_string(ThemeDB.fallback_font, pos + off, text,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color("000000"))
+	draw_string(ThemeDB.fallback_font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+
+
+## Πόση ασπίδα έχει τώρα ο εχθρός, μόνο αν έχει ShieldAbility.
+func _shield_amount() -> int:
+	if ability is ShieldAbility:
+		return maxi(0, int(ceil((ability as ShieldAbility).shield)))
+	return 0
+
+
 func _draw() -> void:
 	var half := box * 0.5
-	var band := minf(box.y * 0.28, 22.0)      # ύψος μπάρας ζωής
+	var band := minf(box.y * 0.14, 10.0)      # ύψος μπάρας ζωής — μικρή, ο αριθμός μιλάει
 
 	draw_rect(Rect2(-half, box), Color("232338"))
 	draw_rect(Rect2(-half + Vector2(2, 2), box - Vector2(4, 4)), Color("31314d"))
@@ -103,21 +122,28 @@ func _draw() -> void:
 					continue
 				draw_rect(Rect2(o + Vector2(c * px, r * px), Vector2(px, px)), _pix(ch_))
 
-	# ασπίδα, αν υπάρχει και αντέχει
-	var sh := _shield_ratio()
-	if sh > 0.0:
-		draw_rect(Rect2(-half, box), Color(0.45, 0.75, 1.0, 0.18))
-		var sbar := Rect2(-half.x + 3.0, -half.y + 3.0, (box.x - 6.0) * sh, 5.0)
-		draw_rect(sbar, Color("7ad0ff"))
+	# ασπίδα — μόνο ο ασπιδοφόρος (ShieldAbility) την έχει· εικονίδιο + αριθμός
+	var shield_amt := _shield_amount()
+	if shield_amt > 0:
+		var sic := 13.0
+		var spos := Vector2(-half.x + 2.0, -half.y + 2.0)
+		draw_texture_rect(SHIELD_TEX, Rect2(spos, Vector2(sic, sic)), false)
+		_draw_outline_text(spos + Vector2(sic + 2.0, sic - 1.0), str(shield_amt), 13, Color("bfe6ff"))
 
-	# μπάρα ζωής
+	# μικρή μπάρα ζωής, χρωματισμένη ανάλογα με το ποσοστό
 	var t := clampf(hp / maxf(max_hp, 0.001), 0.0, 1.0)
 	var bar := Rect2(-half.x + 3.0, half.y - band - 1.0, box.x - 6.0, band)
-	draw_rect(bar, Color("1a1a2b"))
-	draw_rect(Rect2(bar.position + Vector2(2, 2), Vector2((bar.size.x - 4.0) * t, bar.size.y - 4.0)),
-		Color.from_hsv(lerpf(0.0, 0.33, t), 0.72, 0.68))
-	draw_string(ThemeDB.fallback_font, Vector2(-half.x, half.y - 6.0), str(shown_hp()),
-		HORIZONTAL_ALIGNMENT_CENTER, box.x, int(band * 0.8), Color("ffffff"))
+	draw_rect(bar, Color(0.102, 0.102, 0.169, 0.55))
+	var fill_color := Color.from_hsv(lerpf(0.0, 0.33, t), 0.72, 0.68)
+	fill_color.a = 0.6
+	draw_rect(Rect2(bar.position + Vector2(1, 1), Vector2((bar.size.x - 2.0) * t, bar.size.y - 2.0)),
+		fill_color)
+
+	# καρδιά + αριθμός ζωής, πάνω από τη μπάρα — ίδιο ύφος με την ασπίδα
+	var hic := 12.0
+	var hpos := Vector2(-half.x + 2.0, bar.position.y - hic - 2.0)
+	draw_texture_rect(HEART_TEX, Rect2(hpos, Vector2(hic, hic)), false)
+	_draw_outline_text(hpos + Vector2(hic + 2.0, hic - 1.0), str(shown_hp()), 13, Color("ffffff"))
 
 	# ένδειξη ικανότητας
 	if ability:
@@ -128,14 +154,6 @@ func _draw() -> void:
 
 	if flash > 0.02:
 		draw_rect(Rect2(-half, box), Color(1, 1, 1, flash * 0.55))
-
-
-func _shield_ratio() -> float:
-	if ability is ShieldAbility:
-		var s := ability as ShieldAbility
-		if s.shield_max > 0.0:
-			return clampf(s.shield / s.shield_max, 0.0, 1.0)
-	return 0.0
 
 
 func _pix(ch_: String) -> Color:

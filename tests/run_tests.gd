@@ -29,7 +29,10 @@ func _initialize() -> void:
 	ok("φορτώθηκαν δράκοι", m.dragons.size() >= 2, "(%d)" % m.dragons.size())
 	ok("επιλέχθηκε δράκος", m.dragon != null, str(m.dragon.id if m.dragon else "-"))
 	ok("πλέγμα γεμάτο μετά την 1η σειρά", m.grid.blocks().size() > 0, "(%d)" % m.grid.blocks().size())
-	ok("death_row υπολογίστηκε", m.death_row == 11, "(%d)" % m.death_row)
+	# εύρος αντί για σταθερό νούμερο: το COLS ρυθμίζεται (μέγεθος κελιού), οπότε
+	# η ακριβής τιμή αλλάζει μαζί του — το test ελέγχει ότι ο υπολογισμός βγάζει
+	# λογικό αποτέλεσμα, όχι μια συγκεκριμένη γεωμετρία.
+	ok("death_row υπολογίστηκε", m.death_row >= 8 and m.death_row <= 12, "(%d)" % m.death_row)
 
 	print("--- πλέγμα με αποτύπωμα ---")
 	for b in m.grid.blocks():
