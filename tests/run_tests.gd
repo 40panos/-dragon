@@ -169,6 +169,27 @@ func _initialize() -> void:
 	ok("όλα τα καρέ ίδιο μέγεθος, ώστε να μην πηδάει", sizes.size() == 1,
 		"(%d διαφορετικά)" % sizes.size())
 
+	print("--- animation εχθρού (orc idle) ---")
+	var orc_type: EnemyType = m.enemy_by_id["orc"]
+	ok("φορτώθηκαν 8 καρέ idle", orc_type.frames_idle.size() == 8,
+		"(%d)" % orc_type.frames_idle.size())
+	var orc_sizes := {}
+	for tex in orc_type.frames_idle:
+		orc_sizes[tex.get_size()] = true
+	ok("όλα τα καρέ idle ίδιο μέγεθος", orc_sizes.size() == 1,
+		"(%d διαφορετικά)" % orc_sizes.size())
+	var orc_block = m._make_block(0, 0, orc_type, 5.0, 1, 1, false)
+	var idle_seq := []
+	for step in 8:
+		orc_block.idle_t = float(step) / orc_block.fps_idle
+		idle_seq.append(orc_block.frames_idle.find(orc_block.idle_frame()))
+	ok("το idle προχωράει καρέ-καρέ χωρίς επανάληψη πριν τον βρόχο",
+		idle_seq == [0, 1, 2, 3, 4, 5, 6, 7], str(idle_seq))
+	orc_block.idle_t = 8.0 / orc_block.fps_idle
+	ok("μετά το τέλος ο βρόχος ξαναρχίζει από το 0",
+		orc_block.frames_idle.find(orc_block.idle_frame()) == 0)
+	orc_block.queue_free()
+
 	print("--- αποθήκευση ---")
 	var d = SaveManager.defaults()
 	d["best_score"] = 4242

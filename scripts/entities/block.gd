@@ -20,6 +20,11 @@ var sprite: Texture2D = null
 var ability: EnemyAbility = null
 var is_boss := false
 
+# ήρεμη στάση (idle loop) — προαιρετική, αλλιώς μένει στο στατικό sprite
+var frames_idle: Array[Texture2D] = []
+var fps_idle := 6.0
+var idle_t := 0.0
+
 # placeholder πορτρέτα 8x8, όταν λείπει sprite
 const ART := {
 	"goblin": [
@@ -38,7 +43,8 @@ const ART := {
 
 
 func setup(p_hp: float, p_box: Vector2, p_kind: String, p_sprite: Texture2D,
-		p_ability: EnemyAbility, p_cw: int = 1, p_ch: int = 1) -> void:
+		p_ability: EnemyAbility, p_cw: int = 1, p_ch: int = 1,
+		p_frames_idle: Array[Texture2D] = [], p_fps_idle: float = 6.0) -> void:
 	hp = p_hp
 	max_hp = p_hp
 	box = p_box
@@ -46,6 +52,11 @@ func setup(p_hp: float, p_box: Vector2, p_kind: String, p_sprite: Texture2D,
 	sprite = p_sprite
 	cw = p_cw
 	ch = p_ch
+	frames_idle = p_frames_idle
+	fps_idle = p_fps_idle
+	# ξεκίνα από τυχαίο σημείο του βρόχου, ώστε τα ίδια πλάσματα να μην
+	# χτυπάνε συγχρονισμένα σαν στρατός
+	idle_t = randf() * 10.0
 	# κάθε εχθρός παίρνει δικό του αντίγραφο, ώστε οι μετρητές να μην είναι κοινοί
 	ability = p_ability.duplicate() if p_ability else null
 	var shape := $CollisionShape2D.shape as RectangleShape2D
@@ -83,6 +94,20 @@ func _process(delta: float) -> void:
 	if flash > 0.0:
 		flash = maxf(0.0, flash - delta * 6.0)
 		queue_redraw()
+	if frames_idle.size() > 1:
+		idle_t += delta
+		queue_redraw()
+
+
+## Το καρέ ήρεμης στάσης που πρέπει να φαίνεται τώρα· βρόχος προς τα εμπρός
+## (0,1,2,...,τέλος,0,...), όχι ping-pong — το σετ είναι φτιαγμένο να κλείνει.
+func idle_frame() -> Texture2D:
+	if frames_idle.is_empty():
+		return sprite
+	if frames_idle.size() == 1:
+		return frames_idle[0]
+	var i := int(idle_t * fps_idle) % frames_idle.size()
+	return frames_idle[i]
 
 
 ## Σχεδιάζει κείμενο με μαύρο περίγραμμα, ώστε να διαβάζεται πάνω σε οτιδήποτε.
@@ -107,9 +132,10 @@ func _draw() -> void:
 	draw_rect(Rect2(-half, box), Color("232338"))
 	draw_rect(Rect2(-half + Vector2(2, 2), box - Vector2(4, 4)), Color("31314d"))
 
-	# πορτρέτο
-	if sprite:
-		draw_texture_rect(sprite, Rect2(-half + Vector2(3, 3), box - Vector2(6, 6)), false)
+	# πορτρέτο — παίζει το idle loop αν υπάρχει, αλλιώς το στατικό sprite
+	var portrait := idle_frame()
+	if portrait:
+		draw_texture_rect(portrait, Rect2(-half + Vector2(3, 3), box - Vector2(6, 6)), false)
 	else:
 		var map: Array = ART.get(kind, ART["goblin"])
 		var px := (minf(box.x, box.y) - 16.0) / 8.0

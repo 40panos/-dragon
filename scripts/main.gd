@@ -394,7 +394,8 @@ func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: in
 	b.row = row
 	b.is_boss = as_boss
 	var box := Vector2(cw * cell - 6.0, ch * cell - 6.0)
-	b.setup(hp, box, type.id, type.sprite, type.ability, cw, ch)
+	b.setup(hp, box, type.id, type.sprite, type.ability, cw, ch,
+		type.frames_idle, type.fps_idle)
 	b.position = block_center(col, row, cw, ch)
 	var area := current_area()
 	if area:

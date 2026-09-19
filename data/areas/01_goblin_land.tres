@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AreaDef" load_steps=22 format=3]
+[gd_resource type="Resource" script_class="AreaDef" load_steps=30 format=3]
 
 [ext_resource type="Texture2D" path="res://art/background.png" id="1_q6tll"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="2_q7sd1"]
@@ -7,10 +7,18 @@
 [ext_resource type="Texture2D" path="res://art/goblin.png" id="5_0tsod"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_rider.gd" id="6_q04hl"]
 [ext_resource type="Texture2D" path="res://art/orc.png" id="7_2jov4"]
+[ext_resource type="Texture2D" path="res://art/orc_idle_1.png" id="7_hscwx"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_shield.gd" id="8_nycdk"]
+[ext_resource type="Texture2D" path="res://art/orc_idle_2.png" id="8_urwfm"]
 [ext_resource type="Texture2D" path="res://art/knight.png" id="9_ci3o3"]
+[ext_resource type="Texture2D" path="res://art/orc_idle_3.png" id="9_r7eax"]
 [ext_resource type="Texture2D" path="res://art/brute.png" id="10_g4j03"]
+[ext_resource type="Texture2D" path="res://art/orc_idle_4.png" id="10_ubtx6"]
 [ext_resource type="Script" path="res://scripts/data/area_def.gd" id="11_ccceq"]
+[ext_resource type="Texture2D" path="res://art/orc_idle_5.png" id="11_m16n8"]
+[ext_resource type="Texture2D" path="res://art/orc_idle_6.png" id="12_crn06"]
+[ext_resource type="Texture2D" path="res://art/orc_idle_7.png" id="13_u026e"]
+[ext_resource type="Texture2D" path="res://art/orc_idle_8.png" id="14_7t66p"]
 
 [sub_resource type="Resource" id="Resource_y72qm"]
 script = ExtResource("2_q7sd1")
@@ -24,6 +32,8 @@ script = ExtResource("3_8loov")
 id = "warlock_boss"
 display_name = "Warlock Lord"
 sprite = ExtResource("4_ojamh")
+frames_idle = Array[Texture2D]([])
+fps_idle = 6.0
 hp_mult = 1.0
 tier = 5
 ability = SubResource("Resource_y72qm")
@@ -33,6 +43,8 @@ script = ExtResource("3_8loov")
 id = "goblin"
 display_name = "Goblin"
 sprite = ExtResource("5_0tsod")
+frames_idle = Array[Texture2D]([])
+fps_idle = 6.0
 hp_mult = 0.7
 tier = 0
 
@@ -46,6 +58,8 @@ script = ExtResource("3_8loov")
 id = "orc"
 display_name = "Orc Rider"
 sprite = ExtResource("7_2jov4")
+frames_idle = Array[Texture2D]([ExtResource("7_hscwx"), ExtResource("8_urwfm"), ExtResource("9_r7eax"), ExtResource("10_ubtx6"), ExtResource("11_m16n8"), ExtResource("12_crn06"), ExtResource("13_u026e"), ExtResource("14_7t66p")])
+fps_idle = 6.0
 hp_mult = 0.6
 tier = 1
 ability = SubResource("Resource_tikl1")
@@ -59,6 +73,8 @@ script = ExtResource("3_8loov")
 id = "knight"
 display_name = "Shield Knight"
 sprite = ExtResource("9_ci3o3")
+frames_idle = Array[Texture2D]([])
+fps_idle = 6.0
 hp_mult = 1.1
 tier = 2
 ability = SubResource("Resource_5v0a2")
@@ -68,6 +84,8 @@ script = ExtResource("3_8loov")
 id = "brute"
 display_name = "Brute"
 sprite = ExtResource("10_g4j03")
+frames_idle = Array[Texture2D]([])
+fps_idle = 6.0
 hp_mult = 1.6
 tier = 3
 
@@ -83,6 +101,8 @@ script = ExtResource("3_8loov")
 id = "warlock"
 display_name = "Warlock"
 sprite = ExtResource("4_ojamh")
+frames_idle = Array[Texture2D]([])
+fps_idle = 6.0
 hp_mult = 1.2
 tier = 4
 ability = SubResource("Resource_6qt3e")
