@@ -1,31 +1,31 @@
 [gd_resource type="Resource" script_class="DragonType" load_steps=11 format=3]
 
-[ext_resource type="Texture2D" path="res://art/drake_fire_1.png" id="1_8g8qa"]
-[ext_resource type="Texture2D" path="res://art/drake_fire_2.png" id="2_vd5lm"]
-[ext_resource type="Texture2D" path="res://art/drake_fire_3.png" id="3_pvqjl"]
-[ext_resource type="Texture2D" path="res://art/drake_idle_1.png" id="4_ptsts"]
-[ext_resource type="Texture2D" path="res://art/drake_idle_2.png" id="5_iu6ai"]
-[ext_resource type="Texture2D" path="res://art/drake_idle_3.png" id="6_sxm4u"]
-[ext_resource type="Texture2D" path="res://art/drake_ready_1.png" id="7_w58b1"]
-[ext_resource type="Texture2D" path="res://art/drake_ready_2.png" id="8_dffsg"]
-[ext_resource type="Texture2D" path="res://art/drake_ready_3.png" id="9_wgqwv"]
-[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="10_jxcfs"]
+[ext_resource type="Texture2D" path="res://art/ember_fire_1.png" id="1_mwhna"]
+[ext_resource type="Texture2D" path="res://art/ember_fire_2.png" id="2_lb84r"]
+[ext_resource type="Texture2D" path="res://art/ember_fire_3.png" id="3_xwo0h"]
+[ext_resource type="Texture2D" path="res://art/ember_idle_1.png" id="4_u4bgl"]
+[ext_resource type="Texture2D" path="res://art/ember_idle_2.png" id="5_lh1my"]
+[ext_resource type="Texture2D" path="res://art/ember_idle_3.png" id="6_705ru"]
+[ext_resource type="Texture2D" path="res://art/ember_ready_1.png" id="7_bnpqs"]
+[ext_resource type="Texture2D" path="res://art/ember_ready_2.png" id="8_c0vki"]
+[ext_resource type="Texture2D" path="res://art/ember_ready_3.png" id="9_hihno"]
+[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="10_cs5un"]
 
 [resource]
-script = ExtResource("10_jxcfs")
+script = ExtResource("10_cs5un")
 id = "ember"
 display_name = "Ember"
-sprite = ExtResource("4_ptsts")
-sprite_idle = ExtResource("4_ptsts")
-sprite_ready = ExtResource("7_w58b1")
-sprite_fire = ExtResource("1_8g8qa")
-frames_idle = Array[Texture2D]([ExtResource("4_ptsts"), ExtResource("5_iu6ai"), ExtResource("6_sxm4u")])
-frames_ready = Array[Texture2D]([ExtResource("7_w58b1"), ExtResource("8_dffsg"), ExtResource("9_wgqwv")])
-frames_fire = Array[Texture2D]([ExtResource("1_8g8qa"), ExtResource("2_vd5lm"), ExtResource("3_pvqjl")])
-fps_idle = 3.0
-fps_ready = 7.0
-fps_fire = 11.0
-draw_width = 120.0
+sprite = ExtResource("4_u4bgl")
+sprite_idle = ExtResource("4_u4bgl")
+sprite_ready = ExtResource("7_bnpqs")
+sprite_fire = ExtResource("1_mwhna")
+frames_idle = Array[Texture2D]([ExtResource("4_u4bgl"), ExtResource("5_lh1my"), ExtResource("6_705ru")])
+frames_ready = Array[Texture2D]([ExtResource("7_bnpqs"), ExtResource("8_c0vki"), ExtResource("9_hihno")])
+frames_fire = Array[Texture2D]([ExtResource("1_mwhna"), ExtResource("2_lb84r"), ExtResource("3_xwo0h")])
+fps_idle = 2.0
+fps_ready = 6.0
+fps_fire = 12.0
+draw_width = 148.0
 tint = Color(1, 1, 1, 1)
 special = "inferno"
 special_cost = 150.0
