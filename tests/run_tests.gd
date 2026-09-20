@@ -217,7 +217,6 @@ func _initialize() -> void:
 		"(%d)" % orc_type.frames_idle.size())
 	ok("φορτώθηκαν 5 καρέ hit", orc_type.frames_hit.size() == 5,
 		"(%d)" % orc_type.frames_hit.size())
-	ok("ο orc έχει hit_freeze", orc_type.hit_freeze)
 	var orc_block = m._make_block(1, 0, orc_type, 5.0, 1, 1, false)
 	orc_block.idle_t = 0.0
 	ok("πριν το χτύπημα δείχνει idle", orc_block.portrait_frame() == orc_block.frames_idle[0])
@@ -226,24 +225,24 @@ func _initialize() -> void:
 	ok("μέσα στην αντίδραση δείχνει καρέ hit, όχι idle",
 		orc_block.hit_playing and orc_block.frames_hit.find(orc_block.portrait_frame()) == 2,
 		"(%d)" % orc_block.frames_hit.find(orc_block.portrait_frame()))
-	orc_block._process(2.0)      # σίγουρα πέρασε η διάρκεια (5/8 ≈ 0.625s)
-	ok("με hit_freeze ΔΕΝ γυρίζει μόνο του στο idle", orc_block.hit_playing)
-	ok("παγώνει στο τελευταίο καρέ, όχι πέρα από αυτό",
-		orc_block.frames_hit.find(orc_block.portrait_frame()) == 4)
-	orc_block.take_damage(1.0)
-	ok("το επόμενο χτύπημα ξανατρέχει την αντίδραση από την αρχή",
-		orc_block.frames_hit.find(orc_block.portrait_frame()) == 0)
+	orc_block._process(2.0)      # σίγουρα πέρασε η διάρκεια (5/8 ≈ 0.625s) — η μπάλα έχει φύγει προ πολλού
+	ok("μόλις περάσει η διάρκεια του χτυπήματος, γυρίζει μόνο του στο idle",
+		not orc_block.hit_playing)
 	orc_block.queue_free()
 
-	print("--- hit_freeze στον knight και τον warlock ---")
+	print("--- animation χτυπήματος στον knight και τον warlock ---")
 	var knight_type: EnemyType = m.enemy_by_id["knight"]
 	var warlock_type: EnemyType = m.enemy_by_id["warlock"]
-	ok("ο knight έχει 5 καρέ hit με hit_freeze",
-		knight_type.frames_hit.size() == 5 and knight_type.hit_freeze)
-	ok("ο warlock έχει 5 καρέ hit με hit_freeze",
-		warlock_type.frames_hit.size() == 5 and warlock_type.hit_freeze)
+	ok("ο knight έχει 5 καρέ hit", knight_type.frames_hit.size() == 5)
+	ok("ο warlock έχει 5 καρέ hit", warlock_type.frames_hit.size() == 5)
 	ok("ο knight κράτησε τον στατικό idle sprite (δεν δόθηκε νέο idle σετ)",
 		knight_type.frames_idle.is_empty() and knight_type.sprite != null)
+	var knight_block = m._make_block(2, 0, knight_type, 5.0, 1, 1, false)
+	knight_block.take_damage(1.0)
+	knight_block._process(2.0)      # σίγουρα πέρασε η διάρκεια της αντίδρασης
+	ok("και ο knight γυρίζει μόνος του στο idle μετά το χτύπημα",
+		not knight_block.hit_playing)
+	knight_block.queue_free()
 
 	print("--- αποθήκευση ---")
 	var d = SaveManager.defaults()

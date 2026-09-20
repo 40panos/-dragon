@@ -30,7 +30,6 @@ var frames_hit: Array[Texture2D] = []
 var fps_hit := 12.0
 var hit_t := 0.0
 var hit_playing := false
-var hit_freeze := false      # αν true, παγώνει στο τελευταίο καρέ αντί να γυρίσει στο idle
 
 # placeholder πορτρέτα 8x8, όταν λείπει sprite
 const ART := {
@@ -52,8 +51,7 @@ const ART := {
 func setup(p_hp: float, p_box: Vector2, p_kind: String, p_sprite: Texture2D,
 		p_ability: EnemyAbility, p_cw: int = 1, p_ch: int = 1,
 		p_frames_idle: Array[Texture2D] = [], p_fps_idle: float = 6.0,
-		p_frames_hit: Array[Texture2D] = [], p_fps_hit: float = 12.0,
-		p_hit_freeze: bool = false) -> void:
+		p_frames_hit: Array[Texture2D] = [], p_fps_hit: float = 12.0) -> void:
 	hp = p_hp
 	max_hp = p_hp
 	box = p_box
@@ -65,7 +63,6 @@ func setup(p_hp: float, p_box: Vector2, p_kind: String, p_sprite: Texture2D,
 	fps_idle = p_fps_idle
 	frames_hit = p_frames_hit
 	fps_hit = p_fps_hit
-	hit_freeze = p_hit_freeze
 	# ξεκίνα από τυχαίο σημείο του βρόχου, ώστε τα ίδια πλάσματα να μην
 	# χτυπάνε συγχρονισμένα σαν στρατός
 	idle_t = randf() * 10.0
@@ -111,7 +108,7 @@ func _process(delta: float) -> void:
 		queue_redraw()
 	if hit_playing:
 		hit_t += delta
-		if not hit_freeze and hit_t >= float(frames_hit.size()) / fps_hit:
+		if hit_t >= float(frames_hit.size()) / fps_hit:
 			hit_playing = false      # τέλειωσε η αντίδραση, γύρνα στο idle
 		queue_redraw()
 	elif frames_idle.size() > 1:

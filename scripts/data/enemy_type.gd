@@ -15,11 +15,6 @@ extends Resource
 @export var frames_hit: Array[Texture2D] = []
 @export var fps_hit := 12.0
 
-## Αν true, η αντίδραση ΔΕΝ επιστρέφει μόνη της στο idle — παγώνει στο
-## τελευταίο καρέ, σαν να δείχνει «χτυπημένος», μέχρι το επόμενο χτύπημα να
-## την ξανατρέξει από την αρχή.
-@export var hit_freeze := false
-
 ## Πολλαπλασιαστής ζωής πάνω στο επίπεδο του γύρου.
 @export var hp_mult := 1.0
 
