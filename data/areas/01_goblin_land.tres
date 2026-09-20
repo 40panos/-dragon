@@ -5,29 +5,29 @@
 [ext_resource type="Script" path="res://scripts/data/enemy_type.gd" id="3_8loov"]
 [ext_resource type="Texture2D" path="res://art/warlock.png" id="4_ojamh"]
 [ext_resource type="Texture2D" path="res://art/goblin.png" id="5_0tsod"]
+[ext_resource type="Texture2D" path="res://art/goblin_hit_1.png" id="5_67dbg"]
+[ext_resource type="Texture2D" path="res://art/goblin_hit_2.png" id="6_3718e"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_rider.gd" id="6_q04hl"]
 [ext_resource type="Texture2D" path="res://art/orc.png" id="7_2jov4"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_1.png" id="7_4vt3e"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_1.png" id="7_hscwx"]
+[ext_resource type="Texture2D" path="res://art/goblin_hit_3.png" id="7_bhhot"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_shield.gd" id="8_nycdk"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_2.png" id="8_urwfm"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_2.png" id="8_xdqhb"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_3.png" id="9_1itqa"]
+[ext_resource type="Texture2D" path="res://art/goblin_hit_4.png" id="8_tt37y"]
 [ext_resource type="Texture2D" path="res://art/knight.png" id="9_ci3o3"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_3.png" id="9_r7eax"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_4.png" id="10_cxr7q"]
+[ext_resource type="Texture2D" path="res://art/goblin_hit_5.png" id="9_h0m72"]
 [ext_resource type="Texture2D" path="res://art/brute.png" id="10_g4j03"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_4.png" id="10_ubtx6"]
+[ext_resource type="Texture2D" path="res://art/goblin_hit_6.png" id="10_oyi88"]
+[ext_resource type="Texture2D" path="res://art/goblin_hit_7.png" id="11_7axdl"]
 [ext_resource type="Script" path="res://scripts/data/area_def.gd" id="11_ccceq"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_5.png" id="11_m16n8"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_5.png" id="11_wn71k"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_6.png" id="12_crn06"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_6.png" id="12_lsmso"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_7.png" id="13_u026e"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_7.png" id="13_vy1xl"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_8.png" id="14_3a2wh"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_8.png" id="14_7t66p"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_9.png" id="15_3ywev"]
+[ext_resource type="Texture2D" path="res://art/goblin_hit_8.png" id="12_yitpk"]
+[ext_resource type="Texture2D" path="res://art/goblin_hit_9.png" id="13_xx1pf"]
+[ext_resource type="Texture2D" path="res://art/goblin_idle_1.png" id="14_bkgrl"]
+[ext_resource type="Texture2D" path="res://art/goblin_idle_2.png" id="15_quvf4"]
+[ext_resource type="Texture2D" path="res://art/goblin_idle_3.png" id="16_qsbfq"]
+[ext_resource type="Texture2D" path="res://art/goblin_idle_4.png" id="17_2munq"]
+[ext_resource type="Texture2D" path="res://art/goblin_idle_5.png" id="18_itjf1"]
+[ext_resource type="Texture2D" path="res://art/goblin_idle_6.png" id="19_8dmm4"]
+[ext_resource type="Texture2D" path="res://art/goblin_idle_7.png" id="20_81efy"]
+[ext_resource type="Texture2D" path="res://art/goblin_idle_8.png" id="21_jvkj4"]
 
 [sub_resource type="Resource" id="Resource_y72qm"]
 script = ExtResource("2_q7sd1")
@@ -54,9 +54,9 @@ script = ExtResource("3_8loov")
 id = "goblin"
 display_name = "Goblin"
 sprite = ExtResource("5_0tsod")
-frames_idle = Array[Texture2D]([])
+frames_idle = Array[Texture2D]([ExtResource("14_bkgrl"), ExtResource("15_quvf4"), ExtResource("16_qsbfq"), ExtResource("17_2munq"), ExtResource("18_itjf1"), ExtResource("19_8dmm4"), ExtResource("20_81efy"), ExtResource("21_jvkj4")])
 fps_idle = 6.0
-frames_hit = Array[Texture2D]([])
+frames_hit = Array[Texture2D]([ExtResource("5_67dbg"), ExtResource("6_3718e"), ExtResource("7_bhhot"), ExtResource("8_tt37y"), ExtResource("9_h0m72"), ExtResource("10_oyi88"), ExtResource("11_7axdl"), ExtResource("12_yitpk"), ExtResource("13_xx1pf")])
 fps_hit = 12.0
 hp_mult = 0.7
 tier = 0
@@ -71,9 +71,9 @@ script = ExtResource("3_8loov")
 id = "orc"
 display_name = "Orc Rider"
 sprite = ExtResource("7_2jov4")
-frames_idle = Array[Texture2D]([ExtResource("7_hscwx"), ExtResource("8_urwfm"), ExtResource("9_r7eax"), ExtResource("10_ubtx6"), ExtResource("11_m16n8"), ExtResource("12_crn06"), ExtResource("13_u026e"), ExtResource("14_7t66p")])
+frames_idle = Array[Texture2D]([])
 fps_idle = 6.0
-frames_hit = Array[Texture2D]([ExtResource("7_4vt3e"), ExtResource("8_xdqhb"), ExtResource("9_1itqa"), ExtResource("10_cxr7q"), ExtResource("11_wn71k"), ExtResource("12_lsmso"), ExtResource("13_vy1xl"), ExtResource("14_3a2wh"), ExtResource("15_3ywev")])
+frames_hit = Array[Texture2D]([])
 fps_hit = 12.0
 hp_mult = 0.6
 tier = 1

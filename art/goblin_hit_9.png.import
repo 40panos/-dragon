@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bpuywgptmfvgf"
-path="res://.godot/imported/orc_idle_8.png-7ec8d10b061086c91450483814d29006.ctex"
+uid="uid://dkqqlj5pxma2r"
+path="res://.godot/imported/goblin_hit_9.png-2b8c6adead7f82bbd84b609651d1e51b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/orc_idle_8.png"
-dest_files=["res://.godot/imported/orc_idle_8.png-7ec8d10b061086c91450483814d29006.ctex"]
+source_file="res://art/goblin_hit_9.png"
+dest_files=["res://.godot/imported/goblin_hit_9.png-2b8c6adead7f82bbd84b609651d1e51b.ctex"]
 
 [params]
 

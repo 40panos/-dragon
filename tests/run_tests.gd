@@ -169,44 +169,57 @@ func _initialize() -> void:
 	ok("όλα τα καρέ ίδιο μέγεθος, ώστε να μην πηδάει", sizes.size() == 1,
 		"(%d διαφορετικά)" % sizes.size())
 
-	print("--- animation εχθρού (orc idle) ---")
-	var orc_type: EnemyType = m.enemy_by_id["orc"]
-	ok("φορτώθηκαν 8 καρέ idle", orc_type.frames_idle.size() == 8,
-		"(%d)" % orc_type.frames_idle.size())
-	var orc_sizes := {}
-	for tex in orc_type.frames_idle:
-		orc_sizes[tex.get_size()] = true
-	ok("όλα τα καρέ idle ίδιο μέγεθος", orc_sizes.size() == 1,
-		"(%d διαφορετικά)" % orc_sizes.size())
-	var orc_block = m._make_block(0, 0, orc_type, 5.0, 1, 1, false)
+	print("--- animation εχθρού (goblin idle) ---")
+	# το fight-stance animation ζει τώρα στο goblin (χωρίς ικανότητα) — ο orc
+	# πήρε το έφιππο στατικό sprite, βλ. παρακάτω "orc χωρίς animation"
+	var goblin_type: EnemyType = m.enemy_by_id["goblin"]
+	ok("φορτώθηκαν 8 καρέ idle", goblin_type.frames_idle.size() == 8,
+		"(%d)" % goblin_type.frames_idle.size())
+	var goblin_sizes := {}
+	for tex in goblin_type.frames_idle:
+		goblin_sizes[tex.get_size()] = true
+	ok("όλα τα καρέ idle ίδιο μέγεθος", goblin_sizes.size() == 1,
+		"(%d διαφορετικά)" % goblin_sizes.size())
+	var goblin_block = m._make_block(0, 0, goblin_type, 5.0, 1, 1, false)
 	var idle_seq := []
 	for step in 8:
-		orc_block.idle_t = float(step) / orc_block.fps_idle
-		idle_seq.append(orc_block.frames_idle.find(orc_block.idle_frame()))
+		goblin_block.idle_t = float(step) / goblin_block.fps_idle
+		idle_seq.append(goblin_block.frames_idle.find(goblin_block.idle_frame()))
 	ok("το idle προχωράει καρέ-καρέ χωρίς επανάληψη πριν τον βρόχο",
 		idle_seq == [0, 1, 2, 3, 4, 5, 6, 7], str(idle_seq))
-	orc_block.idle_t = 8.0 / orc_block.fps_idle
+	goblin_block.idle_t = 8.0 / goblin_block.fps_idle
 	ok("μετά το τέλος ο βρόχος ξαναρχίζει από το 0",
-		orc_block.frames_idle.find(orc_block.idle_frame()) == 0)
+		goblin_block.frames_idle.find(goblin_block.idle_frame()) == 0)
 
-	print("--- animation εχθρού (orc hit) ---")
-	ok("φορτώθηκαν 9 καρέ hit", orc_type.frames_hit.size() == 9,
-		"(%d)" % orc_type.frames_hit.size())
+	print("--- animation εχθρού (goblin hit) ---")
+	ok("φορτώθηκαν 9 καρέ hit", goblin_type.frames_hit.size() == 9,
+		"(%d)" % goblin_type.frames_hit.size())
 	var hit_sizes := {}
-	for tex in orc_type.frames_hit:
+	for tex in goblin_type.frames_hit:
 		hit_sizes[tex.get_size()] = true
-	ok("όλα τα καρέ hit ίδιο μέγεθος με το idle", hit_sizes.size() == 1 and orc_sizes.keys()[0] == hit_sizes.keys()[0],
-		"(%s vs %s)" % [str(hit_sizes.keys()), str(orc_sizes.keys())])
-	ok("πριν το χτύπημα δείχνει idle", not orc_block.hit_playing)
-	orc_block.take_damage(1.0)
-	ok("το χτύπημα ξεκινάει την αντίδραση", orc_block.hit_playing and orc_block.hit_t == 0.0)
-	ok("πρώτο καρέ της αντίδρασης", orc_block.frames_hit.find(orc_block.portrait_frame()) == 0)
-	orc_block._process(0.2)      # 0.2s * 12fps = καρέ 2 (μέσα στη διάρκεια)
+	ok("όλα τα καρέ hit ίδιο μέγεθος με το idle", hit_sizes.size() == 1 and goblin_sizes.keys()[0] == hit_sizes.keys()[0],
+		"(%s vs %s)" % [str(hit_sizes.keys()), str(goblin_sizes.keys())])
+	ok("πριν το χτύπημα δείχνει idle", not goblin_block.hit_playing)
+	goblin_block.take_damage(1.0)
+	ok("το χτύπημα ξεκινάει την αντίδραση", goblin_block.hit_playing and goblin_block.hit_t == 0.0)
+	ok("πρώτο καρέ της αντίδρασης", goblin_block.frames_hit.find(goblin_block.portrait_frame()) == 0)
+	goblin_block._process(0.2)      # 0.2s * 12fps = καρέ 2 (μέσα στη διάρκεια)
 	ok("προχωράει στα καρέ της αντίδρασης, όχι idle",
-		orc_block.hit_playing and orc_block.frames_hit.find(orc_block.portrait_frame()) == 2,
-		"(%d)" % orc_block.frames_hit.find(orc_block.portrait_frame()))
-	orc_block._process(1.0)      # σίγουρα πέρασε η συνολική διάρκεια (9/12 ≈ 0.75s)
-	ok("μετά το τέλος ξαναγυρίζει στο idle", not orc_block.hit_playing)
+		goblin_block.hit_playing and goblin_block.frames_hit.find(goblin_block.portrait_frame()) == 2,
+		"(%d)" % goblin_block.frames_hit.find(goblin_block.portrait_frame()))
+	goblin_block._process(1.0)      # σίγουρα πέρασε η συνολική διάρκεια (9/12 ≈ 0.75s)
+	ok("μετά το τέλος ξαναγυρίζει στο idle", not goblin_block.hit_playing)
+	goblin_block.queue_free()
+
+	print("--- orc χωρίς animation (πήρε το έφιππο στατικό sprite) ---")
+	var orc_type: EnemyType = m.enemy_by_id["orc"]
+	ok("ο orc δεν έχει πια idle animation", orc_type.frames_idle.is_empty())
+	ok("ο orc δεν έχει πια hit animation", orc_type.frames_hit.is_empty())
+	ok("ο orc έχει το νέο στατικό sprite", orc_type.sprite != null
+		and orc_type.sprite.get_width() == 32)
+	var orc_block = m._make_block(1, 0, orc_type, 5.0, 1, 1, false)
+	ok("το πορτρέτο του orc πέφτει στο στατικό sprite",
+		orc_block.portrait_frame() == orc_type.sprite)
 	orc_block.queue_free()
 
 	print("--- αποθήκευση ---")

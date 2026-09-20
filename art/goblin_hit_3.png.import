@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dw60syk35l34s"
-path="res://.godot/imported/orc_hit_1.png-7f92a75d94f7ad69d27be11b7d8ac64e.ctex"
+uid="uid://cgxvqjnbidt0v"
+path="res://.godot/imported/goblin_hit_3.png-9c908202ae8347ccc6c00209716929cf.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/orc_hit_1.png"
-dest_files=["res://.godot/imported/orc_hit_1.png-7f92a75d94f7ad69d27be11b7d8ac64e.ctex"]
+source_file="res://art/goblin_hit_3.png"
+dest_files=["res://.godot/imported/goblin_hit_3.png-9c908202ae8347ccc6c00209716929cf.ctex"]
 
 [params]
 
