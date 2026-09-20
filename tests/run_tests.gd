@@ -215,13 +215,14 @@ func _initialize() -> void:
 	var orc_type: EnemyType = m.enemy_by_id["orc"]
 	ok("φορτώθηκαν 5 καρέ idle", orc_type.frames_idle.size() == 5,
 		"(%d)" % orc_type.frames_idle.size())
-	ok("φορτώθηκαν 5 καρέ hit", orc_type.frames_hit.size() == 5,
+	# 4 καρέ, όχι 5 — το πρώτο κόπηκε, έμοιαζε πολύ με το idle
+	ok("φορτώθηκαν 4 καρέ hit", orc_type.frames_hit.size() == 4,
 		"(%d)" % orc_type.frames_hit.size())
 	var orc_block = m._make_block(1, 0, orc_type, 5.0, 1, 1, false)
 	orc_block.idle_t = 0.0
 	ok("πριν το χτύπημα δείχνει idle", orc_block.portrait_frame() == orc_block.frames_idle[0])
 	orc_block.take_damage(1.0)
-	orc_block._process(0.3)      # 0.3s * 8fps = καρέ 2, ακόμα μέσα στη διάρκεια (5/8=0.625s)
+	orc_block._process(0.3)      # 0.3s * 8fps = καρέ 2, ακόμα μέσα στη διάρκεια (4/8=0.5s)
 	ok("μέσα στην αντίδραση δείχνει καρέ hit, όχι idle",
 		orc_block.hit_playing and orc_block.frames_hit.find(orc_block.portrait_frame()) == 2,
 		"(%d)" % orc_block.frames_hit.find(orc_block.portrait_frame()))
@@ -233,8 +234,8 @@ func _initialize() -> void:
 	print("--- animation χτυπήματος στον knight και τον warlock ---")
 	var knight_type: EnemyType = m.enemy_by_id["knight"]
 	var warlock_type: EnemyType = m.enemy_by_id["warlock"]
-	ok("ο knight έχει 5 καρέ hit", knight_type.frames_hit.size() == 5)
-	ok("ο warlock έχει 5 καρέ hit", warlock_type.frames_hit.size() == 5)
+	ok("ο knight έχει 4 καρέ hit", knight_type.frames_hit.size() == 4)
+	ok("ο warlock έχει 4 καρέ hit", warlock_type.frames_hit.size() == 4)
 	ok("ο knight κράτησε τον στατικό idle sprite (δεν δόθηκε νέο idle σετ)",
 		knight_type.frames_idle.is_empty() and knight_type.sprite != null)
 	var knight_block = m._make_block(2, 0, knight_type, 5.0, 1, 1, false)

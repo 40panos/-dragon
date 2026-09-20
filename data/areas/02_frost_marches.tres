@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AreaDef" load_steps=59 format=3]
+[gd_resource type="Resource" script_class="AreaDef" load_steps=56 format=3]
 
 [ext_resource type="Texture2D" path="res://art/background.png" id="1_ci0x5"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="2_x2kko"]
@@ -12,7 +12,6 @@
 [ext_resource type="Texture2D" path="res://art/warlock_hit_4.png" id="6_2q6ww"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_2.png" id="6_jtbsu"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_rider.gd" id="6_xxenw"]
-[ext_resource type="Texture2D" path="res://art/warlock_hit_5.png" id="7_210re"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_3.png" id="7_okfbe"]
 [ext_resource type="Texture2D" path="res://art/orc.png" id="7_uar83"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_shield.gd" id="8_5ttue"]
@@ -37,7 +36,6 @@
 [ext_resource type="Texture2D" path="res://art/orc_hit_2.png" id="30_afcsd"]
 [ext_resource type="Texture2D" path="res://art/orc_hit_3.png" id="31_hbrwq"]
 [ext_resource type="Texture2D" path="res://art/orc_hit_4.png" id="32_gds8e"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_5.png" id="33_1x3m0"]
 [ext_resource type="Texture2D" path="res://art/orc_idle_1.png" id="34_8v22s"]
 [ext_resource type="Texture2D" path="res://art/orc_idle_2.png" id="35_d5apj"]
 [ext_resource type="Texture2D" path="res://art/orc_idle_3.png" id="36_ovi8w"]
@@ -47,7 +45,6 @@
 [ext_resource type="Texture2D" path="res://art/knight_hit_2.png" id="42_4t5mw"]
 [ext_resource type="Texture2D" path="res://art/knight_hit_3.png" id="43_2m05t"]
 [ext_resource type="Texture2D" path="res://art/knight_hit_4.png" id="44_gruhx"]
-[ext_resource type="Texture2D" path="res://art/knight_hit_5.png" id="45_ft5mi"]
 
 [sub_resource type="Resource" id="Resource_y72qm"]
 script = ExtResource("2_x2kko")
@@ -63,7 +60,7 @@ display_name = "Warlock Lord"
 sprite = ExtResource("4_hnv1f")
 frames_idle = Array[Texture2D]([])
 fps_idle = 6.0
-frames_hit = Array[Texture2D]([ExtResource("3_vttci"), ExtResource("4_y60ro"), ExtResource("5_v4me4"), ExtResource("6_2q6ww"), ExtResource("7_210re")])
+frames_hit = Array[Texture2D]([ExtResource("3_vttci"), ExtResource("4_y60ro"), ExtResource("5_v4me4"), ExtResource("6_2q6ww")])
 fps_hit = 8.0
 hp_mult = 1.0
 tier = 5
@@ -93,7 +90,7 @@ display_name = "Orc Rider"
 sprite = ExtResource("7_uar83")
 frames_idle = Array[Texture2D]([ExtResource("34_8v22s"), ExtResource("35_d5apj"), ExtResource("36_ovi8w"), ExtResource("37_ajolk"), ExtResource("38_maqyw")])
 fps_idle = 5.0
-frames_hit = Array[Texture2D]([ExtResource("29_kk1be"), ExtResource("30_afcsd"), ExtResource("31_hbrwq"), ExtResource("32_gds8e"), ExtResource("33_1x3m0")])
+frames_hit = Array[Texture2D]([ExtResource("29_kk1be"), ExtResource("30_afcsd"), ExtResource("31_hbrwq"), ExtResource("32_gds8e")])
 fps_hit = 8.0
 hp_mult = 0.6
 tier = 1
@@ -110,7 +107,7 @@ display_name = "Shield Knight"
 sprite = ExtResource("9_sod61")
 frames_idle = Array[Texture2D]([])
 fps_idle = 6.0
-frames_hit = Array[Texture2D]([ExtResource("41_kc5u6"), ExtResource("42_4t5mw"), ExtResource("43_2m05t"), ExtResource("44_gruhx"), ExtResource("45_ft5mi")])
+frames_hit = Array[Texture2D]([ExtResource("41_kc5u6"), ExtResource("42_4t5mw"), ExtResource("43_2m05t"), ExtResource("44_gruhx")])
 fps_hit = 8.0
 hp_mult = 1.1
 tier = 2
@@ -142,7 +139,7 @@ display_name = "Warlock"
 sprite = ExtResource("4_hnv1f")
 frames_idle = Array[Texture2D]([])
 fps_idle = 6.0
-frames_hit = Array[Texture2D]([ExtResource("3_vttci"), ExtResource("4_y60ro"), ExtResource("5_v4me4"), ExtResource("6_2q6ww"), ExtResource("7_210re")])
+frames_hit = Array[Texture2D]([ExtResource("3_vttci"), ExtResource("4_y60ro"), ExtResource("5_v4me4"), ExtResource("6_2q6ww")])
 fps_hit = 8.0
 hp_mult = 1.2
 tier = 4
