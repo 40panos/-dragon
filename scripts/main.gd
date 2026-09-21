@@ -946,7 +946,9 @@ func _draw_ground() -> void:
 	if tex_lair:
 		var lw := float(tex_lair.get_width()) * LAIR_SCALE
 		var lh := float(tex_lair.get_height()) * LAIR_SCALE
-		draw_texture_rect(tex_lair, Rect2(pf_left, ui_top - lh, lw, lh), false)
+		# κεντραρισμένη, όχι δεμένη στο pf_left: η φωλιά είναι πλατύτερη από
+		# την πίστα και τα ηφαίστεια πατάνε πάνω στα ξύλινα πλαϊνά
+		draw_texture_rect(tex_lair, Rect2((W - lw) * 0.5, ui_top - lh, lw, lh), false)
 
 
 ## Ποια κατάσταση δείχνει ο δράκος τώρα. Η φλόγα ανάβει ΜΟΝΟ όσο φεύγουν

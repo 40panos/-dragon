@@ -12,15 +12,22 @@ extends SceneTree
 ## με τον δράκο: texture 64 -> draw_width 128), οπότε ΚΑΘΕ διάσταση εδώ είναι
 ## η μισή της οθόνης. Μεγέθυνση μόνο ακέραια, καμία αναδειγματοληψία.
 
-const W := 300               # 300 * 2 = 600 = PF_W
+const W := 360               # 360 * 2 = 720 = όλο το πλάτος της οθόνης, ώστε
+                             # τα ηφαίστεια να πατάνε ΠΑΝΩ στα ξύλινα πλαϊνά
 const H := 64                # 64 * 2 = 128, ψηλότερο από τη ζώνη ώστε να
                              # ξεπροβάλλουν τα ψηλά στοιχεία πάνω της
 const SEED := 20260921
 
-## Το κέντρο ανήκει στον δράκο — τα ψηλά στοιχεία το αποφεύγουν για να μην
-## τον κρύβουν. Ο δράκος πιάνει 128 οθόνη = 64 art, κεντραρισμένος.
-const KEEP_CLEAR_MIN := 108
-const KEEP_CLEAR_MAX := 192
+## Πού πέφτει το πλαίσιο μέσα στον καμβά (BORDER 60 οθόνη = 30 art). Τα ψηλά
+## στοιχεία κάθονται γύρω από αυτά τα σημεία, όχι μέσα στην πίστα.
+const BORDER := 30
+const PF_RIGHT := W - BORDER
+
+## Το κέντρο ανήκει στον δράκο και μένει άδειο — εκεί περνάει και η βολή.
+## Ο δράκος πιάνει 128 οθόνη = 64 art γύρω από το x=180· η ζώνη είναι πολύ
+## πλατύτερη από αυτόν επίτηδες, ώστε το βλέμμα να πηγαίνει στα άκρα.
+const KEEP_CLEAR_MIN := 110
+const KEEP_CLEAR_MAX := 250
 
 var rng := RandomNumberGenerator.new()
 var cache := {}
@@ -69,26 +76,28 @@ func _initialize() -> void:
 	# --- 1. το πάτωμα: μακρόστενη κρούστα σε όλο το πλάτος.
 	# Το αδιάφανο της crust_a είναι 14 art px = 28 οθόνη, δηλαδή περίπου το
 	# ένα τρίτο ενός κελιού (85.7 / 3 = 28.6).
-	var strip := ["vol_crust_a", "vol_crust_b", "vol_crust_a", "vol_crust_b"]
+	var strip := ["vol_crust_a", "vol_crust_b", "vol_crust_a", "vol_crust_b",
+		"vol_crust_a"]
 	for i in strip.size():
-		_place(out, strip[i], 38 + i * 76, H + rng.randi_range(0, 1), i % 2 == 1)
+		_place(out, strip[i], 36 + i * 72, H + rng.randi_range(0, 1), i % 2 == 1)
 
-	# --- 2. ψηλά στοιχεία, μόνο στα άκρα
-	_place(out, "vol_vent", 26, H)
-	_place(out, "vol_spire", 72, H)
-	_place(out, "vol_spire", 230, H, true)
-	_place(out, "vol_vent", 274, H, true)
+	# --- 2. ψηλά στοιχεία. Κάθονται ΠΑΝΩ στα ξύλινα πλαϊνά και αμέσως δίπλα
+	# τους, ώστε να κορνιζάρουν την πίστα αντί να στέκονται μέσα της.
+	_place(out, "vol_vent", BORDER - 16, H)
+	_place(out, "vol_spire", BORDER + 22, H)
+	_place(out, "vol_vent", PF_RIGHT + 16, H, true)
+	_place(out, "vol_spire", PF_RIGHT - 22, H, true)
 
-	# --- 3. βράχοι: πυκνοί στα άκρα, αραιοί στη μέση
-	for x in [8, 48, 94, 206, 252, 292]:
+	# --- 3. βράχοι: όλοι στριμωγμένοι στις δύο άκρες, κανένας στο κέντρο
+	for x in [4, 46, 84, W - 84, W - 46, W - 4]:
 		_place(out, "vol_rock", x, H - rng.randi_range(0, 2), rng.randf() < 0.5)
 
 	# --- 4. φλόγες. Ανομοιόμορφες αποστάσεις επίτηδες: σε ίσο βήμα έμοιαζαν
 	# με κάγκελα. Το _clear() τις κρατάει έξω από τη θέση του δράκου.
-	for x in [42, 88, 216, 264]:
+	for x in [24, 66, W - 66, W - 24]:
 		if _clear(x):
 			_place(out, "vol_flame_lg", x, H - 5 - rng.randi_range(0, 3))
-	for x in [16, 64, 116, 186, 238, 288]:
+	for x in [6, 44, 92, W - 92, W - 44, W - 6]:
 		if _clear(x):
 			_place(out, "vol_flame_sm", x, H - rng.randi_range(0, 2), rng.randf() < 0.5)
 
