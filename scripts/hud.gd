@@ -8,12 +8,44 @@ extends Node2D
 const PLATE_SQ := preload("res://art/ui_plate_sq.png")          # 45x45, μπαίνει 2x
 const PLATE_PAUSE := preload("res://art/ui_plate_pause.png")    # 57x57, μπαίνει 1x
 const PLATE_ROUND := preload("res://art/ui_plate_round.png")    # 73x73, μπαίνει 1x
+const PLATE_LABEL := preload("res://art/ui_plate_label.png")    # 192x64, πινακίδα κειμένου
+const BAND := preload("res://art/ui_band.png")                  # 64x64, υφή για τις μπάρες
+const BTN_INFERNO := preload("res://art/ui_btn_inferno.png")    # 84x91, το κουμπί του special
+const BALL_SINGLE := preload("res://art/fireball.png")
+const BALL_AOE := preload("res://art/fireball_aoe.png")
+
+const BAND_TILE := 64.0
+const BAND_TINT := Color(0.52, 0.50, 0.58)   # σκουραίνει την υφή, να μην τραβάει το μάτι
 
 var m
 
 
 func _process(_delta: float) -> void:
 	queue_redraw()
+
+
+## Στρώνει την υφή σε μια ζώνη του HUD, πλακίδιο-πλακίδιο. Το τελευταίο
+## πλακίδιο κόβεται στο πλάτος της οθόνης αντί να τεντωθεί.
+func _draw_band(rect: Rect2) -> void:
+	var rows := int(ceil(rect.size.y / BAND_TILE))
+	var cols := int(ceil(rect.size.x / BAND_TILE))
+	for r in rows:
+		for c in cols:
+			var x := rect.position.x + c * BAND_TILE
+			var y := rect.position.y + r * BAND_TILE
+			var w := minf(BAND_TILE, rect.end.x - x)
+			var h := minf(BAND_TILE, rect.end.y - y)
+			draw_texture_rect_region(BAND, Rect2(x, y, w, h),
+				Rect2(0, 0, w, h), BAND_TINT)
+
+
+## Πινακίδα με κείμενο στο κέντρο της.
+func _draw_label(pos: Vector2, text: String, size: int, col: Color) -> void:
+	var font: Font = m.font
+	draw_texture_rect(PLATE_LABEL, Rect2(pos, Vector2(192, 64)), false)
+	var th := font.get_height(size)
+	draw_string(font, Vector2(pos.x + 18.0, pos.y + 32.0 + th * 0.32), text,
+		HORIZONTAL_ALIGNMENT_CENTER, 156.0, size, col)
 
 
 func _draw() -> void:
@@ -24,20 +56,26 @@ func _draw() -> void:
 	var H: float = m.H
 
 	# ---------------- πάνω μπάρα
-	draw_rect(Rect2(0, 0, W, m.HUD_BAND), Color("15162b"))
-	draw_string(font, Vector2(m.frame_left() + 24.0, 50.0), "SCORE: %d" % m.score,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color("fff2cf"))
-	draw_string(font, Vector2(m.frame_right() - 400.0, 50.0), "ROUND: %d" % m.level,
-		HORIZONTAL_ALIGNMENT_RIGHT, 300.0, 32, Color("fff2cf"))
+	_draw_band(Rect2(0, 0, W, m.HUD_BAND))
+	# χωρίς σκορ πια: μένουν ο γύρος και η περιοχή, ο καθένας στην πινακίδα του
+	_draw_label(Vector2(m.frame_left() + 10.0, 14.0), "ROUND %d" % m.level, 24,
+		Color("ffe9bd"))
 	var area = m.current_area()
 	if area:
-		draw_string(font, Vector2(m.frame_left() + 24.0, 76.0), area.display_name,
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("8d85a3"))
+		_draw_label(Vector2(m.frame_left() + 210.0, 14.0), area.display_name, 20,
+			Color("cbbf9e"))
 
 	var pr: Rect2 = m.pause_rect()
 	draw_texture_rect(PLATE_PAUSE, pr, false)
 	draw_rect(Rect2(pr.position.x + 19.0, pr.position.y + 16.0, 6.0, 26.0), Color("e8e2f2"))
 	draw_rect(Rect2(pr.position.x + 33.0, pr.position.y + 16.0, 6.0, 26.0), Color("e8e2f2"))
+
+	# μενού: τρεις γραμμές, στην ίδια πλάκα με την παύση
+	var mr: Rect2 = m.menu_rect()
+	draw_texture_rect(PLATE_PAUSE, mr, false)
+	for i in 3:
+		draw_rect(Rect2(mr.position.x + 16.0, mr.position.y + 18.0 + i * 8.0, 25.0, 4.0),
+			Color("e8e2f2"))
 
 	# ---------------- ζωή boss ή ένδειξη power-up
 	if m.boss != null and is_instance_valid(m.boss):
@@ -63,7 +101,7 @@ func _draw() -> void:
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color("ffe1ad"))
 
 	# ---------------- κάτω μπάρα
-	draw_rect(Rect2(0, m.ui_top, W, H - m.ui_top), Color("15162b"))
+	_draw_band(Rect2(0, m.ui_top, W, H - m.ui_top))
 
 	var shown: int = (m.live_balls + m.to_fire) if m.phase == "shoot" else m.ball_count
 	var bc := Vector2(m.frame_left() + 78.0, m.ui_top + 56.0)
@@ -78,37 +116,38 @@ func _draw() -> void:
 		# αναμμένο: ζεστή λάμψη μέσα στην πλάκα, αντί για δεύτερο χρώμα φόντου
 		draw_rect(Rect2(ar.position + Vector2(8, 8), ar.size - Vector2(16, 16)),
 			Color(1.0, 0.55, 0.15, 0.16))
+	# μέσα στο κουμπί μπαίνει το βλήμα που θα φύγει πραγματικά
 	var ac := ar.position + ar.size * 0.5
-	if m.aoe_mode:
-		draw_circle(ac, 22.0, Color(1.0, 0.55, 0.15, 0.30))
-		for d in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
-			draw_circle(ac + d * 20.0, 6.0, Color("ff9e2c"))
-	draw_circle(ac, 11.0, Color("ff8a1f"))
-	draw_string(font, Vector2(ar.position.x - 22.0, ar.end.y + 24.0),
+	var shot: Texture2D = BALL_AOE if m.aoe_mode else BALL_SINGLE
+	draw_texture_rect(shot, Rect2(ac - Vector2(32, 32), Vector2(64, 64)), false)
+	draw_string(font, Vector2(ar.position.x - 22.0, ar.end.y + 22.0),
 		"AOE" if m.aoe_mode else "SINGLE",
-		HORIZONTAL_ALIGNMENT_CENTER, ar.size.x + 44.0, 20, Color("c9c2d6"))
+		HORIZONTAL_ALIGNMENT_CENTER, ar.size.x + 44.0, 18, Color("c9c2d6"))
 
 	# special με μπάρα φόρτισης
 	var sr: Rect2 = m.special_rect()
-	draw_texture_rect(PLATE_SQ, sr, false)
+	var ready: bool = m.special_ready()
+	var sc := sr.position + sr.size * 0.5
+	# το εικονίδιο έχει τη λάμψη ζωγραφισμένη μέσα του· όσο δεν είναι έτοιμο
+	# σβήνει με σκούρο modulate, και ανάβει μόλις γεμίσει
+	draw_texture_rect(BTN_INFERNO, Rect2(sc - Vector2(42, 45.5), Vector2(84, 91)), false,
+		Color.WHITE if ready else Color(0.44, 0.40, 0.46))
 	var charge := 0.0
 	if m.dragon:
 		charge = clampf(m.special_charge / maxf(m.dragon.special_cost, 1.0), 0.0, 1.0)
-	# η φόρτιση γεμίζει από κάτω προς τα πάνω, μέσα στο περιθώριο της πλάκας
-	draw_rect(Rect2(sr.position.x + 8.0, sr.end.y - 8.0 - (sr.size.y - 16.0) * charge,
-		sr.size.x - 16.0, (sr.size.y - 16.0) * charge), Color(0.42, 0.76, 1.0, 0.26))
-	var sc := sr.position + sr.size * 0.5
-	var ready: bool = m.special_ready()
-	draw_circle(sc, 24.0, Color("6fc3ff") if ready else Color("3b3757"))
-	if ready:
-		draw_circle(sc, 30.0 + sin(m.t * 6.0) * 2.0, Color(0.42, 0.76, 1.0, 0.18))
-	draw_string(font, Vector2(sr.position.x - 30.0, sr.end.y + 24.0),
+	# η φόρτιση γεμίζει από κάτω προς τα πάνω, μέσα στο περιθώριο του κουμπιού
+	if not ready:
+		draw_rect(Rect2(sr.position.x + 10.0, sr.end.y - 10.0 - (sr.size.y - 20.0) * charge,
+			sr.size.x - 20.0, (sr.size.y - 20.0) * charge), Color(1.0, 0.62, 0.20, 0.20))
+	else:
+		draw_circle(sc, 46.0 + sin(m.t * 6.0) * 2.0, Color(1.0, 0.62, 0.20, 0.13))
+	draw_string(font, Vector2(sr.position.x - 30.0, sr.end.y + 22.0),
 		m.dragon.special_name() if m.dragon else "SPECIAL",
-		HORIZONTAL_ALIGNMENT_CENTER, sr.size.x + 60.0, 20,
+		HORIZONTAL_ALIGNMENT_CENTER, sr.size.x + 60.0, 18,
 		Color("ffe1ad") if ready else Color("77708a"))
 
 	if m.phase == "aim" and not m.aiming:
-		draw_string(font, Vector2(0, m.ui_top + 66.0), "σύρε για στόχευση",
+		draw_string(font, Vector2(0, m.ui_top + 66.0), "DRAG TO AIM",
 			HORIZONTAL_ALIGNMENT_CENTER, W, 22, Color(1, 1, 1, 0.30))
 
 	# ---------------- ανακοινώσεις
@@ -122,7 +161,7 @@ func _draw() -> void:
 
 	if m.paused:
 		draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color(0.04, 0.03, 0.06, 0.72))
-		draw_string(font, Vector2(0, H * 0.46), "ΠΑΥΣΗ",
+		draw_string(font, Vector2(0, H * 0.46), "PAUSED",
 			HORIZONTAL_ALIGNMENT_CENTER, W, 56, Color("ffb35c"))
 
 	if m.phase == "over":
@@ -130,7 +169,7 @@ func _draw() -> void:
 		draw_string(font, Vector2(0, H * 0.44), "GAME OVER",
 			HORIZONTAL_ALIGNMENT_CENTER, W, 64, Color("ff9b3d"))
 		draw_string(font, Vector2(0, H * 0.44 + 58.0),
-			"SCORE %d  •  ROUND %d  •  ρεκόρ %d" % [m.score, m.level, int(m.save.get("best_score", 0))],
+			"SCORE %d  •  ROUND %d  •  BEST %d" % [m.score, m.level, int(m.save.get("best_score", 0))],
 			HORIZONTAL_ALIGNMENT_CENTER, W, 28, Color("9b93ad"))
-		draw_string(font, Vector2(0, H * 0.44 + 126.0), "tap για νέο παιχνίδι",
+		draw_string(font, Vector2(0, H * 0.44 + 126.0), "TAP TO RESTART",
 			HORIZONTAL_ALIGNMENT_CENTER, W, 26, Color(1, 1, 1, 0.5))

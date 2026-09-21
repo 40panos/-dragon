@@ -80,6 +80,7 @@ var area_index := 0
 var dragon: DragonType
 
 var fireball_tex: Texture2D
+var fireball_aoe_tex: Texture2D
 var tex_frame_left: Texture2D
 var tex_frame_right: Texture2D
 var tex_frame_top: Texture2D
@@ -89,7 +90,7 @@ var font: Font
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	font = ThemeDB.fallback_font
+	font = _load_font()
 	var vs := get_viewport_rect().size
 	W = vs.x
 	H = vs.y
@@ -102,6 +103,7 @@ func _ready() -> void:
 	launch_x = W * 0.5
 
 	fireball_tex = _load_tex("fireball")
+	fireball_aoe_tex = _load_tex("fireball_aoe")
 	tex_frame_left = _load_tex("frame_left")
 	tex_frame_right = _load_tex("frame_right")
 	tex_frame_top = _load_tex("frame_top")
@@ -141,6 +143,22 @@ func _make_hud() -> void:
 func _load_tex(name_: String) -> Texture2D:
 	var p := "res://art/%s.png" % name_
 	return load(p) if ResourceLoader.exists(p) else null
+
+
+## Η γραμματοσειρά του παιχνιδιού. Είναι pixel font, οπότε το antialiasing
+## και το subpixel positioning πρέπει να φύγουν — αλλιώς τα γράμματα
+## θολώνουν και χάνουν το πλέγμα τους.
+func _load_font() -> Font:
+	var p := "res://art/ui_font.ttf"
+	if not ResourceLoader.exists(p):
+		return ThemeDB.fallback_font
+	var f := load(p) as FontFile
+	if f == null:
+		return ThemeDB.fallback_font
+	f.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+	f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+	f.hinting = TextServer.HINTING_NONE
+	return f
 
 
 func _load_content() -> void:
@@ -248,7 +266,7 @@ func _start() -> void:
 	aoe_mode = false
 	launch_x = W * 0.5
 	phase = "aim"
-	_announce("%s — γύρος %d" % [current_area().display_name if current_area() else "", level])
+	_announce("%s — ROUND %d" % [current_area().display_name if current_area() else "", level])
 	_add_row()
 
 
@@ -518,6 +536,11 @@ func pause_rect() -> Rect2:
 	return Rect2(frame_right() - 85.0, 16.0, 57.0, 57.0)
 
 
+## Το κουμπί με τις τρεις γραμμές, δίπλα στην παύση.
+func menu_rect() -> Rect2:
+	return Rect2(frame_right() - 150.0, 16.0, 57.0, 57.0)
+
+
 func special_rect() -> Rect2:
 	return Rect2(frame_right() - 124.0, ui_top + 10.0, 90.0, 90.0)
 
@@ -544,6 +567,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	var p := get_global_mouse_position()
 	if mb.pressed and pause_rect().has_point(p):
+		_toggle_pause()
+		return
+	# δεν υπάρχει ακόμα οθόνη μενού· το κουμπί ανοίγει την παύση, που είναι
+	# το μέρος όπου θα ζήσει όταν φτιαχτεί
+	if mb.pressed and menu_rect().has_point(p):
 		_toggle_pause()
 		return
 	if paused:
@@ -662,7 +690,9 @@ func _make_ball(dir: Vector2) -> void:
 	b.velocity = dir * BALL_SPEED
 	b.speed = BALL_SPEED
 	b.floor_y = floor_y
-	b.sprite = fireball_tex
+	# σε λειτουργία AoE η μπάλα σκάει σε γειτονικά κελιά, οπότε δείχνει
+	# διαφορετικό βλήμα — το ίδιο που δείχνει και το κουμπί
+	b.sprite = fireball_aoe_tex if (aoe_mode and fireball_aoe_tex) else fireball_tex
 	b.damage = _ball_damage()
 	b.died.connect(_on_ball_died)
 	b.struck.connect(_on_ball_struck)
