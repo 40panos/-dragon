@@ -13,6 +13,10 @@ var damage := 1.0
 var sprite: Texture2D = null
 var trail: Array[Vector2] = []
 
+## Μεγέθυνση ΜΟΝΟ της σχεδίασης — το σχήμα σύγκρουσης δεν το πειράζει, ώστε
+## το INFERNO να μη γίνεται κρυφά και ευκολότερο στο σημάδι.
+var draw_scale := 1.0
+
 ## Ποια blocks έχει ήδη πιτσιλίσει αυτή η μπάλα — το splash μετράει μία φορά ανά μπάλα.
 var splashed := {}
 
@@ -50,10 +54,10 @@ func _draw() -> void:
 	for i in trail.size():
 		var p := to_local(trail[i])
 		var f := float(i + 1) / float(trail.size())
-		draw_circle(p, 5.0 * f, Color(1.0, 0.5, 0.1, 0.22 * f))
+		draw_circle(p, 5.0 * f * draw_scale, Color(1.0, 0.5, 0.1, 0.22 * f))
 
 	if sprite:
-		var w := 30.0
+		var w := 30.0 * draw_scale
 		# το σχέδιο κοιτάει αριστερά (η ουρά πίσω από τον πυρήνα), οπότε
 		# γυρνάει να δείχνει προς την πορεία — αλλιώς η φλόγα δείχνει
 		# πάντα στο ίδιο σημείο όπου κι αν πάει η μπάλα

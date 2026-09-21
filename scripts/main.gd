@@ -19,6 +19,8 @@ const PTS_KILL := 25
 
 const ADVANCE_TIME := 0.18    # διάρκεια του κατεβάσματος μιας σειράς
 const DRAGON_DROP := 70.0     # πόσο κάτω από τη γραμμή του δαπέδου κάθεται ο δράκος
+const AWAKE_DROP := 40.0      # η ξυπνημένη μορφή είναι διπλάσια, κάθεται ακόμα πιο χαμηλά
+const INFERNO_BALL_SCALE := 1.75   # πόσο μεγαλώνει το σχέδιο της μπάλας στο INFERNO
 const ROUNDS_PER_AREA := 20   # ο boss εμφανίζεται στον τελευταίο γύρο κάθε περιοχής
 const SPLASH_RATIO := 0.33    # ζημιά σε λειτουργία AoE, στον στόχο και στους γείτονες
 
@@ -329,7 +331,10 @@ func controls_locked() -> bool:
 ## Πού πατάει ο δράκος. Κάθεται μέσα στη ζώνη κάτω από την τελευταία σειρά
 ## πλακιδίων, όχι πάνω στη γραμμή του δαπέδου, ώστε να μην κρύβει το πεδίο.
 func dragon_base() -> Vector2:
-	return Vector2(launch_x, floor_y + DRAGON_DROP)
+	var drop := DRAGON_DROP
+	if dragon and active_dragon() != dragon:
+		drop += AWAKE_DROP
+	return Vector2(launch_x, floor_y + drop)
 
 
 ## Θέση στόματος, ακολουθώντας τη στροφή του κεφαλιού — από εκεί βγαίνει η φωτιά.
@@ -733,6 +738,9 @@ func _make_ball(dir: Vector2) -> void:
 	# σε λειτουργία AoE η μπάλα σκάει σε γειτονικά κελιά, οπότε δείχνει
 	# διαφορετικό βλήμα — το ίδιο που δείχνει και το κουμπί
 	b.sprite = fireball_aoe_tex if (aoe_mode and fireball_aoe_tex) else fireball_tex
+	# στο INFERNO η μπάλα ζωγραφίζεται μεγαλύτερη· το σχήμα σύγκρουσης μένει
+	# ίδιο, ώστε να μη μεγαλώνει κρυφά και η ευκολία του σημαδιού
+	b.draw_scale = INFERNO_BALL_SCALE if inferno_active else 1.0
 	b.damage = _ball_damage()
 	b.died.connect(_on_ball_died)
 	b.struck.connect(_on_ball_struck)
