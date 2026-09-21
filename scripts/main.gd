@@ -93,7 +93,6 @@ var fireball_aoe_tex: Texture2D
 var tex_frame_left: Texture2D
 var tex_frame_right: Texture2D
 var tex_frame_top: Texture2D
-var tex_frame_floor: Texture2D
 var font: Font
 
 
@@ -120,7 +119,6 @@ func _ready() -> void:
 	tex_frame_left = _load_tex("frame_left")
 	tex_frame_right = _load_tex("frame_right")
 	tex_frame_top = _load_tex("frame_top")
-	tex_frame_floor = _load_tex("frame_floor")
 
 	_load_content()
 	save = SaveManager.load_data()
@@ -872,8 +870,10 @@ func _draw_field() -> void:
 	draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color("141024"))
 	var area := current_area()
 	var bg: Texture2D = area.background if area else null
+	# η πίστα απλώνεται ΚΑΤΩ από τη γραμμή θανάτου, μέχρι το HUD: η ζώνη του
+	# δράκου είναι κομμάτι του εδάφους, όχι ξεχωριστό πέτρινο ταμπλό
 	if bg:
-		draw_texture_rect(bg, Rect2(pf_left, PF_TOP, pf_right - pf_left, floor_y - PF_TOP),
+		draw_texture_rect(bg, Rect2(pf_left, PF_TOP, pf_right - pf_left, ui_top - PF_TOP),
 			false, area.tint)
 	else:
 		var steps := 14
@@ -881,7 +881,7 @@ func _draw_field() -> void:
 			var f := float(i) / float(steps)
 			draw_rect(Rect2(0, H * f * 0.75, W, H * 0.75 / steps + 1.0),
 				Color("1a1b3a").lerp(Color("3d2a4f"), f))
-		draw_rect(Rect2(0, floor_y - 170, W, 170), Color("23402f"))
+		draw_rect(Rect2(0, floor_y - 170, W, ui_top - floor_y + 170), Color("23402f"))
 	for c in range(1, COLS):
 		var gx := pf_left + c * cell
 		draw_line(Vector2(gx, PF_TOP), Vector2(gx, floor_y), Color(1, 1, 1, 0.045), 1.0)
@@ -933,25 +933,11 @@ func _draw_torches() -> void:
 		draw_circle(Vector2(x, y - 10.0), 6.0 * flick, Color("ffe9a8"))
 
 
+## Η ζώνη του δράκου δεν έχει πια δικό της ταμπλό — το έδαφος της πίστας
+## συνεχίζει εκεί. Μένει μόνο η γραμμή θανάτου, που είναι ένδειξη παιχνιδιού.
 func _draw_ground() -> void:
-	if tex_frame_floor:
-		draw_rect(Rect2(0, floor_y, W, H - floor_y), Color("1a1119"))
-		draw_texture_rect(tex_frame_floor,
-			Rect2(frame_left(), floor_y, frame_right() - frame_left(), ui_top - floor_y), false)
-		draw_line(Vector2(pf_left, floor_y), Vector2(pf_right, floor_y),
-			Color(1, 0.4, 0.3, 0.22), 2.0)
-		return
-
-	draw_rect(Rect2(0, floor_y, W, H - floor_y), Color("2c2d3f"))
-	var i := 0
-	var x := 0.0
-	while x < W:
-		if i % 2 == 0:
-			draw_rect(Rect2(x, floor_y + 6.0, 54.0, 46.0), Color("4e4f63"))
-		x += 62.0
-		i += 1
-	draw_rect(Rect2(0, floor_y + 52.0, W, H - floor_y - 52.0), Color("42435a"))
-	draw_line(Vector2(pf_left, floor_y), Vector2(pf_right, floor_y), Color(1, 0.4, 0.3, 0.25), 2.0)
+	draw_line(Vector2(pf_left, floor_y), Vector2(pf_right, floor_y),
+		Color(1, 0.4, 0.3, 0.22), 2.0)
 
 
 ## Ποια κατάσταση δείχνει ο δράκος τώρα. Η φλόγα ανάβει ΜΟΝΟ όσο φεύγουν
