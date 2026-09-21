@@ -18,6 +18,7 @@ const PTS_HIT := 5
 const PTS_KILL := 25
 
 const ADVANCE_TIME := 0.18    # διάρκεια του κατεβάσματος μιας σειράς
+const DRAGON_DROP := 70.0     # πόσο κάτω από τη γραμμή του δαπέδου κάθεται ο δράκος
 const ROUNDS_PER_AREA := 20   # ο boss εμφανίζεται στον τελευταίο γύρο κάθε περιοχής
 const SPLASH_RATIO := 0.33    # ζημιά σε λειτουργία AoE, στον στόχο και στους γείτονες
 
@@ -281,14 +282,20 @@ func add_shake(amount: float) -> void:
 	shake = minf(shake + amount, 9.0)
 
 
+## Πού πατάει ο δράκος. Κάθεται μέσα στη ζώνη κάτω από την τελευταία σειρά
+## πλακιδίων, όχι πάνω στη γραμμή του δαπέδου, ώστε να μην κρύβει το πεδίο.
+func dragon_base() -> Vector2:
+	return Vector2(launch_x, floor_y + DRAGON_DROP)
+
+
 ## Θέση στόματος, ακολουθώντας τη στροφή του κεφαλιού — από εκεί βγαίνει η φωτιά.
 func mouth_pos() -> Vector2:
 	var h := 60.0
 	if dragon:
-		var dt := dragon.frame_for(phase, aiming, t)
+		var dt := dragon.frame_for(dragon_phase(), aiming, t)
 		if dt:
 			h = dragon.draw_width * float(dt.get_height()) / float(dt.get_width())
-	return Vector2(launch_x, floor_y) + Vector2(0, -h * 0.45).rotated(tilt)
+	return dragon_base() + Vector2(0, -h * 0.45).rotated(tilt)
 
 
 func _update_life(delta: float) -> void:
@@ -504,16 +511,19 @@ func frame_right() -> float:
 	return pf_right + BORDER
 
 
+# Τα μεγέθη ακολουθούν τα πλακίδια του ui_buttons: 57 στο φυσικό του μέγεθος
+# για την παύση, 45x2 για τα δύο μεγάλα — ακέραια πολλαπλάσια, ώστε να μη
+# χρειαστεί αναδειγματοληψία σε pixel art.
 func pause_rect() -> Rect2:
-	return Rect2(frame_right() - 84.0, 16.0, 56.0, 56.0)
+	return Rect2(frame_right() - 85.0, 16.0, 57.0, 57.0)
 
 
 func special_rect() -> Rect2:
-	return Rect2(frame_right() - 120.0, ui_top + 10.0, 86.0, 86.0)
+	return Rect2(frame_right() - 124.0, ui_top + 10.0, 90.0, 90.0)
 
 
 func aoe_rect() -> Rect2:
-	return Rect2(frame_right() - 232.0, ui_top + 10.0, 86.0, 86.0)
+	return Rect2(frame_right() - 236.0, ui_top + 10.0, 90.0, 90.0)
 
 
 func special_ready() -> bool:
@@ -862,7 +872,7 @@ func dragon_phase() -> String:
 
 
 func _draw_dragon() -> void:
-	var base := Vector2(launch_x, floor_y)
+	var base := dragon_base()
 	var dt: Texture2D = dragon.frame_for(dragon_phase(), aiming, t) if dragon else null
 	if dt:
 		var w: float = dragon.draw_width
@@ -916,6 +926,9 @@ func _draw_dragon() -> void:
 func _draw_aim() -> void:
 	if phase != "aim" or not aiming:
 		return
+	# ξεκινάει από εκεί που γεννιούνται πραγματικά οι μπάλες, όχι από το
+	# σχεδιασμένο στόμα — τα δύο απέχουν ελάχιστα, αλλά η γραμμή πρέπει να
+	# λέει την αλήθεια για την τροχιά
 	var p := Vector2(launch_x, floor_y - 18.0)
 	var v := aim_dir
 	for i in 64:

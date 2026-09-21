@@ -2,6 +2,13 @@ extends Node2D
 ## Το HUD ζει σε CanvasLayer ώστε να σχεδιάζεται πάντα πάνω από εχθρούς και μπάλες.
 ## Διαβάζει κατάσταση από το main· δεν κρατάει δική του.
 
+## Πλακίδια κουμπιών από το ui_buttons. Σχεδιάζονται σε ακέραιο πολλαπλάσιο
+## του φυσικού τους μεγέθους (βλ. main.pause_rect / aoe_rect / special_rect),
+## ώστε να μη χρειάζεται αναδειγματοληψία.
+const PLATE_SQ := preload("res://art/ui_plate_sq.png")          # 45x45, μπαίνει 2x
+const PLATE_PAUSE := preload("res://art/ui_plate_pause.png")    # 57x57, μπαίνει 1x
+const PLATE_ROUND := preload("res://art/ui_plate_round.png")    # 73x73, μπαίνει 1x
+
 var m
 
 
@@ -28,10 +35,9 @@ func _draw() -> void:
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("8d85a3"))
 
 	var pr: Rect2 = m.pause_rect()
-	draw_rect(pr, Color("2a2740"))
-	draw_rect(Rect2(pr.position + Vector2(3, 3), pr.size - Vector2(6, 6)), Color("3b3757"))
-	draw_rect(Rect2(pr.position.x + 18.0, pr.position.y + 15.0, 6.0, 26.0), Color("e8e2f2"))
-	draw_rect(Rect2(pr.position.x + 32.0, pr.position.y + 15.0, 6.0, 26.0), Color("e8e2f2"))
+	draw_texture_rect(PLATE_PAUSE, pr, false)
+	draw_rect(Rect2(pr.position.x + 19.0, pr.position.y + 16.0, 6.0, 26.0), Color("e8e2f2"))
+	draw_rect(Rect2(pr.position.x + 33.0, pr.position.y + 16.0, 6.0, 26.0), Color("e8e2f2"))
 
 	# ---------------- ζωή boss ή ένδειξη power-up
 	if m.boss != null and is_instance_valid(m.boss):
@@ -61,16 +67,17 @@ func _draw() -> void:
 
 	var shown: int = (m.live_balls + m.to_fire) if m.phase == "shoot" else m.ball_count
 	var bc := Vector2(m.frame_left() + 78.0, m.ui_top + 56.0)
-	draw_circle(bc, 38.0, Color("2a2740"))
-	draw_circle(bc, 34.0, Color("1d1b2e"))
+	draw_texture_rect(PLATE_ROUND, Rect2(bc - Vector2(36.5, 36.5), Vector2(73, 73)), false)
 	draw_string(font, Vector2(bc.x - 40.0, bc.y + 11.0), "x%d" % shown,
 		HORIZONTAL_ALIGNMENT_CENTER, 80.0, 30, Color("ffd98a"))
 
 	# διακόπτης single / AoE
 	var ar: Rect2 = m.aoe_rect()
-	draw_rect(ar, Color("2a2740"))
-	draw_rect(Rect2(ar.position + Vector2(3, 3), ar.size - Vector2(6, 6)),
-		Color("3b3757") if m.aoe_mode else Color("1d1b2e"))
+	draw_texture_rect(PLATE_SQ, ar, false)
+	if m.aoe_mode:
+		# αναμμένο: ζεστή λάμψη μέσα στην πλάκα, αντί για δεύτερο χρώμα φόντου
+		draw_rect(Rect2(ar.position + Vector2(8, 8), ar.size - Vector2(16, 16)),
+			Color(1.0, 0.55, 0.15, 0.16))
 	var ac := ar.position + ar.size * 0.5
 	if m.aoe_mode:
 		draw_circle(ac, 22.0, Color(1.0, 0.55, 0.15, 0.30))
@@ -83,13 +90,13 @@ func _draw() -> void:
 
 	# special με μπάρα φόρτισης
 	var sr: Rect2 = m.special_rect()
-	draw_rect(sr, Color("2a2740"))
-	draw_rect(Rect2(sr.position + Vector2(3, 3), sr.size - Vector2(6, 6)), Color("1d1b2e"))
+	draw_texture_rect(PLATE_SQ, sr, false)
 	var charge := 0.0
 	if m.dragon:
 		charge = clampf(m.special_charge / maxf(m.dragon.special_cost, 1.0), 0.0, 1.0)
-	draw_rect(Rect2(sr.position.x + 3.0, sr.end.y - 3.0 - (sr.size.y - 6.0) * charge,
-		sr.size.x - 6.0, (sr.size.y - 6.0) * charge), Color(0.42, 0.76, 1.0, 0.30))
+	# η φόρτιση γεμίζει από κάτω προς τα πάνω, μέσα στο περιθώριο της πλάκας
+	draw_rect(Rect2(sr.position.x + 8.0, sr.end.y - 8.0 - (sr.size.y - 16.0) * charge,
+		sr.size.x - 16.0, (sr.size.y - 16.0) * charge), Color(0.42, 0.76, 1.0, 0.26))
 	var sc := sr.position + sr.size * 0.5
 	var ready: bool = m.special_ready()
 	draw_circle(sc, 24.0, Color("6fc3ff") if ready else Color("3b3757"))
