@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AreaDef" load_steps=73 format=3]
+[gd_resource type="Resource" script_class="AreaDef" load_steps=89 format=3]
 
 [ext_resource type="Texture2D" path="res://art/background.png" id="1_ci0x5"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="2_x2kko"]
@@ -12,19 +12,27 @@
 [ext_resource type="Texture2D" path="res://art/warlock_hit_4.png" id="6_2q6ww"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_2.png" id="6_jtbsu"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_rider.gd" id="6_xxenw"]
+[ext_resource type="Texture2D" path="res://art/warlock_idle_1.png" id="7_3xxue"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_3.png" id="7_okfbe"]
 [ext_resource type="Texture2D" path="res://art/orc.png" id="7_uar83"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_shield.gd" id="8_5ttue"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_4.png" id="8_lvsop"]
+[ext_resource type="Texture2D" path="res://art/warlock_idle_2.png" id="8_okl3e"]
+[ext_resource type="Texture2D" path="res://art/warlock_idle_3.png" id="9_1dfma"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_5.png" id="9_ev6rd"]
 [ext_resource type="Texture2D" path="res://art/knight.png" id="9_sod61"]
 [ext_resource type="Texture2D" path="res://art/brute.png" id="10_igkcm"]
+[ext_resource type="Texture2D" path="res://art/warlock_idle_4.png" id="10_kxx5c"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_6.png" id="10_rrixm"]
+[ext_resource type="Texture2D" path="res://art/warlock_idle_5.png" id="11_gljcj"]
 [ext_resource type="Script" path="res://scripts/data/area_def.gd" id="11_j18ks"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_7.png" id="11_l3x01"]
+[ext_resource type="Texture2D" path="res://art/warlock_idle_6.png" id="12_5tl8e"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_8.png" id="12_dyftl"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_9.png" id="13_dmute"]
+[ext_resource type="Texture2D" path="res://art/warlock_idle_7.png" id="13_w6qs0"]
 [ext_resource type="Texture2D" path="res://art/goblin_idle_1.png" id="14_5l17x"]
+[ext_resource type="Texture2D" path="res://art/warlock_idle_8.png" id="14_rg600"]
 [ext_resource type="Texture2D" path="res://art/goblin_idle_2.png" id="15_8ogvm"]
 [ext_resource type="Texture2D" path="res://art/goblin_idle_3.png" id="16_j8ltx"]
 [ext_resource type="Texture2D" path="res://art/goblin_idle_4.png" id="17_f2l75"]
@@ -53,12 +61,20 @@
 [ext_resource type="Texture2D" path="res://art/brute_hit_6.png" id="49_d7gwn"]
 [ext_resource type="Texture2D" path="res://art/brute_hit_7.png" id="50_tuunk"]
 [ext_resource type="Texture2D" path="res://art/brute_hit_8.png" id="51_c2qlt"]
+[ext_resource type="Texture2D" path="res://art/knight_idle_1.png" id="51_q7elk"]
 [ext_resource type="Texture2D" path="res://art/brute_hit_9.png" id="52_4hule"]
+[ext_resource type="Texture2D" path="res://art/knight_idle_2.png" id="52_aqgjn"]
 [ext_resource type="Texture2D" path="res://art/brute_idle_1.png" id="53_3dhip"]
+[ext_resource type="Texture2D" path="res://art/knight_idle_3.png" id="53_ke573"]
 [ext_resource type="Texture2D" path="res://art/brute_idle_2.png" id="54_5hggb"]
+[ext_resource type="Texture2D" path="res://art/knight_idle_4.png" id="54_ujmsq"]
 [ext_resource type="Texture2D" path="res://art/brute_idle_3.png" id="55_detp4"]
+[ext_resource type="Texture2D" path="res://art/knight_idle_5.png" id="55_yj22l"]
+[ext_resource type="Texture2D" path="res://art/knight_idle_6.png" id="56_kjvmv"]
 [ext_resource type="Texture2D" path="res://art/brute_idle_4.png" id="56_pka0f"]
+[ext_resource type="Texture2D" path="res://art/knight_idle_7.png" id="57_1t1ev"]
 [ext_resource type="Texture2D" path="res://art/brute_idle_5.png" id="57_fvhr4"]
+[ext_resource type="Texture2D" path="res://art/knight_idle_8.png" id="58_2pdqi"]
 [ext_resource type="Texture2D" path="res://art/brute_idle_6.png" id="58_7tibr"]
 [ext_resource type="Texture2D" path="res://art/brute_idle_7.png" id="59_316sg"]
 [ext_resource type="Texture2D" path="res://art/brute_idle_8.png" id="60_us0a8"]
@@ -75,7 +91,7 @@ script = ExtResource("3_j4m42")
 id = "warlock_boss"
 display_name = "Warlock Lord"
 sprite = ExtResource("4_hnv1f")
-frames_idle = Array[Texture2D]([])
+frames_idle = Array[Texture2D]([ExtResource("7_3xxue"), ExtResource("8_okl3e"), ExtResource("9_1dfma"), ExtResource("10_kxx5c"), ExtResource("11_gljcj"), ExtResource("12_5tl8e"), ExtResource("13_w6qs0"), ExtResource("14_rg600")])
 fps_idle = 6.0
 frames_hit = Array[Texture2D]([ExtResource("3_vttci"), ExtResource("4_y60ro"), ExtResource("5_v4me4"), ExtResource("6_2q6ww")])
 fps_hit = 8.0
@@ -122,7 +138,7 @@ script = ExtResource("3_j4m42")
 id = "knight"
 display_name = "Shield Knight"
 sprite = ExtResource("9_sod61")
-frames_idle = Array[Texture2D]([])
+frames_idle = Array[Texture2D]([ExtResource("51_q7elk"), ExtResource("52_aqgjn"), ExtResource("53_ke573"), ExtResource("54_ujmsq"), ExtResource("55_yj22l"), ExtResource("56_kjvmv"), ExtResource("57_1t1ev"), ExtResource("58_2pdqi")])
 fps_idle = 6.0
 frames_hit = Array[Texture2D]([ExtResource("41_kc5u6"), ExtResource("42_4t5mw"), ExtResource("43_2m05t"), ExtResource("44_gruhx")])
 fps_hit = 8.0
@@ -154,7 +170,7 @@ script = ExtResource("3_j4m42")
 id = "warlock"
 display_name = "Warlock"
 sprite = ExtResource("4_hnv1f")
-frames_idle = Array[Texture2D]([])
+frames_idle = Array[Texture2D]([ExtResource("7_3xxue"), ExtResource("8_okl3e"), ExtResource("9_1dfma"), ExtResource("10_kxx5c"), ExtResource("11_gljcj"), ExtResource("12_5tl8e"), ExtResource("13_w6qs0"), ExtResource("14_rg600")])
 fps_idle = 6.0
 frames_hit = Array[Texture2D]([ExtResource("3_vttci"), ExtResource("4_y60ro"), ExtResource("5_v4me4"), ExtResource("6_2q6ww")])
 fps_hit = 8.0

@@ -300,8 +300,26 @@ func _initialize() -> void:
 	var warlock_type: EnemyType = m.enemy_by_id["warlock"]
 	ok("ο knight έχει 4 καρέ hit", knight_type.frames_hit.size() == 4)
 	ok("ο warlock έχει 4 καρέ hit", warlock_type.frames_hit.size() == 4)
-	ok("ο knight κράτησε τον στατικό idle sprite (δεν δόθηκε νέο idle σετ)",
-		knight_type.frames_idle.is_empty() and knight_type.sprite != null)
+	ok("ο knight πήρε 8 καρέ idle", knight_type.frames_idle.size() == 8,
+		"(%d)" % knight_type.frames_idle.size())
+	ok("ο warlock πήρε 8 καρέ idle", warlock_type.frames_idle.size() == 8,
+		"(%d)" % warlock_type.frames_idle.size())
+	# ο boss είναι ο ίδιος χαρακτήρας με τον warlock, μεγεθυσμένος
+	var boss_wl: EnemyType = m.enemy_by_id["warlock_boss"]
+	ok("και ο boss κινείται στην ηρεμία", boss_wl.frames_idle.size() == 8,
+		"(%d)" % boss_wl.frames_idle.size())
+	# κανένας εχθρός δεν πρέπει πια να μένει με στατικό πορτρέτο
+	var still := []
+	for id in m.enemy_by_id:
+		if m.enemy_by_id[id].frames_idle.is_empty():
+			still.append(id)
+	ok("κανένας εχθρός δεν έμεινε χωρίς idle", still.is_empty(), str(still))
+	for id in ["knight", "warlock", "warlock_boss"]:
+		var et: EnemyType = m.enemy_by_id[id]
+		var sz := {}
+		for tex in et.frames_idle + et.frames_hit:
+			sz[tex.get_size()] = true
+		ok("%s: idle και hit σε ίδιο καμβά" % id, sz.size() == 1, str(sz.keys()))
 	var knight_block = m._make_block(2, 0, knight_type, 5.0, 1, 1, false)
 	knight_block.take_damage(1.0)
 	knight_block._process(2.0)      # σίγουρα πέρασε η διάρκεια της αντίδρασης
