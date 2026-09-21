@@ -39,7 +39,7 @@ const FRAMES := 5            # όσα καρέ έχει κάθε ζωντανε�
 
 ## Ποια στοιχεία έχουν καρέ (vol_x_1..5) και ποια είναι ένα σκέτο αρχείο.
 const ANIMATED := ["vol_vent", "vol_spire", "vol_crust_b", "vol_rock",
-	"vol_flame_lg", "vol_flame_sm"]
+	"vol_flame_lg"]
 
 var rng := RandomNumberGenerator.new()
 var cache := {}
@@ -122,12 +122,11 @@ func _build() -> Image:
 
 	# --- 4. φλόγες. Ανομοιόμορφες αποστάσεις επίτηδες: σε ίσο βήμα έμοιαζαν
 	# με κάγκελα. Το _clear() τις κρατάει έξω από τη θέση του δράκου.
+	# Μόνο οι μεγάλες: οι μικρές (vol_flame_sm) έβγαζαν δεκαοχτώ φωτίτσες
+	# στη σειρά κατά μήκος της βάσης και πνίγαν τα ηφαίστεια.
 	for x in [24, 66, W - 66, W - 24]:
 		if _clear(x):
 			_place(out, "vol_flame_lg", x, H - 5 - rng.randi_range(0, 3))
-	for x in [6, 44, 92, W - 92, W - 44, W - 6]:
-		if _clear(x):
-			_place(out, "vol_flame_sm", x, H - rng.randi_range(0, 2), rng.randf() < 0.5)
 
 	return out
 
