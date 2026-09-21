@@ -192,6 +192,16 @@ func _initialize() -> void:
 		sizes[tex.get_size()] = true
 	ok("όλα τα καρέ ίδιο μέγεθος, ώστε να μην πηδάει", sizes.size() == 1,
 		"(%d διαφορετικά)" % sizes.size())
+	# η φλόγα ανάβει μόνο όσο φεύγουν μπάλες, όχι όσο τριγυρνάνε στην πίστα
+	m.phase = "shoot"
+	m.to_fire = 3
+	ok("όσο εκτοξεύονται μπάλες, ο δράκος βαράει", m.dragon_phase() == "shoot")
+	m.to_fire = 0
+	ok("μόλις φύγει η τελευταία, σταματάει να βαράει", m.dragon_phase() == "aim",
+		m.dragon_phase())
+	ok("και δείχνει καρέ idle, όχι φλόγας",
+		m.dragon.frame_for(m.dragon_phase(), false, 0.0) == dg.frames_idle[0])
+	m.phase = "aim"
 
 	print("--- animation εχθρού (goblin idle) ---")
 	# το fight-stance animation ζει στο goblin (χωρίς ικανότητα)· ο orc έχει

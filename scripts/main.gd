@@ -852,19 +852,29 @@ func _draw_ground() -> void:
 	draw_line(Vector2(pf_left, floor_y), Vector2(pf_right, floor_y), Color(1, 0.4, 0.3, 0.25), 2.0)
 
 
+## Ποια κατάσταση δείχνει ο δράκος τώρα. Η φλόγα ανάβει ΜΟΝΟ όσο φεύγουν
+## μπάλες από το στόμα — όχι όσο τριγυρνάνε στην πίστα, που κρατάει πολύ
+## περισσότερο και θα την άφηνε αναμμένη σχεδόν μόνιμα.
+func dragon_phase() -> String:
+	if phase == "shoot" and to_fire <= 0:
+		return "aim"
+	return phase
+
+
 func _draw_dragon() -> void:
 	var base := Vector2(launch_x, floor_y)
-	var dt: Texture2D = dragon.frame_for(phase, aiming, t) if dragon else null
+	var dt: Texture2D = dragon.frame_for(dragon_phase(), aiming, t) if dragon else null
 	if dt:
 		var w: float = dragon.draw_width
 		var h := w * float(dt.get_height()) / float(dt.get_width())
 
+		var dph := dragon_phase()
 		var bob := 0.0
 		var breathe := 1.0
-		if phase == "aim" and not aiming:
+		if dph == "aim" and not aiming:
 			bob = sin(t * 2.1) * 2.5                      # ήρεμη ανάσα
 			breathe = 1.0 + sin(t * 2.1) * 0.018
-		elif phase == "aim" and aiming:
+		elif dph == "aim" and aiming:
 			bob = 3.0 + sin(t * 26.0) * 0.9               # τρέμουλο έντασης
 
 		# η κλωτσιά σπρώχνει το κεφάλι αντίθετα από τη βολή

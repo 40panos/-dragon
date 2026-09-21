@@ -4,8 +4,8 @@ extends SceneTree
 ##   godot --headless --path . --script tools/write_ember.gd
 
 const RES_PATH := "res://data/dragons/01_ember.tres"
-const FRAME_W := 37          # φυσικό πλάτος καρέ
-const SCALE := 4             # ακέραια μεγέθυνση, χωρίς αναδειγματοληψία
+const FRAME_W := 64          # φυσικό πλάτος καρέ
+const SCALE := 2             # ακέραια μεγέθυνση, χωρίς αναδειγματοληψία
 
 
 func _load_frames(state: String) -> Array[Texture2D]:
@@ -45,11 +45,11 @@ func _initialize() -> void:
 	d.frames_fire = fire
 
 	# ping-pong 0,1,2,1: η περίοδος είναι 4 βήματα
-	d.fps_idle = 2.0          # ήρεμο ανοιγοκλείσιμο, ~2s ο κύκλος
-	d.fps_ready = 6.0         # παλμός έντασης όσο σημαδεύει
-	d.fps_fire = 12.0         # γρήγορο ξέσπασμα φλόγας
+	d.fps_idle = 3.0          # αργό τρεμόπαιγμα της φλόγας, ~1.3s ο κύκλος
+	d.fps_ready = 6.0         # οι φλέβες ανάβουν όσο σημαδεύει
+	d.fps_fire = 12.0         # γρήγορο ξέσπασμα φλόγας πάνω από το κεφάλι
 
-	d.draw_width = float(FRAME_W * SCALE)   # 148 = 4x, ακέραιο πολλαπλάσιο
+	d.draw_width = float(FRAME_W * SCALE)   # 128 = 2x, ακέραιο πολλαπλάσιο
 	d.tint = Color(1, 1, 1, 1)
 
 	# ιδιότητες παιχνιδιού, όπως ήταν

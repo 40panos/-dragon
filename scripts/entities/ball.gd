@@ -54,7 +54,13 @@ func _draw() -> void:
 
 	if sprite:
 		var w := 30.0
+		# το σχέδιο κοιτάει αριστερά (η ουρά πίσω από τον πυρήνα), οπότε
+		# γυρνάει να δείχνει προς την πορεία — αλλιώς η φλόγα δείχνει
+		# πάντα στο ίδιο σημείο όπου κι αν πάει η μπάλα
+		var ang := velocity.angle() + PI if velocity.length_squared() > 0.01 else 0.0
+		draw_set_transform(Vector2.ZERO, ang, Vector2.ONE)
 		draw_texture_rect(sprite, Rect2(-w * 0.5, -w * 0.5, w, w), false)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		return
 
 	draw_circle(Vector2.ZERO, 17.0, Color(1.0, 0.45, 0.08, 0.28))
