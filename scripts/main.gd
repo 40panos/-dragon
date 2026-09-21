@@ -21,6 +21,7 @@ const ADVANCE_TIME := 0.18    # διάρκεια του κατεβάσματος
 const DRAGON_DROP := 70.0     # πόσο κάτω από τη γραμμή του δαπέδου κάθεται ο δράκος
 const AWAKE_DROP := 40.0      # η ξυπνημένη μορφή είναι διπλάσια, κάθεται ακόμα πιο χαμηλά
 const INFERNO_BALL_SCALE := 1.75   # πόσο μεγαλώνει το σχέδιο της μπάλας στο INFERNO
+const LAIR_SCALE := 2.0            # η φωλιά είναι σε art pixels, δείχνεται x2 (όπως ο δράκος)
 const ROUNDS_PER_AREA := 20   # ο boss εμφανίζεται στον τελευταίο γύρο κάθε περιοχής
 const SPLASH_RATIO := 0.33    # ζημιά σε λειτουργία AoE, στον στόχο και στους γείτονες
 
@@ -93,6 +94,7 @@ var fireball_aoe_tex: Texture2D
 var tex_frame_left: Texture2D
 var tex_frame_right: Texture2D
 var tex_frame_top: Texture2D
+var tex_lair: Texture2D
 var font: Font
 
 
@@ -119,6 +121,7 @@ func _ready() -> void:
 	tex_frame_left = _load_tex("frame_left")
 	tex_frame_right = _load_tex("frame_right")
 	tex_frame_top = _load_tex("frame_top")
+	tex_lair = _load_tex("lair")
 
 	_load_content()
 	save = SaveManager.load_data()
@@ -933,11 +936,17 @@ func _draw_torches() -> void:
 		draw_circle(Vector2(x, y - 10.0), 6.0 * flick, Color("ffe9a8"))
 
 
-## Η ζώνη του δράκου δεν έχει πια δικό της ταμπλό — το έδαφος της πίστας
-## συνεχίζει εκεί. Μένει μόνο η γραμμή θανάτου, που είναι ένδειξη παιχνιδιού.
+## Η ζώνη του δράκου δεν έχει δικό της ταμπλό — το έδαφος της πίστας συνεχίζει
+## εκεί, και από πάνω κάθεται η ηφαιστειακή φωλιά (art/lair.png, βλ.
+## tools/build_lair.gd). Τρέχει ΠΡΙΝ τον δράκο, ώστε αυτός να πατάει μπροστά
+## της. Το texture είναι σε art pixels και δείχνεται στο x2, ακέραια.
 func _draw_ground() -> void:
 	draw_line(Vector2(pf_left, floor_y), Vector2(pf_right, floor_y),
 		Color(1, 0.4, 0.3, 0.22), 2.0)
+	if tex_lair:
+		var lw := float(tex_lair.get_width()) * LAIR_SCALE
+		var lh := float(tex_lair.get_height()) * LAIR_SCALE
+		draw_texture_rect(tex_lair, Rect2(pf_left, ui_top - lh, lw, lh), false)
 
 
 ## Ποια κατάσταση δείχνει ο δράκος τώρα. Η φλόγα ανάβει ΜΟΝΟ όσο φεύγουν
