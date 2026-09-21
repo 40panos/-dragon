@@ -533,6 +533,10 @@ func _hurt(block, amount: float) -> float:
 func _on_block_damaged(destroyed: bool, _amount: float, block) -> void:
 	score += PTS_KILL if destroyed else PTS_HIT
 	if not destroyed:
+		# η ικανότητα μαθαίνει για τη ζημιά από εδώ — το block δεν κρατάει
+		# αναφορά στο παιχνίδι
+		if block.ability:
+			block.ability.on_damaged(block, self)
 		return
 	add_sparks(block.position, 16, Color("ffb35c"), 280.0, 6.0)
 	add_shake(7.0 if block.is_boss else 2.5)

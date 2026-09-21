@@ -45,6 +45,14 @@ var fps_hit := 12.0
 var hit_t := 0.0
 var hit_playing := false
 
+# μονή αναπαραγωγή που ζητάει μια ικανότητα — π.χ. το ουρλιαχτό του βασιλιά
+# όταν καλεί. Η αντίδραση σε χτύπημα έχει προτεραιότητα: αν φας μπάλα μέσα στο
+# ουρλιαχτό, βλέπεις το χτύπημα.
+var act_frames: Array[Texture2D] = []
+var act_fps := 10.0
+var act_t := 0.0
+var act_playing := false
+
 # χρόνος που απομένει στο κατέβασμα σειράς· όσο τρέχει, ο εχθρός μετράει ως
 # «σε κίνηση» και κρύβει το περίγραμμά του. Μετράει μόνος του αντίστροφα, ώστε
 # να μη χρειάζεται callback από το tween που μπορεί να μην έρθει ποτέ.
@@ -88,7 +96,7 @@ func setup(p_hp: float, p_box: Vector2, p_kind: String, p_sprite: Texture2D,
 	# χτυπάνε συγχρονισμένα σαν στρατός
 	idle_t = randf() * 10.0
 	# κάθε εχθρός παίρνει δικό του αντίγραφο, ώστε οι μετρητές να μην είναι κοινοί
-	ability = p_ability.duplicate() if p_ability else null
+	ability = p_ability.clone() if p_ability else null
 	var shape := $CollisionShape2D.shape as RectangleShape2D
 	shape.size = box
 	if ability:
@@ -133,6 +141,28 @@ func is_moving() -> bool:
 	return move_t > 0.0
 
 
+## Παίζει ένα σετ καρέ μία φορά, κατόπιν αιτήματος ικανότητας.
+func play_act(frames: Array[Texture2D], fps: float) -> void:
+	if frames.is_empty():
+		return
+	act_frames = frames
+	act_fps = maxf(fps, 0.1)
+	act_t = 0.0
+	act_playing = true
+	queue_redraw()
+
+
+## Αλλάζει το σετ ηρεμίας στον αέρα — το χρησιμοποιεί η οργή του boss, ώστε
+## το δεύτερο στάδιο να φαίνεται χωρίς δεύτερο εχθρό στο ταμπλό.
+func set_idle(frames: Array[Texture2D], fps: float) -> void:
+	if frames.is_empty():
+		return
+	frames_idle = frames
+	fps_idle = maxf(fps, 0.1)
+	idle_t = 0.0
+	queue_redraw()
+
+
 func _process(delta: float) -> void:
 	if move_t > 0.0:
 		move_t = maxf(0.0, move_t - delta)
@@ -146,7 +176,12 @@ func _process(delta: float) -> void:
 		if hit_t >= float(frames_hit.size()) / fps_hit:
 			hit_playing = false      # τέλειωσε η αντίδραση, γύρνα στο idle
 		queue_redraw()
-	elif frames_idle.size() > 1:
+	if act_playing:
+		act_t += delta
+		if act_t >= float(act_frames.size()) / act_fps:
+			act_playing = false
+		queue_redraw()
+	if not hit_playing and not act_playing and frames_idle.size() > 1:
 		idle_t += delta
 		queue_redraw()
 
@@ -171,6 +206,10 @@ func portrait_frame() -> Texture2D:
 		var i := int(hit_t * fps_hit)
 		i = clampi(i, 0, frames_hit.size() - 1)
 		return frames_hit[i]
+	if act_playing and not act_frames.is_empty():
+		var j := int(act_t * act_fps)
+		j = clampi(j, 0, act_frames.size() - 1)
+		return act_frames[j]
 	return idle_frame()
 
 

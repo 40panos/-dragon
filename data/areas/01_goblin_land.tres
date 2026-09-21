@@ -1,46 +1,74 @@
-[gd_resource type="Resource" script_class="AreaDef" load_steps=104 format=3]
+[gd_resource type="Resource" script_class="AreaDef" load_steps=135 format=3]
 
 [ext_resource type="Texture2D" path="res://art/background.png" id="1_q6tll"]
+[ext_resource type="Script" path="res://scripts/abilities/enemy_ability.gd" id="2_pvyx4"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="2_q7sd1"]
 [ext_resource type="Texture2D" path="res://art/warlock_hit_1.png" id="3_0udx7"]
 [ext_resource type="Script" path="res://scripts/data/enemy_type.gd" id="3_8loov"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_hide.gd" id="3_8yirp"]
 [ext_resource type="Texture2D" path="res://art/warlock_hit_2.png" id="4_2wyaf"]
+[ext_resource type="Texture2D" path="res://art/king_rage_1.png" id="4_7bdrb"]
 [ext_resource type="Texture2D" path="res://art/warlock.png" id="4_ojamh"]
 [ext_resource type="Texture2D" path="res://art/goblin.png" id="5_0tsod"]
+[ext_resource type="Texture2D" path="res://art/king_rage_2.png" id="5_5yxp8"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_1.png" id="5_67dbg"]
 [ext_resource type="Texture2D" path="res://art/warlock_hit_3.png" id="5_k74bd"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_2.png" id="6_3718e"]
 [ext_resource type="Texture2D" path="res://art/warlock_hit_4.png" id="6_hofxm"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_rider.gd" id="6_q04hl"]
+[ext_resource type="Texture2D" path="res://art/king_rage_3.png" id="6_w3dho"]
 [ext_resource type="Texture2D" path="res://art/orc.png" id="7_2jov4"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_3.png" id="7_bhhot"]
+[ext_resource type="Texture2D" path="res://art/king_rage_4.png" id="7_haln7"]
 [ext_resource type="Texture2D" path="res://art/warlock_idle_1.png" id="7_tbd66"]
 [ext_resource type="Texture2D" path="res://art/warlock_idle_2.png" id="8_imvy3"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_shield.gd" id="8_nycdk"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_4.png" id="8_tt37y"]
+[ext_resource type="Texture2D" path="res://art/king_rage_5.png" id="8_vjttx"]
 [ext_resource type="Texture2D" path="res://art/warlock_idle_3.png" id="9_7i8va"]
 [ext_resource type="Texture2D" path="res://art/knight.png" id="9_ci3o3"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_5.png" id="9_h0m72"]
+[ext_resource type="Texture2D" path="res://art/king_rage_6.png" id="9_psnah"]
 [ext_resource type="Texture2D" path="res://art/warlock_idle_4.png" id="10_0jjfy"]
 [ext_resource type="Texture2D" path="res://art/brute.png" id="10_g4j03"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_6.png" id="10_oyi88"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_rage.gd" id="10_xfjms"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_7.png" id="11_7axdl"]
 [ext_resource type="Script" path="res://scripts/data/area_def.gd" id="11_ccceq"]
 [ext_resource type="Texture2D" path="res://art/warlock_idle_5.png" id="11_dt2eh"]
+[ext_resource type="Texture2D" path="res://art/king_roar_1.png" id="11_xa2vn"]
+[ext_resource type="Texture2D" path="res://art/king_roar_2.png" id="12_7rn1g"]
 [ext_resource type="Texture2D" path="res://art/warlock_idle_6.png" id="12_p4bjc"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_8.png" id="12_yitpk"]
+[ext_resource type="Texture2D" path="res://art/king_roar_3.png" id="13_56b2v"]
 [ext_resource type="Texture2D" path="res://art/warlock_idle_7.png" id="13_b4w56"]
 [ext_resource type="Texture2D" path="res://art/goblin_hit_9.png" id="13_xx1pf"]
 [ext_resource type="Texture2D" path="res://art/goblin_idle_1.png" id="14_bkgrl"]
+[ext_resource type="Texture2D" path="res://art/king_roar_4.png" id="14_sshhh"]
 [ext_resource type="Texture2D" path="res://art/warlock_idle_8.png" id="14_ugaaf"]
+[ext_resource type="Texture2D" path="res://art/king_roar_5.png" id="15_ef63c"]
 [ext_resource type="Texture2D" path="res://art/goblin_idle_2.png" id="15_quvf4"]
+[ext_resource type="Texture2D" path="res://art/king_roar_6.png" id="16_lm3oh"]
 [ext_resource type="Texture2D" path="res://art/goblin_idle_3.png" id="16_qsbfq"]
 [ext_resource type="Texture2D" path="res://art/goblin_idle_4.png" id="17_2munq"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_composite.gd" id="18_cug35"]
 [ext_resource type="Texture2D" path="res://art/goblin_idle_5.png" id="18_itjf1"]
 [ext_resource type="Texture2D" path="res://art/goblin_idle_6.png" id="19_8dmm4"]
+[ext_resource type="Texture2D" path="res://art/king_hit_1.png" id="19_wbyfn"]
+[ext_resource type="Texture2D" path="res://art/king_hit_2.png" id="20_5aeos"]
 [ext_resource type="Texture2D" path="res://art/goblin_idle_7.png" id="20_81efy"]
 [ext_resource type="Texture2D" path="res://art/goblin_idle_8.png" id="21_jvkj4"]
+[ext_resource type="Texture2D" path="res://art/king_hit_3.png" id="21_pi74j"]
+[ext_resource type="Texture2D" path="res://art/king_hit_4.png" id="22_34y8r"]
+[ext_resource type="Texture2D" path="res://art/king_hit_5.png" id="23_v253l"]
+[ext_resource type="Texture2D" path="res://art/king_hit_6.png" id="24_xlqva"]
+[ext_resource type="Texture2D" path="res://art/king_idle_1.png" id="25_svbut"]
+[ext_resource type="Texture2D" path="res://art/king_idle_2.png" id="26_niucb"]
+[ext_resource type="Texture2D" path="res://art/king_idle_3.png" id="27_h7epw"]
+[ext_resource type="Texture2D" path="res://art/king_idle_4.png" id="28_bn72n"]
+[ext_resource type="Texture2D" path="res://art/king_idle_5.png" id="29_5s0v7"]
 [ext_resource type="Texture2D" path="res://art/orc_hit_1.png" id="29_6v38s"]
+[ext_resource type="Texture2D" path="res://art/king_idle_6.png" id="30_2m72k"]
 [ext_resource type="Texture2D" path="res://art/orc_hit_2.png" id="30_thmsl"]
 [ext_resource type="Texture2D" path="res://art/orc_hit_3.png" id="31_4m11b"]
 [ext_resource type="Texture2D" path="res://art/orc_hit_4.png" id="32_5j8rw"]
@@ -93,27 +121,49 @@
 [ext_resource type="Texture2D" path="res://art/bat_idle_7.png" id="90_71ka6"]
 [ext_resource type="Texture2D" path="res://art/bat_idle_8.png" id="91_purs7"]
 
-[sub_resource type="Resource" id="Resource_y72qm"]
+[sub_resource type="Resource" id="Resource_6upc6"]
+script = ExtResource("3_8yirp")
+reduce = 0.4
+min_through = 0.2
+
+[sub_resource type="Resource" id="Resource_3dyrd"]
+script = ExtResource("10_xfjms")
+threshold = 0.5
+frames_rage = Array[Texture2D]([ExtResource("4_7bdrb"), ExtResource("5_5yxp8"), ExtResource("6_w3dho"), ExtResource("7_haln7"), ExtResource("8_vjttx"), ExtResource("9_psnah")])
+fps_rage = 9.0
+tint = Color(1.22, 0.94, 0.88, 1)
+every = 2
+step = 2
+announce = "THE KING IS ENRAGED"
+
+[sub_resource type="Resource" id="Resource_cfdt7"]
 script = ExtResource("2_q7sd1")
 every = 2
-hp_ratio = 0.35
+hp_ratio = 0.3
 min_row = 2
 minion_id = "bat"
 keep_clear = 2
+count = 2
+act_frames = Array[Texture2D]([ExtResource("11_xa2vn"), ExtResource("12_7rn1g"), ExtResource("13_56b2v"), ExtResource("14_sshhh"), ExtResource("15_ef63c"), ExtResource("16_lm3oh")])
+act_fps = 10.0
 
-[sub_resource type="Resource" id="Resource_77lvw"]
+[sub_resource type="Resource" id="Resource_0u63p"]
+script = ExtResource("18_cug35")
+parts = Array[ExtResource("2_pvyx4")]([SubResource("Resource_6upc6"), SubResource("Resource_3dyrd"), SubResource("Resource_cfdt7")])
+
+[sub_resource type="Resource" id="Resource_uwjuu"]
 script = ExtResource("3_8loov")
-id = "warlock_boss"
-display_name = "Warlock Lord"
-sprite = ExtResource("4_ojamh")
-frames_idle = Array[Texture2D]([ExtResource("7_tbd66"), ExtResource("8_imvy3"), ExtResource("9_7i8va"), ExtResource("10_0jjfy"), ExtResource("11_dt2eh"), ExtResource("12_p4bjc"), ExtResource("13_b4w56"), ExtResource("14_ugaaf")])
-fps_idle = 6.0
-frames_hit = Array[Texture2D]([ExtResource("3_0udx7"), ExtResource("4_2wyaf"), ExtResource("5_k74bd"), ExtResource("6_hofxm")])
-fps_hit = 8.0
+id = "goblin_king"
+display_name = "Goblin King"
+sprite = ExtResource("25_svbut")
+frames_idle = Array[Texture2D]([ExtResource("25_svbut"), ExtResource("26_niucb"), ExtResource("27_h7epw"), ExtResource("28_bn72n"), ExtResource("29_5s0v7"), ExtResource("30_2m72k")])
+fps_idle = 5.0
+frames_hit = Array[Texture2D]([ExtResource("19_wbyfn"), ExtResource("20_5aeos"), ExtResource("21_pi74j"), ExtResource("22_34y8r"), ExtResource("23_v253l"), ExtResource("24_xlqva")])
+fps_hit = 10.0
 sprite_scale = 1.0
 hp_mult = 1.0
 tier = 5
-ability = SubResource("Resource_y72qm")
+ability = SubResource("Resource_0u63p")
 
 [sub_resource type="Resource" id="Resource_k23ck"]
 script = ExtResource("3_8loov")
@@ -185,6 +235,9 @@ hp_ratio = 0.5
 min_row = 2
 minion_id = "bat"
 keep_clear = 2
+count = 1
+act_frames = Array[Texture2D]([])
+act_fps = 10.0
 
 [sub_resource type="Resource" id="Resource_yx2hu"]
 script = ExtResource("3_8loov")
@@ -221,7 +274,7 @@ background = ExtResource("1_q6tll")
 tint = Color(1, 1, 1, 1)
 enemies = Array[ExtResource("3_8loov")]([SubResource("Resource_k23ck"), SubResource("Resource_ock6s"), SubResource("Resource_00qy8"), SubResource("Resource_kigvc"), SubResource("Resource_yx2hu")])
 minions = Array[ExtResource("3_8loov")]([SubResource("Resource_wkcin")])
-boss = SubResource("Resource_77lvw")
+boss = SubResource("Resource_uwjuu")
 boss_cols = 3
 boss_rows = 2
-boss_hp_mult = 14.0
+boss_hp_mult = 9.0

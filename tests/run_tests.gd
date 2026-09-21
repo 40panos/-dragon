@@ -20,6 +20,13 @@ func ok(label: String, cond: bool, extra := "") -> void:
 
 
 func _initialize() -> void:
+	# Καθαρή αποθήκευση ΠΡΙΝ φορτώσει η σκηνή: το main διαβάζει το save στο
+	# _ready και διαλέγει δράκο από εκεί. Χωρίς αυτό, ένα προηγούμενο τρέξιμο
+	# (ή το ίδιο το test του boss, που ξεκλειδώνει τον frost) αφήνει πίσω του
+	# άλλον επιλεγμένο δράκο και τα tests του ember αποτυγχάνουν ανάλογα με τη
+	# σειρά που έτυχε να τρέξουν τα πράγματα.
+	SaveManager.save_data(SaveManager.defaults())
+
 	var m = load("res://scenes/main.tscn").instantiate()
 	root.add_child(m)
 	await process_frame
@@ -168,7 +175,12 @@ func _initialize() -> void:
 	ok("ο boss εμφανίστηκε στον γύρο 20", m.boss != null)
 	if m.boss:
 		ok("ο boss πιάνει 3x2", m.boss.cw == 3 and m.boss.ch == 2)
-		ok("ο boss έχει πολλή ζωή", m.boss.max_hp >= 200.0, "(%.0f)" % m.boss.max_hp)
+		# η ωμή ζωή έπεσε όταν μπήκε το χοντρό τομάρι, γιατί το τομάρι κόβει
+		# ζημιά· αυτό που πρέπει να μείνει ψηλά είναι πόσες μπάλες χρειάζεται
+		var per_ball: float = m.boss.ability.absorb(m.boss, 1.0) if m.boss.ability else 1.0
+		ok("ο boss αντέχει πολλές μπάλες", m.boss.max_hp / per_ball >= 250.0,
+			"(hp=%.0f, %.2f ανά μπάλα -> %.0f χτυπήματα)"
+				% [m.boss.max_hp, per_ball, m.boss.max_hp / per_ball])
 		m.save["unlocked_areas"] = 1
 		m.save["unlocked_dragons"] = ["ember"]
 		m.boss.take_damage(m.boss.max_hp + 10.0)
@@ -392,6 +404,108 @@ func _initialize() -> void:
 	ok("και ο knight γυρίζει μόνος του στο idle μετά το χτύπημα",
 		not knight_block.hit_playing)
 	knight_block.queue_free()
+
+	print("--- Goblin King: γραφικά ---")
+	var king_type: EnemyType = m.enemy_by_id["goblin_king"]
+	ok("ο boss της Goblin Land είναι ο βασιλιάς",
+		m.areas[0].boss.id == "goblin_king", m.areas[0].boss.id)
+	ok("το Frost Marches κράτησε τον δικό του boss",
+		m.areas[1].boss.id == "warlock_boss", m.areas[1].boss.id)
+	ok("6 καρέ idle", king_type.frames_idle.size() == 6,
+		"(%d)" % king_type.frames_idle.size())
+	ok("6 καρέ hit", king_type.frames_hit.size() == 6,
+		"(%d)" % king_type.frames_hit.size())
+	var king_sz := {}
+	for tex in king_type.frames_idle + king_type.frames_hit:
+		king_sz[tex.get_size()] = true
+	ok("όλα τα καρέ σε ίδιο καμβά 96x64",
+		king_sz.size() == 1 and king_sz.has(Vector2(96, 64)), str(king_sz.keys()))
+	# 96x64 = 3:2, ίδιο με το αποτύπωμα 3x2 — αλλιώς ο βασιλιάς τεντώνεται
+	ok("ο λόγος του καρέ ταιριάζει με το αποτύπωμα",
+		is_equal_approx(96.0 / 64.0, float(m.areas[0].boss_cols) / float(m.areas[0].boss_rows)))
+
+	print("--- Goblin King: ικανότητες ---")
+	var king = m._make_block(2, 0, king_type, 40.0, 3, 2, true)
+	var comp = king.ability as CompositeAbility
+	ok("δέθηκαν τρεις ικανότητες", comp != null and comp.parts.size() == 3,
+		"(%d)" % (comp.parts.size() if comp else -1))
+	var hide: ThickHideAbility = null
+	var fury: RageAbility = null
+	var horn: SummonerAbility = null
+	for p in comp.parts:
+		if p is ThickHideAbility:
+			hide = p
+		elif p is RageAbility:
+			fury = p
+		elif p is SummonerAbility:
+			horn = p
+	ok("υπάρχουν και τα τρία μέρη", hide != null and fury != null and horn != null)
+
+	# κάθε αντίγραφο πρέπει να έχει δικά του μέρη, αλλιώς δύο boss θα
+	# μοιράζονταν την ίδια οργή και τους ίδιους μετρητές
+	var king2 = m._make_block(2, 6, king_type, 40.0, 3, 2, false)
+	ok("τα μέρη αντιγράφονται ανά εχθρό",
+		(king2.ability as CompositeAbility).parts[0] != comp.parts[0])
+	m.grid.erase(king2)
+	king2.queue_free()
+
+	# χοντρό τομάρι: 1.0 ζημιά -> 0.6, 3.0 (INFERNO) -> 2.6
+	ok("το τομάρι κόβει σταθερό ποσό", is_equal_approx(hide.absorb(king, 1.0), 0.6),
+		"(%.2f)" % hide.absorb(king, 1.0))
+	ok("το INFERNO περνάει σχεδόν ακέραιο", is_equal_approx(hide.absorb(king, 3.0), 2.6),
+		"(%.2f)" % hide.absorb(king, 3.0))
+	ok("πάντα περνάει κάτι", hide.absorb(king, 0.3) > 0.0, "(%.2f)" % hide.absorb(king, 0.3))
+	ok("δεν περνάει παραπάνω απ' όσα ήρθαν", hide.absorb(king, 0.1) <= 0.1)
+
+	# οργή: μπαίνει μόλις πέσει κάτω από το μισό, και μόνο μία φορά
+	var idle_before = king.frames_idle
+	ok("ξεκινάει ήρεμος", not fury.raged)
+	king.take_damage(10.0)
+	await process_frame
+	ok("στο 75% δεν έχει οργιστεί ακόμα", not fury.raged, "hp=%.1f" % king.hp)
+	ok("το idle δεν άλλαξε", king.frames_idle == idle_before)
+	king.take_damage(15.0)
+	await process_frame
+	ok("κάτω από το μισό οργίζεται", fury.raged, "hp=%.1f" % king.hp)
+	ok("άλλαξε σετ ηρεμίας", king.frames_idle != idle_before)
+	ok("το νέο σετ είναι τα καρέ οργής", king.frames_idle == fury.frames_rage)
+	ok("βάφτηκε κόκκινος", king.modulate.g < 1.0, str(king.modulate))
+	ok("το badge το δείχνει", "!!" in king.ability.badge(), king.ability.badge())
+
+	# η οργή πιέζει: διπλό βήμα κάθε δεύτερο γύρο, όχι πριν
+	var steps := []
+	for i in 4:
+		steps.append(comp.advance_rows(king, 1))
+	ok("οργισμένος κατεβαίνει διπλά κάθε δεύτερο γύρο", steps == [1, 2, 1, 2], str(steps))
+
+	# πολεμικό κάλεσμα: δύο bats τη φορά, και ουρλιαχτό πάνω στον βασιλιά
+	king._process(2.0)      # να κλείσει πρώτα η αντίδραση των προηγούμενων χτυπημάτων
+	var before_horn: Array = m.grid.blocks()
+	horn.every = 1
+	comp.on_round_end(king, m)
+	await process_frame
+	var spawned := 0
+	for kb in m.grid.blocks():
+		if not before_horn.has(kb) and kb.kind == "bat":
+			spawned += 1
+	ok("το κάλεσμα βγάζει δύο orc bats", spawned == 2, "(%d)" % spawned)
+	ok("παίζει το ουρλιαχτό", king.act_playing)
+	ok("το ουρλιαχτό δείχνει καρέ roar, όχι idle",
+		horn.act_frames.has(king.portrait_frame()))
+	# το χτύπημα κόβει το ουρλιαχτό — αλλιώς δεν φαίνεται ότι τον πέτυχες
+	king.take_damage(1.0)
+	ok("το χτύπημα υπερισχύει του ουρλιαχτού",
+		king.frames_hit.has(king.portrait_frame()))
+	king._process(2.0)
+	ok("μετά το ουρλιαχτό γυρίζει στο idle",
+		not king.act_playing and king.frames_idle.has(king.portrait_frame()))
+	# το ταμπλό μπορεί να κρατάει και κόμβους που έχουν ήδη φύγει (π.χ. ο boss
+	# που σκοτώθηκε παραπάνω), οπότε το καθάρισμα ελέγχει πρώτα εγκυρότητα
+	for left_over in m.grid.blocks():
+		if is_instance_valid(left_over):
+			m.grid.erase(left_over)
+			left_over.queue_free()
+	await process_frame
 
 	print("--- αποθήκευση ---")
 	var d = SaveManager.defaults()

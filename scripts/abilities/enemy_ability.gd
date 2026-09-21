@@ -26,6 +26,19 @@ func on_round_end(_block, _game) -> void:
 	pass
 
 
+## Μόλις ο εχθρός φάει ζημιά και επιβιώσει. Το καλεί το main, γιατί εκεί
+## υπάρχει η αναφορά στο παιχνίδι — το block δεν την κρατάει.
+func on_damaged(_block, _game) -> void:
+	pass
+
+
+## Το αντίγραφο που παίρνει κάθε εχθρός. Ξεχωριστή συνάρτηση και όχι σκέτο
+## duplicate(), ώστε το CompositeAbility να μπορεί να αντιγράψει και τα μέρη
+## του — αλλιώς όλοι οι εχθροί θα μοιράζονταν τους ίδιους μετρητές.
+func clone() -> EnemyAbility:
+	return duplicate() as EnemyAbility
+
+
 ## Σύντομη ένδειξη που ζωγραφίζεται πάνω στον εχθρό.
 func badge() -> String:
 	return ""
