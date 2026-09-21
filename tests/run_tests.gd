@@ -192,6 +192,31 @@ func _initialize() -> void:
 		sizes[tex.get_size()] = true
 	ok("όλα τα καρέ ίδιο μέγεθος, ώστε να μην πηδάει", sizes.size() == 1,
 		"(%d διαφορετικά)" % sizes.size())
+	print("--- ξυπνημένη μορφή (INFERNO) ---")
+	var awake = dg.awakened
+	ok("ο δράκος έχει ξυπνημένη μορφή", awake is DragonType, str(awake))
+	ok("με καρέ και στις 3 καταστάσεις",
+		awake.frames_idle.size() == 3 and awake.frames_ready.size() == 3
+			and awake.frames_fire.size() == 3)
+	ok("σχεδιάζεται μεγαλύτερη από την κανονική", awake.draw_width > dg.draw_width,
+		"(%.0f > %.0f)" % [awake.draw_width, dg.draw_width])
+	var awake_sizes := {}
+	for tex in awake.frames_idle + awake.frames_ready + awake.frames_fire:
+		awake_sizes[tex.get_size()] = true
+	ok("όλα τα καρέ της σε ίδιο καμβά", awake_sizes.size() == 1, str(awake_sizes.keys()))
+	m.inferno_active = false
+	ok("χωρίς INFERNO παίζει η κανονική μορφή", m.active_dragon() == dg)
+	m.inferno_active = true
+	ok("με INFERNO παίζει η ξυπνημένη", m.active_dragon() == awake)
+	m.inferno_active = false
+
+	print("--- κλείδωμα χειριστηρίων ---")
+	m.phase = "aim"
+	ok("στη στόχευση τα κουμπιά δουλεύουν", not m.controls_locked())
+	m.phase = "shoot"
+	ok("όσο πετάνε μπάλες είναι κλειδωμένα", m.controls_locked())
+	m.phase = "aim"
+
 	# η φλόγα ανάβει μόνο όσο φεύγουν μπάλες, όχι όσο τριγυρνάνε στην πίστα
 	m.phase = "shoot"
 	m.to_fire = 3

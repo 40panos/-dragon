@@ -61,6 +61,13 @@ var aoe_mode := false
 var special_charge := 0.0
 var inferno_active := false
 
+# χρόνος που απομένει στη φλόγα που καλύπτει την εναλλαγή μικρού/μεγάλου
+# δράκου. Παίζει ΜΙΑ φορά, και στις δύο κατευθύνσεις της αλλαγής.
+const AWAKEN_TIME := 0.55
+const AWAKEN_FRAMES := 8
+var awaken_t := 0.0
+var awaken_frames: Array[Texture2D] = []
+
 # ---------------------------------------------------------------- ζωντάνια
 var sparks: Array = []
 var shake := 0.0
@@ -104,6 +111,10 @@ func _ready() -> void:
 
 	fireball_tex = _load_tex("fireball")
 	fireball_aoe_tex = _load_tex("fireball_aoe")
+	for i in range(1, AWAKEN_FRAMES + 1):
+		var af := _load_tex("awaken_%d" % i)
+		if af:
+			awaken_frames.append(af)
 	tex_frame_left = _load_tex("frame_left")
 	tex_frame_right = _load_tex("frame_right")
 	tex_frame_top = _load_tex("frame_top")
@@ -300,6 +311,21 @@ func add_shake(amount: float) -> void:
 	shake = minf(shake + amount, 9.0)
 
 
+## Ποιος δράκος σχεδιάζεται τώρα: όσο καίει το INFERNO παίρνει τη θέση του η
+## ξυπνημένη μορφή, αν ο τύπος έχει μία. Όλα τα υπόλοιπα (καρέ, ρυθμοί, πλάτος
+## σχεδίασης) βγαίνουν από αυτήν, οπότε δεν χρειάζεται δεύτερο μονοπάτι κώδικα.
+func active_dragon() -> DragonType:
+	if dragon and inferno_active and dragon.awakened is DragonType:
+		return dragon.awakened
+	return dragon
+
+
+## Κρατάει κλειδωμένα τα χειριστήρια όσο υπάρχουν μπάλες στο ταμπλό: ούτε
+## αλλαγή βλήματος ούτε INFERNO μέσα στη ριπή.
+func controls_locked() -> bool:
+	return phase != "aim"
+
+
 ## Πού πατάει ο δράκος. Κάθεται μέσα στη ζώνη κάτω από την τελευταία σειρά
 ## πλακιδίων, όχι πάνω στη γραμμή του δαπέδου, ώστε να μην κρύβει το πεδίο.
 func dragon_base() -> Vector2:
@@ -309,15 +335,17 @@ func dragon_base() -> Vector2:
 ## Θέση στόματος, ακολουθώντας τη στροφή του κεφαλιού — από εκεί βγαίνει η φωτιά.
 func mouth_pos() -> Vector2:
 	var h := 60.0
-	if dragon:
-		var dt := dragon.frame_for(dragon_phase(), aiming, t)
+	var dg := active_dragon()
+	if dg:
+		var dt := dg.frame_for(dragon_phase(), aiming, t)
 		if dt:
-			h = dragon.draw_width * float(dt.get_height()) / float(dt.get_width())
+			h = dg.draw_width * float(dt.get_height()) / float(dt.get_width())
 	return dragon_base() + Vector2(0, -h * 0.45).rotated(tilt)
 
 
 func _update_life(delta: float) -> void:
 	recoil = maxf(0.0, recoil - delta * 5.5)
+	awaken_t = maxf(0.0, awaken_t - delta)
 
 	# το κεφάλι στρέφεται προς εκεί που σημαδεύεις
 	var want := 0.0
@@ -576,11 +604,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if paused:
 		return
+	# όσο πετάνε μπάλες, τα δύο αυτά κουμπιά είναι κλειδωμένα — το HUD τα
+	# δείχνει γκριζαρισμένα, και εδώ το πάτημα απλώς καταπίνεται
 	if mb.pressed and aoe_rect().has_point(p):
-		aoe_mode = not aoe_mode
+		if not controls_locked():
+			aoe_mode = not aoe_mode
 		return
 	if mb.pressed and special_rect().has_point(p):
-		_use_special()
+		if not controls_locked():
+			_use_special()
 		return
 	# πατήματα στην κάτω μπάρα χειριστηρίων δεν ξεκινούν στόχευση
 	if mb.pressed and p.y >= ui_top:
@@ -602,6 +634,13 @@ func _unhandled_input(event: InputEvent) -> void:
 				_start()
 
 
+## Ανάβει τη φλόγα που σκεπάζει την αλλαγή μορφής. Χωρίς αυτήν ο μικρός
+## δράκος θα γινόταν μεγάλος μέσα σε ένα καρέ.
+func _awaken_flash() -> void:
+	awaken_t = AWAKEN_TIME
+	add_shake(5.0)
+
+
 func _use_special() -> void:
 	if not special_ready():
 		return
@@ -616,6 +655,7 @@ func _use_special() -> void:
 			_announce("SWARM!")
 		_:
 			inferno_active = true
+			_awaken_flash()
 			_announce("INFERNO!")
 	special_charge = 0.0
 
@@ -723,6 +763,8 @@ func _on_ball_died(x: float) -> void:
 
 func _end_turn() -> void:
 	Engine.time_scale = 1.0
+	if inferno_active:
+		_awaken_flash()      # η ίδια φλόγα καλύπτει και την επιστροφή
 	inferno_active = false
 	ball_count += gained
 	if next_x >= 0.0:
@@ -901,11 +943,26 @@ func dragon_phase() -> String:
 	return phase
 
 
+## Η φλόγα της εναλλαγής, πάνω από τον δράκο. Παίζει μία φορά προς τα εμπρός
+## και σβήνει στο τέλος, ώστε να μη «γδέρνει» το καρέ όπου αλλάζει η μορφή.
+func _draw_awaken(base: Vector2, dragon_w: float) -> void:
+	if awaken_t <= 0.0 or awaken_frames.is_empty():
+		return
+	var f := 1.0 - awaken_t / AWAKEN_TIME          # 0 στην αρχή, 1 στο τέλος
+	var i := clampi(int(f * awaken_frames.size()), 0, awaken_frames.size() - 1)
+	var tex := awaken_frames[i]
+	var w := dragon_w * 1.5                        # ξεπερνάει το κεφάλι, να το τυλίγει
+	var h := w * float(tex.get_height()) / float(tex.get_width())
+	draw_texture_rect(tex, Rect2(base.x - w * 0.5, base.y - h, w, h), false,
+		Color(1, 1, 1, clampf(awaken_t / (AWAKEN_TIME * 0.4), 0.0, 1.0)))
+
+
 func _draw_dragon() -> void:
 	var base := dragon_base()
-	var dt: Texture2D = dragon.frame_for(dragon_phase(), aiming, t) if dragon else null
+	var dg := active_dragon()
+	var dt: Texture2D = dg.frame_for(dragon_phase(), aiming, t) if dg else null
 	if dt:
-		var w: float = dragon.draw_width
+		var w: float = dg.draw_width
 		var h := w * float(dt.get_height()) / float(dt.get_width())
 
 		var dph := dragon_phase()
@@ -922,13 +979,14 @@ func _draw_dragon() -> void:
 		var pivot := base + Vector2(0, bob) + kick
 
 		draw_set_transform(pivot, tilt, Vector2(1.0, breathe))
-		draw_texture_rect(dt, Rect2(-w * 0.5, -h, w, h), false, dragon.tint)
+		draw_texture_rect(dt, Rect2(-w * 0.5, -h, w, h), false, dg.tint)
 		# λάμψη στο στόμα την ώρα που φεύγει η μπάλα
 		if recoil > 0.05:
 			var g := recoil
 			draw_circle(Vector2(0, -h * 0.45), 26.0 * g, Color(1.0, 0.62, 0.18, 0.30 * g))
 			draw_circle(Vector2(0, -h * 0.45), 12.0 * g, Color(1.0, 0.92, 0.70, 0.55 * g))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		_draw_awaken(base, w)
 		return
 
 	var px := 7.0

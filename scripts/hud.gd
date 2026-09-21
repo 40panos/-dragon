@@ -109,9 +109,15 @@ func _draw() -> void:
 	draw_string(font, Vector2(bc.x - 40.0, bc.y + 11.0), "x%d" % shown,
 		HORIZONTAL_ALIGNMENT_CENTER, 80.0, 30, Color("ffd98a"))
 
+	# όσο υπάρχουν μπάλες στο ταμπλό τα δύο κουμπιά δεν δέχονται πάτημα, οπότε
+	# ξεθωριάζουν κιόλας — αλλιώς φαίνονται ενεργά και δεν απαντάνε
+	var locked: bool = m.controls_locked()
+	var lock_tint := Color(0.45, 0.45, 0.48) if locked else Color.WHITE
+	var lock_text := Color("6b6878") if locked else Color("c9c2d6")
+
 	# διακόπτης single / AoE
 	var ar: Rect2 = m.aoe_rect()
-	draw_texture_rect(PLATE_SQ, ar, false)
+	draw_texture_rect(PLATE_SQ, ar, false, lock_tint)
 	if m.aoe_mode:
 		# αναμμένο: ζεστή λάμψη μέσα στην πλάκα, αντί για δεύτερο χρώμα φόντου
 		draw_rect(Rect2(ar.position + Vector2(8, 8), ar.size - Vector2(16, 16)),
@@ -119,10 +125,10 @@ func _draw() -> void:
 	# μέσα στο κουμπί μπαίνει το βλήμα που θα φύγει πραγματικά
 	var ac := ar.position + ar.size * 0.5
 	var shot: Texture2D = BALL_AOE if m.aoe_mode else BALL_SINGLE
-	draw_texture_rect(shot, Rect2(ac - Vector2(32, 32), Vector2(64, 64)), false)
+	draw_texture_rect(shot, Rect2(ac - Vector2(32, 32), Vector2(64, 64)), false, lock_tint)
 	draw_string(font, Vector2(ar.position.x - 22.0, ar.end.y + 22.0),
 		"AOE" if m.aoe_mode else "SINGLE",
-		HORIZONTAL_ALIGNMENT_CENTER, ar.size.x + 44.0, 18, Color("c9c2d6"))
+		HORIZONTAL_ALIGNMENT_CENTER, ar.size.x + 44.0, 18, lock_text)
 
 	# special με μπάρα φόρτισης
 	var sr: Rect2 = m.special_rect()
@@ -130,8 +136,11 @@ func _draw() -> void:
 	var sc := sr.position + sr.size * 0.5
 	# το εικονίδιο έχει τη λάμψη ζωγραφισμένη μέσα του· όσο δεν είναι έτοιμο
 	# σβήνει με σκούρο modulate, και ανάβει μόλις γεμίσει
+	var inferno_tint := Color.WHITE if ready else Color(0.44, 0.40, 0.46)
+	if locked:
+		inferno_tint *= lock_tint
 	draw_texture_rect(BTN_INFERNO, Rect2(sc - Vector2(42, 45.5), Vector2(84, 91)), false,
-		Color.WHITE if ready else Color(0.44, 0.40, 0.46))
+		inferno_tint)
 	var charge := 0.0
 	if m.dragon:
 		charge = clampf(m.special_charge / maxf(m.dragon.special_cost, 1.0), 0.0, 1.0)
@@ -139,12 +148,12 @@ func _draw() -> void:
 	if not ready:
 		draw_rect(Rect2(sr.position.x + 10.0, sr.end.y - 10.0 - (sr.size.y - 20.0) * charge,
 			sr.size.x - 20.0, (sr.size.y - 20.0) * charge), Color(1.0, 0.62, 0.20, 0.20))
-	else:
+	elif not locked:
 		draw_circle(sc, 46.0 + sin(m.t * 6.0) * 2.0, Color(1.0, 0.62, 0.20, 0.13))
 	draw_string(font, Vector2(sr.position.x - 30.0, sr.end.y + 22.0),
 		m.dragon.special_name() if m.dragon else "SPECIAL",
 		HORIZONTAL_ALIGNMENT_CENTER, sr.size.x + 60.0, 18,
-		Color("ffe1ad") if ready else Color("77708a"))
+		lock_text if locked else (Color("ffe1ad") if ready else Color("77708a")))
 
 	if m.phase == "aim" and not m.aiming:
 		draw_string(font, Vector2(0, m.ui_top + 66.0), "DRAG TO AIM",
