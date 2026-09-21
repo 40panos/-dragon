@@ -24,6 +24,11 @@ const INFERNO_BALL_SCALE := 1.75   # πόσο μεγαλώνει το σχέδι
 const LAIR_SCALE := 2.0            # η φωλιά είναι σε art pixels, δείχνεται x2 (όπως ο δράκος)
 const LAIR_FRAMES := 5             # καρέ ανά ζωντανεμένο στοιχείο (φωλιά και δάδες)
 const LAIR_FPS := 7.0              # αργός ρυθμός: η λάβα σιγοκαίει, δεν τρεμοπαίζει
+
+## Ποιο σετ φωλιάς παίζει. Το tools/build_lair.gd βγάζει δύο με κοινή
+## γεωμετρία: "lair" (ηφαίστεια και λάβα) και "castle" (πυργίσκοι και
+## πολεμίστρες). Αλλαγή εδώ και μόνο — τα δύο σετ είναι εναλλάξιμα.
+const LAIR_SET := "castle"
 const TORCH_FPS := 9.0
 
 ## Τα στολίδια του πλαισίου. Ίδια νούμερα με το DECOR του tools/build_frame.gd —
@@ -135,7 +140,7 @@ func _ready() -> void:
 	tex_frame_right = _load_tex("frame_right")
 	tex_frame_top = _load_tex("frame_top")
 	for i in range(1, LAIR_FRAMES + 1):
-		var lf := _load_tex("lair_%d" % i)
+		var lf := _load_tex("%s_%d" % [LAIR_SET, i])
 		if lf:
 			lair_frames.append(lf)
 		var tf := _load_tex("deco_torch_%d" % i)
