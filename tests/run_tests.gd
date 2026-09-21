@@ -255,6 +255,36 @@ func _initialize() -> void:
 		not orc_block.hit_playing)
 	orc_block.queue_free()
 
+	print("--- animation εχθρού (brute idle+hit) ---")
+	# ο brute είναι ο μόνος εχθρός χωρίς ικανότητα· πήρε το ίδιο ζευγάρι
+	# animation με τον goblin (8 idle σε βρόχο, 9 hit μία φορά)
+	var brute_type: EnemyType = m.enemy_by_id["brute"]
+	ok("ο brute δεν έχει ικανότητα", brute_type.ability == null)
+	ok("φορτώθηκαν 8 καρέ idle", brute_type.frames_idle.size() == 8,
+		"(%d)" % brute_type.frames_idle.size())
+	ok("φορτώθηκαν 9 καρέ hit", brute_type.frames_hit.size() == 9,
+		"(%d)" % brute_type.frames_hit.size())
+	var brute_sizes := {}
+	for tex in brute_type.frames_idle + brute_type.frames_hit:
+		brute_sizes[tex.get_size()] = true
+	ok("όλα τα καρέ σε ίδιο καμβά, ώστε να μη χοροπηδάει", brute_sizes.size() == 1,
+		str(brute_sizes.keys()))
+	ok("ίδιος καμβάς με τον goblin, όχι το παλιό 128x128",
+		brute_type.frames_idle[0].get_size() == goblin_type.frames_idle[0].get_size()
+			and brute_type.sprite.get_size() == Vector2(32, 32),
+		str(brute_type.sprite.get_size()))
+	var brute_block = m._make_block(4, 0, brute_type, 5.0, 1, 1, false)
+	brute_block.idle_t = 0.0
+	ok("πριν το χτύπημα δείχνει idle", brute_block.portrait_frame() == brute_block.frames_idle[0])
+	brute_block.take_damage(1.0)
+	brute_block._process(0.2)      # 0.2s * 12fps = καρέ 2, μέσα στη διάρκεια (9/12=0.75s)
+	ok("μέσα στην αντίδραση δείχνει καρέ hit, όχι idle",
+		brute_block.hit_playing and brute_block.frames_hit.find(brute_block.portrait_frame()) == 2,
+		"(%d)" % brute_block.frames_hit.find(brute_block.portrait_frame()))
+	brute_block._process(1.0)      # σίγουρα πέρασε η διάρκεια
+	ok("μετά το τέλος ξαναγυρίζει στο idle", not brute_block.hit_playing)
+	brute_block.queue_free()
+
 	print("--- animation χτυπήματος στον knight και τον warlock ---")
 	var knight_type: EnemyType = m.enemy_by_id["knight"]
 	var warlock_type: EnemyType = m.enemy_by_id["warlock"]

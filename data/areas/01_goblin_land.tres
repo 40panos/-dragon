@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AreaDef" load_steps=56 format=3]
+[gd_resource type="Resource" script_class="AreaDef" load_steps=73 format=3]
 
 [ext_resource type="Texture2D" path="res://art/background.png" id="1_q6tll"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="2_q7sd1"]
@@ -45,6 +45,23 @@
 [ext_resource type="Texture2D" path="res://art/knight_hit_2.png" id="42_2fbn1"]
 [ext_resource type="Texture2D" path="res://art/knight_hit_3.png" id="43_8pdif"]
 [ext_resource type="Texture2D" path="res://art/knight_hit_4.png" id="44_8573s"]
+[ext_resource type="Texture2D" path="res://art/brute_hit_1.png" id="44_jrpl8"]
+[ext_resource type="Texture2D" path="res://art/brute_hit_2.png" id="45_76p47"]
+[ext_resource type="Texture2D" path="res://art/brute_hit_3.png" id="46_132o0"]
+[ext_resource type="Texture2D" path="res://art/brute_hit_4.png" id="47_s5wgk"]
+[ext_resource type="Texture2D" path="res://art/brute_hit_5.png" id="48_etedj"]
+[ext_resource type="Texture2D" path="res://art/brute_hit_6.png" id="49_0pmk1"]
+[ext_resource type="Texture2D" path="res://art/brute_hit_7.png" id="50_dicrl"]
+[ext_resource type="Texture2D" path="res://art/brute_hit_8.png" id="51_x1su7"]
+[ext_resource type="Texture2D" path="res://art/brute_hit_9.png" id="52_gtaht"]
+[ext_resource type="Texture2D" path="res://art/brute_idle_1.png" id="53_q54py"]
+[ext_resource type="Texture2D" path="res://art/brute_idle_2.png" id="54_ogmrc"]
+[ext_resource type="Texture2D" path="res://art/brute_idle_3.png" id="55_t4g4c"]
+[ext_resource type="Texture2D" path="res://art/brute_idle_4.png" id="56_i3yjx"]
+[ext_resource type="Texture2D" path="res://art/brute_idle_5.png" id="57_0p2qx"]
+[ext_resource type="Texture2D" path="res://art/brute_idle_6.png" id="58_2tkxy"]
+[ext_resource type="Texture2D" path="res://art/brute_idle_7.png" id="59_tpsjv"]
+[ext_resource type="Texture2D" path="res://art/brute_idle_8.png" id="60_altyc"]
 
 [sub_resource type="Resource" id="Resource_y72qm"]
 script = ExtResource("2_q7sd1")
@@ -118,9 +135,9 @@ script = ExtResource("3_8loov")
 id = "brute"
 display_name = "Brute"
 sprite = ExtResource("10_g4j03")
-frames_idle = Array[Texture2D]([])
+frames_idle = Array[Texture2D]([ExtResource("53_q54py"), ExtResource("54_ogmrc"), ExtResource("55_t4g4c"), ExtResource("56_i3yjx"), ExtResource("57_0p2qx"), ExtResource("58_2tkxy"), ExtResource("59_tpsjv"), ExtResource("60_altyc")])
 fps_idle = 6.0
-frames_hit = Array[Texture2D]([])
+frames_hit = Array[Texture2D]([ExtResource("44_jrpl8"), ExtResource("45_76p47"), ExtResource("46_132o0"), ExtResource("47_s5wgk"), ExtResource("48_etedj"), ExtResource("49_0pmk1"), ExtResource("50_dicrl"), ExtResource("51_x1su7"), ExtResource("52_gtaht")])
 fps_hit = 12.0
 hp_mult = 1.6
 tier = 3
