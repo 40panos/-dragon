@@ -22,6 +22,17 @@ const DRAGON_DROP := 70.0     # πόσο κάτω από τη γραμμή το�
 const AWAKE_DROP := 40.0      # η ξυπνημένη μορφή είναι διπλάσια, κάθεται ακόμα πιο χαμηλά
 const INFERNO_BALL_SCALE := 1.75   # πόσο μεγαλώνει το σχέδιο της μπάλας στο INFERNO
 const LAIR_SCALE := 2.0            # η φωλιά είναι σε art pixels, δείχνεται x2 (όπως ο δράκος)
+const LAIR_FRAMES := 5             # καρέ ανά ζωντανεμένο στοιχείο (φωλιά και δάδες)
+const LAIR_FPS := 7.0              # αργός ρυθμός: η λάβα σιγοκαίει, δεν τρεμοπαίζει
+const TORCH_FPS := 9.0
+
+## Τα στολίδια του πλαισίου. Ίδια νούμερα με το DECOR του tools/build_frame.gd —
+## οι δάδες και το λάβαρο ΔΕΝ ψήνονται πια μέσα στο frame_left.png, γιατί
+## κινούνται· σχεδιάζονται από πάνω, στην ίδια ακριβώς θέση που είχαν.
+const DECO_TILE := 64.0
+const DECO_ROWS := 13.0
+const DECO_TORCH_ROWS := [2, 8]
+const DECO_BANNER_ROW := 5
 const ROUNDS_PER_AREA := 20   # ο boss εμφανίζεται στον τελευταίο γύρο κάθε περιοχής
 const SPLASH_RATIO := 0.33    # ζημιά σε λειτουργία AoE, στον στόχο και στους γείτονες
 
@@ -94,7 +105,9 @@ var fireball_aoe_tex: Texture2D
 var tex_frame_left: Texture2D
 var tex_frame_right: Texture2D
 var tex_frame_top: Texture2D
-var tex_lair: Texture2D
+var lair_frames: Array[Texture2D] = []
+var torch_frames: Array[Texture2D] = []
+var tex_banner: Texture2D
 var font: Font
 
 
@@ -121,7 +134,14 @@ func _ready() -> void:
 	tex_frame_left = _load_tex("frame_left")
 	tex_frame_right = _load_tex("frame_right")
 	tex_frame_top = _load_tex("frame_top")
-	tex_lair = _load_tex("lair")
+	for i in range(1, LAIR_FRAMES + 1):
+		var lf := _load_tex("lair_%d" % i)
+		if lf:
+			lair_frames.append(lf)
+		var tf := _load_tex("deco_torch_%d" % i)
+		if tf:
+			torch_frames.append(tf)
+	tex_banner = _load_tex("deco_banner")
 
 	_load_content()
 	save = SaveManager.load_data()
@@ -923,17 +943,66 @@ func _draw_frame() -> void:
 		x2 += 58.0
 
 
+## Δείκτης καρέ σε βρόχο ping-pong (0,1,..,n-1,n-2,..,1). Τα καρέ που έρχονται
+## από το PixelLab δεν κλείνουν κύκλο — το τελευταίο είναι πιο φωτεινό από το
+## πρώτο — οπότε ευθύς βρόχος θα πηδούσε στο γύρισμα. Με το `off` οι δύο
+## πλευρές της οθόνης τρέχουν εκτός φάσης, να μην τρεμοπαίζουν μαζί.
+func _pingpong(n: int, fps: float, off := 0.0) -> int:
+	if n < 2:
+		return 0
+	var span := (n - 1) * 2
+	var i := int(floor((t + off) * fps)) % span
+	return i if i < n else span - i
+
+
+## Καθρεφτίζει ένα rect οριζόντια. Το draw_texture_rect ΔΕΝ έχει όρισμα flip:
+## το πέμπτο του είναι `transpose`, που γυρίζει την εικόνα 90° — περασμένο
+## κατά λάθος ως flip έστριβε τις δεξιές δάδες και το λάβαρο στο πλάι.
+## Το αρνητικό πλάτος είναι ο σωστός τρόπος.
+func _mirror(r: Rect2, flip: bool) -> Rect2:
+	if not flip:
+		return r
+	return Rect2(r.position.x + r.size.x, r.position.y, -r.size.x, r.size.y)
+
+
+## Δάδες και λάβαρα. Ήταν ψημένα μέσα στο frame_left.png· βγήκαν από εκεί ώστε
+## να κινούνται, και ξαναμπαίνουν εδώ στην ίδια θέση. Ο υπολογισμός ακολουθεί
+## τη γεωμετρία με την οποία το _draw_frame() τεντώνει τη λωρίδα του πλαισίου.
 func _draw_torches() -> void:
-	if tex_frame_left:
-		return          # οι δάδες είναι ήδη μέσα στο ζωγραφισμένο πλαίσιο
-	var flick := 1.0 + sin(t * 9.0) * 0.12
+	if tex_frame_left == null:
+		return
+	var top := PF_TOP - 36.0
+	var sy := (H - top) / (DECO_ROWS * DECO_TILE)
 	for side in 2:
-		var x := BORDER * 0.5 if side == 0 else W - BORDER * 0.5
-		var y := floor_y - 430.0
-		draw_rect(Rect2(x - 4.0, y, 8.0, 34.0), Color("4a3524"))
-		draw_circle(Vector2(x, y - 4.0), 26.0 * flick, Color(1.0, 0.55, 0.15, 0.20))
-		draw_circle(Vector2(x, y - 6.0), 11.0 * flick, Color("ff9e2c"))
-		draw_circle(Vector2(x, y - 10.0), 6.0 * flick, Color("ffe9a8"))
+		var x := frame_left() if side == 0 else pf_right
+		for r in DECO_TORCH_ROWS:
+			if torch_frames.is_empty():
+				continue
+			# δεξιά μισό βήμα πίσω, ώστε οι τέσσερις δάδες να μη χτυπάνε μαζί
+			var tt: Texture2D = torch_frames[_pingpong(
+				torch_frames.size(), TORCH_FPS, 0.0 if side == 0 else 0.37)]
+			var th := float(tt.get_height()) * sy
+			draw_texture_rect(tt, _mirror(
+				Rect2(x, top + r * DECO_TILE * sy, BORDER, th), side == 1), false)
+		if tex_banner:
+			_draw_banner(x, top + DECO_BANNER_ROW * DECO_TILE * sy, sy, side == 1)
+
+
+## Το λάβαρο κυματίζει. Σχεδιάζεται σε οριζόντιες λωρίδες με ημιτονοειδή
+## μετατόπιση που μεγαλώνει προς τα κάτω: η κορυφή είναι δεμένη στο κοντάρι,
+## το ελεύθερο άκρο ταξιδεύει πιο πολύ. Προτιμήθηκε από καρέ γιατί το κύμα
+## πρέπει να κυλάει συνεχόμενα, και δεν κοστίζει τίποτα σε γραφικά.
+func _draw_banner(x: float, y: float, sy: float, flip: bool) -> void:
+	var tw := float(tex_banner.get_width())
+	var th := float(tex_banner.get_height())
+	var rows := 16
+	var step := th / float(rows)
+	for i in rows:
+		var f := float(i) / float(rows)
+		var dx := sin(t * 2.0 - f * 3.4) * (f * f * 4.0)
+		draw_texture_rect_region(tex_banner, _mirror(
+			Rect2(x + dx, y + i * step * sy, BORDER, step * sy + 1.0), flip),
+			Rect2(0, i * step, tw, step))
 
 
 ## Η ζώνη του δράκου δεν έχει δικό της ταμπλό — το έδαφος της πίστας συνεχίζει
@@ -943,12 +1012,13 @@ func _draw_torches() -> void:
 func _draw_ground() -> void:
 	draw_line(Vector2(pf_left, floor_y), Vector2(pf_right, floor_y),
 		Color(1, 0.4, 0.3, 0.22), 2.0)
-	if tex_lair:
-		var lw := float(tex_lair.get_width()) * LAIR_SCALE
-		var lh := float(tex_lair.get_height()) * LAIR_SCALE
+	if not lair_frames.is_empty():
+		var lt: Texture2D = lair_frames[_pingpong(lair_frames.size(), LAIR_FPS)]
+		var lw := float(lt.get_width()) * LAIR_SCALE
+		var lh := float(lt.get_height()) * LAIR_SCALE
 		# κεντραρισμένη, όχι δεμένη στο pf_left: η φωλιά είναι πλατύτερη από
 		# την πίστα και τα ηφαίστεια πατάνε πάνω στα ξύλινα πλαϊνά
-		draw_texture_rect(tex_lair, Rect2((W - lw) * 0.5, ui_top - lh, lw, lh), false)
+		draw_texture_rect(lt, Rect2((W - lw) * 0.5, ui_top - lh, lw, lh), false)
 
 
 ## Ποια κατάσταση δείχνει ο δράκος τώρα. Η φλόγα ανάβει ΜΟΝΟ όσο φεύγουν

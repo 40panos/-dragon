@@ -1,16 +1,22 @@
 extends SceneTree
-## Συνθέτει το art/lair.png — την ηφαιστειακή φωλιά του δράκου, τη λωρίδα
+## Συνθέτει τα art/lair_1..5.png — την ηφαιστειακή φωλιά του δράκου, τη λωρίδα
 ## που κάθεται πάνω στην αμάχητη σειρά, ανάμεσα στη γραμμή θανάτου και το HUD.
 ##
 ##   godot --headless --path . --script tools/build_lair.gd
 ##
-## Ίδια λογική με build_floor.gd / build_frame.gd: το main τραβάει ΕΝΑ έτοιμο
-## texture, οπότε η διάταξη ψήνεται εδώ μια φορά με σταθερό seed. Έτσι η
+## Ίδια λογική με build_floor.gd / build_frame.gd: το main τραβάει έτοιμα
+## textures, οπότε η διάταξη ψήνεται εδώ μια φορά με σταθερό seed. Έτσι η
 ## πυκνότητα και οι θέσεις ρυθμίζονται χωρίς να ξαναφτιάχνονται τα στοιχεία.
 ##
 ## Ο καμβάς είναι σε art pixels· το παιχνίδι τον δείχνει στο x2 (ίδια κλίμακα
 ## με τον δράκο: texture 64 -> draw_width 128), οπότε ΚΑΘΕ διάσταση εδώ είναι
 ## η μισή της οθόνης. Μεγέθυνση μόνο ακέραια, καμία αναδειγματοληψία.
+##
+## Κάθε καρέ της φωλιάς βγαίνει από το αντίστοιχο καρέ κάθε στοιχείου. Το
+## main τα παίζει ping-pong (1-2-3-4-5-4-3-2), γιατί τα καρέ δεν κλείνουν
+## κύκλο: η λάβα φτάνει πιο φωτεινή στο 5 απ' ό,τι ξεκίνησε στο 1, και σε
+## ευθύ βρόχο θα πηδούσε. Το πάτωμα (vol_crust_a) μένει επίτηδες ακίνητο —
+## επαναλαμβάνεται πέντε φορές και θα χτυπούσε το μάτι.
 
 const W := 360               # 360 * 2 = 720 = όλο το πλάτος της οθόνης, ώστε
                              # τα ηφαίστεια να πατάνε ΠΑΝΩ στα ξύλινα πλαϊνά
@@ -29,8 +35,15 @@ const PF_RIGHT := W - BORDER
 const KEEP_CLEAR_MIN := 110
 const KEEP_CLEAR_MAX := 250
 
+const FRAMES := 5            # όσα καρέ έχει κάθε ζωντανεμένο στοιχείο
+
+## Ποια στοιχεία έχουν καρέ (vol_x_1..5) και ποια είναι ένα σκέτο αρχείο.
+const ANIMATED := ["vol_vent", "vol_spire", "vol_crust_b", "vol_rock",
+	"vol_flame_lg", "vol_flame_sm"]
+
 var rng := RandomNumberGenerator.new()
 var cache := {}
+var frame := 1               # ποιο καρέ χτίζεται τώρα
 
 
 func _img(name_: String) -> Image:
@@ -46,16 +59,28 @@ func _img(name_: String) -> Image:
 	return im
 
 
+## Το αρχείο του στοιχείου για το τρέχον καρέ. Τα ακίνητα στοιχεία δεν έχουν
+## αρίθμηση και επιστρέφουν πάντα το ίδιο.
+func _file(name_: String) -> String:
+	return "%s_%d" % [name_, frame] if ANIMATED.has(name_) else name_
+
+
 ## Τοποθετεί ένα στοιχείο ώστε το ΑΔΙΑΦΑΝΟ του κομμάτι να κάθεται με το κέντρο
 ## του στο cx και τη βάση του στο baseline. Χωρίς αυτό κάθε στοιχείο θα
 ## κρεμόταν διαφορετικά, γιατί το κενό κάτω από το σχέδιο διαφέρει ανά καμβά.
+##
+## Η ευθυγράμμιση διαβάζεται ΠΑΝΤΑ από το πρώτο καρέ. Αν κάθε καρέ στοιχιζόταν
+## στο δικό του bbox, μια φλόγα που μικραίνει θα τραβούσε τον εαυτό της προς
+## τα κάτω και το στοιχείο θα πηδούσε μέσα στον βρόχο.
 func _place(out: Image, name_: String, cx: int, baseline: int, flip := false) -> void:
-	var im := _img(name_)
+	var im := _img(_file(name_))
+	var r := _img("%s_1" % name_).get_used_rect() if ANIMATED.has(name_) \
+		else im.get_used_rect()
 	if flip:
 		im = Image.create_from_data(im.get_width(), im.get_height(),
 			false, im.get_format(), im.get_data())
 		im.flip_x()
-	var r := im.get_used_rect()
+		r.position.x = im.get_width() - r.position.x - r.size.x
 	var x := cx - r.position.x - int(r.size.x * 0.5)
 	var y := baseline - r.position.y - r.size.y
 	# blend, όχι blit: τα στοιχεία έχουν διάφανο φόντο και πρέπει να πατήσουν
@@ -69,7 +94,10 @@ func _clear(x: int) -> bool:
 	return x < KEEP_CLEAR_MIN or x > KEEP_CLEAR_MAX
 
 
-func _initialize() -> void:
+## Χτίζει ΕΝΑ καρέ. Το rng ξεκινάει από το ίδιο seed κάθε φορά, ώστε οι θέσεις
+## και τα καθρεφτίσματα να είναι ίδια σε όλα τα καρέ — αλλιώς η φωλιά θα
+## ανακατευόταν ολόκληρη σε κάθε βήμα του βρόχου.
+func _build() -> Image:
 	rng.seed = SEED
 	var out := Image.create(W, H, false, Image.FORMAT_RGBA8)
 
@@ -101,10 +129,17 @@ func _initialize() -> void:
 		if _clear(x):
 			_place(out, "vol_flame_sm", x, H - rng.randi_range(0, 2), rng.randf() < 0.5)
 
-	var path := "res://art/lair.png"
-	var err := out.save_png(ProjectSettings.globalize_path(path))
-	if err != OK:
-		push_error("η αποθήκευση απέτυχε (%d): %s" % [err, path])
-		quit(1)
-	print("γράφτηκε %s — %dx%d (οθόνη %dx%d)" % [path, W, H, W * 2, H * 2])
+	return out
+
+
+func _initialize() -> void:
+	for f in range(1, FRAMES + 1):
+		frame = f
+		var path := "res://art/lair_%d.png" % f
+		var err := _build().save_png(ProjectSettings.globalize_path(path))
+		if err != OK:
+			push_error("η αποθήκευση απέτυχε (%d): %s" % [err, path])
+			quit(1)
+		print("γράφτηκε %s" % path)
+	print("%d καρέ — %dx%d (οθόνη %dx%d)" % [FRAMES, W, H, W * 2, H * 2])
 	quit(0)
