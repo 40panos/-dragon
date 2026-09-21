@@ -31,6 +31,9 @@ var sprite: Texture2D = null
 var ability: EnemyAbility = null
 var is_boss := false
 
+# πόσο μέρος του κελιού πιάνει το πορτρέτο· αφορά μόνο τη σχεδίαση
+var sprite_scale := 1.0
+
 # ήρεμη στάση (idle loop) — προαιρετική, αλλιώς μένει στο στατικό sprite
 var frames_idle: Array[Texture2D] = []
 var fps_idle := 6.0
@@ -67,7 +70,8 @@ const ART := {
 func setup(p_hp: float, p_box: Vector2, p_kind: String, p_sprite: Texture2D,
 		p_ability: EnemyAbility, p_cw: int = 1, p_ch: int = 1,
 		p_frames_idle: Array[Texture2D] = [], p_fps_idle: float = 6.0,
-		p_frames_hit: Array[Texture2D] = [], p_fps_hit: float = 12.0) -> void:
+		p_frames_hit: Array[Texture2D] = [], p_fps_hit: float = 12.0,
+		p_sprite_scale: float = 1.0) -> void:
 	hp = p_hp
 	max_hp = p_hp
 	box = p_box
@@ -79,6 +83,7 @@ func setup(p_hp: float, p_box: Vector2, p_kind: String, p_sprite: Texture2D,
 	fps_idle = p_fps_idle
 	frames_hit = p_frames_hit
 	fps_hit = p_fps_hit
+	sprite_scale = clampf(p_sprite_scale, 0.3, 1.0)
 	# ξεκίνα από τυχαίο σημείο του βρόχου, ώστε τα ίδια πλάσματα να μην
 	# χτυπάνε συγχρονισμένα σαν στρατός
 	idle_t = randf() * 10.0
@@ -210,7 +215,10 @@ func _draw() -> void:
 	# πορτρέτο — αντίδραση σε χτύπημα > idle loop > στατικό sprite
 	var portrait := portrait_frame()
 	if portrait:
-		draw_texture_rect(portrait, Rect2(-half + Vector2(3, 3), box - Vector2(6, 6)), false)
+		# το sprite_scale μικραίνει μόνο το πορτρέτο, κεντραρισμένο μέσα στο
+		# κελί — το κουτί, το περίγραμμα και οι ενδείξεις μένουν στη θέση τους
+		var psize := (box - Vector2(6, 6)) * sprite_scale
+		draw_texture_rect(portrait, Rect2(-psize * 0.5, psize), false)
 	else:
 		var map: Array = ART.get(kind, ART["goblin"])
 		var px := (minf(box.x, box.y) - 16.0) / 8.0

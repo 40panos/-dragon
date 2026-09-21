@@ -180,6 +180,8 @@ func _load_content() -> void:
 	for a in areas:
 		for e in a.enemies:
 			enemy_by_id[e.id] = e
+		for e in a.minions:
+			enemy_by_id[e.id] = e
 		if a.boss:
 			enemy_by_id[a.boss.id] = a.boss
 
@@ -454,7 +456,8 @@ func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: in
 	b.is_boss = as_boss
 	var box := Vector2(cw * cell - 6.0, ch * cell - 6.0)
 	b.setup(hp, box, type.id, type.sprite, type.ability, cw, ch,
-		type.frames_idle, type.fps_idle, type.frames_hit, type.fps_hit)
+		type.frames_idle, type.fps_idle, type.frames_hit, type.fps_hit,
+		type.sprite_scale)
 	b.position = block_center(col, row, cw, ch)
 	var area := current_area()
 	if area:
@@ -465,11 +468,16 @@ func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: in
 
 
 ## Καλείται από το SummonerAbility.
-func summon_minion(source, minion_id: String, hp_ratio: float, min_row: int) -> void:
+func summon_minion(source, minion_id: String, hp_ratio: float, min_row: int,
+		keep_clear: int = 0) -> void:
 	var type: EnemyType = enemy_by_id.get(minion_id)
 	if type == null:
 		return
-	var cells := grid.free_cells(min_row, death_row - 1)
+	# πάνω όριο: οι πρώτες σειρές, κάτω όριο: η ζώνη ασφαλείας πριν τον δράκο
+	var last_row := death_row - 1 - maxi(keep_clear, 0)
+	if last_row < min_row:
+		return
+	var cells := grid.free_cells(min_row, last_row)
 	if cells.is_empty():
 		return
 	var spot: Vector2i = cells[randi() % cells.size()]

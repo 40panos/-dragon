@@ -68,14 +68,55 @@ func _initialize() -> void:
 	ok("2ος γύρος διπλό βήμα", r2 == 2, "(%d)" % r2)
 
 	print("--- καλεστής ---")
-	var before_count = m.grid.blocks().size()
+	var before: Array = m.grid.blocks()
 	var wl = m._make_block(7, 0, m.enemy_by_id["warlock"], 8.0, 1, 1, false)
 	var sa = wl.ability as SummonerAbility
 	sa.every = 1
+	ok("καλεί orc bat", sa.minion_id == "bat", "(%s)" % sa.minion_id)
+	ok("κρατάει ζώνη ασφαλείας", sa.keep_clear == 2, "(%d)" % sa.keep_clear)
 	sa.on_round_end(wl, m)
 	await process_frame
-	ok("γεννήθηκε minion", m.grid.blocks().size() > before_count + 1,
-		"(%d -> %d)" % [before_count, m.grid.blocks().size()])
+	var minion = null
+	for b in m.grid.blocks():
+		if b != wl and not before.has(b):
+			minion = b
+	ok("γεννήθηκε minion", minion != null)
+	if minion:
+		ok("το minion είναι orc bat", minion.kind == "bat", "(%s)" % minion.kind)
+		ok("σχεδιάζεται μικρότερο", minion.sprite_scale < 1.0,
+			"(%.2f)" % minion.sprite_scale)
+		ok("έχει idle animation", minion.frames_idle.size() > 1,
+			"(%d καρέ)" % minion.frames_idle.size())
+
+	# απαγορευμένες ζώνες: οι πρώτες σειρές και οι δύο πριν τη γραμμή θανάτου
+	print("--- ζώνες που απαγορεύονται στον καλεστή ---")
+	var rows_seen: Array = []
+	for i in 60:
+		for b in m.grid.blocks():
+			if b != wl:
+				m.grid.erase(b)
+				b.queue_free()
+		await process_frame
+		sa.on_round_end(wl, m)
+		await process_frame
+		for b in m.grid.blocks():
+			if b != wl and not rows_seen.has(b.row):
+				rows_seen.append(b.row)
+	rows_seen.sort()
+	var lowest: int = rows_seen.min() if not rows_seen.is_empty() else -1
+	var deepest: int = rows_seen.max() if not rows_seen.is_empty() else 99
+	ok("ποτέ πάνω από τη σειρά %d" % sa.min_row, lowest >= sa.min_row,
+		"(ελάχιστη %d)" % lowest)
+	ok("ποτέ στις 2 σειρές πριν τον δράκο",
+		deepest <= m.death_row - 1 - sa.keep_clear,
+		"(μέγιστη %d, όριο %d)" % [deepest, m.death_row - 1 - sa.keep_clear])
+	ok("ο τύπος bat μένει έξω από την τυχαία δεξαμενή",
+		not m.current_area().enemies.any(func(e): return e.id == "bat"))
+	for b in m.grid.blocks():
+		if b != wl:
+			m.grid.erase(b)
+			b.queue_free()
+	await process_frame
 
 	print("--- AoE splash ---")
 	for b in m.grid.blocks():

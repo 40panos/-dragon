@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AreaDef" load_steps=89 format=3]
+[gd_resource type="Resource" script_class="AreaDef" load_steps=104 format=3]
 
 [ext_resource type="Texture2D" path="res://art/background.png" id="1_q6tll"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="2_q7sd1"]
@@ -78,13 +78,28 @@
 [ext_resource type="Texture2D" path="res://art/knight_idle_8.png" id="58_y42wa"]
 [ext_resource type="Texture2D" path="res://art/brute_idle_7.png" id="59_tpsjv"]
 [ext_resource type="Texture2D" path="res://art/brute_idle_8.png" id="60_altyc"]
+[ext_resource type="Texture2D" path="res://art/bat_hit_1.png" id="78_mu2vi"]
+[ext_resource type="Texture2D" path="res://art/bat_hit_2.png" id="79_i85wo"]
+[ext_resource type="Texture2D" path="res://art/bat_hit_3.png" id="80_1bno6"]
+[ext_resource type="Texture2D" path="res://art/bat_hit_4.png" id="81_ebnlt"]
+[ext_resource type="Texture2D" path="res://art/bat_hit_5.png" id="82_31x0h"]
+[ext_resource type="Texture2D" path="res://art/bat_hit_6.png" id="83_qwh0o"]
+[ext_resource type="Texture2D" path="res://art/bat_idle_1.png" id="84_hs0dq"]
+[ext_resource type="Texture2D" path="res://art/bat_idle_2.png" id="85_dpuff"]
+[ext_resource type="Texture2D" path="res://art/bat_idle_3.png" id="86_x74ok"]
+[ext_resource type="Texture2D" path="res://art/bat_idle_4.png" id="87_xptkk"]
+[ext_resource type="Texture2D" path="res://art/bat_idle_5.png" id="88_s8ugh"]
+[ext_resource type="Texture2D" path="res://art/bat_idle_6.png" id="89_pm5n0"]
+[ext_resource type="Texture2D" path="res://art/bat_idle_7.png" id="90_71ka6"]
+[ext_resource type="Texture2D" path="res://art/bat_idle_8.png" id="91_purs7"]
 
 [sub_resource type="Resource" id="Resource_y72qm"]
 script = ExtResource("2_q7sd1")
 every = 2
 hp_ratio = 0.35
 min_row = 2
-minion_id = "goblin"
+minion_id = "bat"
+keep_clear = 2
 
 [sub_resource type="Resource" id="Resource_77lvw"]
 script = ExtResource("3_8loov")
@@ -95,6 +110,7 @@ frames_idle = Array[Texture2D]([ExtResource("7_tbd66"), ExtResource("8_imvy3"), 
 fps_idle = 6.0
 frames_hit = Array[Texture2D]([ExtResource("3_0udx7"), ExtResource("4_2wyaf"), ExtResource("5_k74bd"), ExtResource("6_hofxm")])
 fps_hit = 8.0
+sprite_scale = 1.0
 hp_mult = 1.0
 tier = 5
 ability = SubResource("Resource_y72qm")
@@ -108,6 +124,7 @@ frames_idle = Array[Texture2D]([ExtResource("14_bkgrl"), ExtResource("15_quvf4")
 fps_idle = 6.0
 frames_hit = Array[Texture2D]([ExtResource("5_67dbg"), ExtResource("6_3718e"), ExtResource("7_bhhot"), ExtResource("8_tt37y"), ExtResource("9_h0m72"), ExtResource("10_oyi88"), ExtResource("11_7axdl"), ExtResource("12_yitpk"), ExtResource("13_xx1pf")])
 fps_hit = 12.0
+sprite_scale = 1.0
 hp_mult = 0.7
 tier = 0
 
@@ -125,6 +142,7 @@ frames_idle = Array[Texture2D]([ExtResource("34_dj00a"), ExtResource("35_bfn1d")
 fps_idle = 5.0
 frames_hit = Array[Texture2D]([ExtResource("29_6v38s"), ExtResource("30_thmsl"), ExtResource("31_4m11b"), ExtResource("32_5j8rw")])
 fps_hit = 8.0
+sprite_scale = 1.0
 hp_mult = 0.6
 tier = 1
 ability = SubResource("Resource_tikl1")
@@ -142,6 +160,7 @@ frames_idle = Array[Texture2D]([ExtResource("51_l7wks"), ExtResource("52_f5p4n")
 fps_idle = 6.0
 frames_hit = Array[Texture2D]([ExtResource("41_1ira5"), ExtResource("42_2fbn1"), ExtResource("43_8pdif"), ExtResource("44_8573s")])
 fps_hit = 8.0
+sprite_scale = 1.0
 hp_mult = 1.1
 tier = 2
 ability = SubResource("Resource_5v0a2")
@@ -155,6 +174,7 @@ frames_idle = Array[Texture2D]([ExtResource("53_q54py"), ExtResource("54_ogmrc")
 fps_idle = 6.0
 frames_hit = Array[Texture2D]([ExtResource("44_jrpl8"), ExtResource("45_76p47"), ExtResource("46_132o0"), ExtResource("47_s5wgk"), ExtResource("48_etedj"), ExtResource("49_0pmk1"), ExtResource("50_dicrl"), ExtResource("51_x1su7"), ExtResource("52_gtaht")])
 fps_hit = 12.0
+sprite_scale = 1.0
 hp_mult = 1.6
 tier = 3
 
@@ -163,7 +183,8 @@ script = ExtResource("2_q7sd1")
 every = 3
 hp_ratio = 0.5
 min_row = 2
-minion_id = "goblin"
+minion_id = "bat"
+keep_clear = 2
 
 [sub_resource type="Resource" id="Resource_yx2hu"]
 script = ExtResource("3_8loov")
@@ -174,9 +195,23 @@ frames_idle = Array[Texture2D]([ExtResource("7_tbd66"), ExtResource("8_imvy3"), 
 fps_idle = 6.0
 frames_hit = Array[Texture2D]([ExtResource("3_0udx7"), ExtResource("4_2wyaf"), ExtResource("5_k74bd"), ExtResource("6_hofxm")])
 fps_hit = 8.0
+sprite_scale = 1.0
 hp_mult = 1.2
 tier = 4
 ability = SubResource("Resource_6qt3e")
+
+[sub_resource type="Resource" id="Resource_wkcin"]
+script = ExtResource("3_8loov")
+id = "bat"
+display_name = "Orc Bat"
+sprite = ExtResource("84_hs0dq")
+frames_idle = Array[Texture2D]([ExtResource("84_hs0dq"), ExtResource("85_dpuff"), ExtResource("86_x74ok"), ExtResource("87_xptkk"), ExtResource("88_s8ugh"), ExtResource("89_pm5n0"), ExtResource("90_71ka6"), ExtResource("91_purs7")])
+fps_idle = 8.0
+frames_hit = Array[Texture2D]([ExtResource("78_mu2vi"), ExtResource("79_i85wo"), ExtResource("80_1bno6"), ExtResource("81_ebnlt"), ExtResource("82_31x0h"), ExtResource("83_qwh0o")])
+fps_hit = 12.0
+sprite_scale = 0.78
+hp_mult = 1.0
+tier = 0
 
 [resource]
 script = ExtResource("11_ccceq")
@@ -185,6 +220,7 @@ display_name = "Goblin Land"
 background = ExtResource("1_q6tll")
 tint = Color(1, 1, 1, 1)
 enemies = Array[ExtResource("3_8loov")]([SubResource("Resource_k23ck"), SubResource("Resource_ock6s"), SubResource("Resource_00qy8"), SubResource("Resource_kigvc"), SubResource("Resource_yx2hu")])
+minions = Array[ExtResource("3_8loov")]([SubResource("Resource_wkcin")])
 boss = SubResource("Resource_77lvw")
 boss_cols = 3
 boss_rows = 2

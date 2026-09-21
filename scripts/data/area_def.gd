@@ -13,6 +13,11 @@ extends Resource
 ## Οι τύποι εχθρών που εμφανίζονται εδώ.
 @export var enemies: Array[EnemyType] = []
 
+## Τύποι που ΔΕΝ μπαίνουν στη δεξαμενή τυχαίας εμφάνισης, αλλά πρέπει να είναι
+## γνωστοί στο παιχνίδι — π.χ. ό,τι καλεί ο summoner. Μένουν έξω από το pick(),
+## αλλιώς θα ξεφύτρωναν και μόνα τους στη νέα σειρά κάθε γύρου.
+@export var minions: Array[EnemyType] = []
+
 ## Ο εχθρός που χρησιμοποιείται ως boss στο τέλος της περιοχής.
 @export var boss: EnemyType
 @export var boss_cols := 3
