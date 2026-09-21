@@ -17,6 +17,7 @@ const TRIPLE_TURNS := 3
 const PTS_HIT := 5
 const PTS_KILL := 25
 
+const ADVANCE_TIME := 0.18    # διάρκεια του κατεβάσματος μιας σειράς
 const ROUNDS_PER_AREA := 20   # ο boss εμφανίζεται στον τελευταίο γύρο κάθε περιοχής
 const SPLASH_RATIO := 0.33    # ζημιά σε λειτουργία AoE, στον στόχο και στους γείτονες
 
@@ -712,14 +713,17 @@ func _end_turn() -> void:
 			step -= 1
 		if step > 0:
 			grid.move_to(b, b.col, b.row + step)
-			tween.tween_property(b, "position:y", block_center(b.col, b.row, b.cw, b.ch).y, 0.18)
+			b.begin_move(ADVANCE_TIME)      # όσο κατεβαίνει, κρύβει το περίγραμμά του
+			tween.tween_property(b, "position:y",
+				block_center(b.col, b.row, b.cw, b.ch).y, ADVANCE_TIME)
 
 	for o in get_tree().get_nodes_in_group("orb"):
 		o.row += 1
 		if o.row >= death_row:
 			o.queue_free()
 		else:
-			tween.tween_property(o, "position:y", block_center(o.col, o.row, 1, 1).y, 0.18)
+			tween.tween_property(o, "position:y",
+				block_center(o.col, o.row, 1, 1).y, ADVANCE_TIME)
 
 	for b in grid.blocks():
 		if b.ability:

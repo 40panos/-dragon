@@ -7,6 +7,17 @@ const HEART_TEX := preload("res://art/ui_heart.png")
 const SHIELD_TEX := preload("res://art/ui_shield.png")
 const OUTLINE_OFFSETS := [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]
 
+# περίγραμμα κελιού: διακριτικό άσπρο, στη θέση του παλιού γεμάτου φόντου.
+# Από κάτω του μπαίνει μια σκούρα γραμμή, αλλιώς χάνεται πάνω στα ανοιχτά
+# πλακάκια του δαπέδου — ίδιο κόλπο με το περίγραμμα των αριθμών.
+const EDGE_COLOR := Color(1, 1, 1, 0.42)
+const EDGE_SHADOW := Color(0, 0, 0, 0.32)
+const GLOW_RINGS := 4          # ομόκεντροι δακτύλιοι λάμψης όταν φάει χτύπημα
+const GLOW_ALPHA := 0.9        # ένταση του πιο μέσα δακτυλίου, στο φουλ της λάμψης
+# λίγος παραπάνω χρόνος από το tween του κατεβάσματος, ώστε το περίγραμμα να
+# μην ξαναεμφανιστεί ένα καρέ πριν ακουμπήσει ο εχθρός στη νέα του σειρά
+const MOVE_GRACE := 0.05
+
 var hp := 1.0
 var max_hp := 1.0
 var box := Vector2(72, 72)      # μέγεθος σε pixel
@@ -30,6 +41,11 @@ var frames_hit: Array[Texture2D] = []
 var fps_hit := 12.0
 var hit_t := 0.0
 var hit_playing := false
+
+# χρόνος που απομένει στο κατέβασμα σειράς· όσο τρέχει, ο εχθρός μετράει ως
+# «σε κίνηση» και κρύβει το περίγραμμά του. Μετράει μόνος του αντίστροφα, ώστε
+# να μη χρειάζεται callback από το tween που μπορεί να μην έρθει ποτέ.
+var move_t := 0.0
 
 # placeholder πορτρέτα 8x8, όταν λείπει sprite
 const ART := {
@@ -102,7 +118,21 @@ func shown_hp() -> int:
 	return maxi(0, int(ceil(hp)))
 
 
+## Το καλεί το main όταν ξεκινάει το κατέβασμα σειράς, με τη διάρκεια του tween.
+func begin_move(duration: float) -> void:
+	move_t = duration + MOVE_GRACE
+	queue_redraw()
+
+
+func is_moving() -> bool:
+	return move_t > 0.0
+
+
 func _process(delta: float) -> void:
+	if move_t > 0.0:
+		move_t = maxf(0.0, move_t - delta)
+		if move_t == 0.0:
+			queue_redraw()      # σταμάτησε — ξαναδείξε το περίγραμμα
 	if flash > 0.0:
 		flash = maxf(0.0, flash - delta * 6.0)
 		queue_redraw()
@@ -154,12 +184,28 @@ func _shield_amount() -> int:
 	return 0
 
 
+## Διακριτικό περίγραμμα στη θέση του παλιού γεμάτου τετραγώνου: το πίσω μέρος
+## του κελιού μένει διάφανο και φαίνεται το δάπεδο. Το περίγραμμα δείχνεται
+## ΜΟΝΟ όσο ο εχθρός στέκεται ακίνητος — όταν κατεβαίνει σειρά σβήνει, ώστε να
+## μη σέρνονται άσπρα κουτάκια στην οθόνη — και λάμπει όταν φάει χτύπημα.
+func _draw_edge() -> void:
+	var rect := Rect2(-box * 0.5, box)
+	if not is_moving():
+		draw_rect(rect.grow(1.0), EDGE_SHADOW, false, 1.0)
+		draw_rect(rect, EDGE_COLOR, false, 1.0)
+	if flash <= 0.02:
+		return
+	# λάμψη ζημιάς: ομόκεντροι δακτύλιοι που ξεθωριάζουν προς τα έξω
+	for i in GLOW_RINGS:
+		draw_rect(rect.grow(float(i)), Color(1, 1, 1, flash * GLOW_ALPHA / float(i + 1)),
+			false, 1.0)
+
+
 func _draw() -> void:
 	var half := box * 0.5
 	var band := minf(box.y * 0.14, 10.0)      # ύψος μπάρας ζωής — μικρή, ο αριθμός μιλάει
 
-	draw_rect(Rect2(-half, box), Color("232338"))
-	draw_rect(Rect2(-half + Vector2(2, 2), box - Vector2(4, 4)), Color("31314d"))
+	_draw_edge()
 
 	# πορτρέτο — αντίδραση σε χτύπημα > idle loop > στατικό sprite
 	var portrait := portrait_frame()
@@ -206,9 +252,6 @@ func _draw() -> void:
 		if tag != "":
 			draw_string(ThemeDB.fallback_font, Vector2(-half.x + 4.0, -half.y + 18.0), tag,
 				HORIZONTAL_ALIGNMENT_LEFT, box.x, 16, Color("ffe1ad"))
-
-	if flash > 0.02:
-		draw_rect(Rect2(-half, box), Color(1, 1, 1, flash * 0.55))
 
 
 func _pix(ch_: String) -> Color:

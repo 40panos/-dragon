@@ -149,6 +149,30 @@ func _initialize() -> void:
 			misplaced += 1
 	ok("κόμβοι συγχρονισμένοι με το πλέγμα", misplaced == 0, "(%d εκτός)" % misplaced)
 
+	print("--- περίγραμμα κελιού ---")
+	# ένας εχθρός με ελεύθερο δρόμο μπροστά του πρέπει, μόλις κλείσει ο γύρος,
+	# να μετράει ως «σε κίνηση» — τότε κρύβεται το περίγραμμά του
+	for b in m.grid.blocks():
+		m.grid.erase(b)
+		b.queue_free()
+	await process_frame
+	var mover = m._make_block(3, 2, m.enemy_by_id["goblin"], 5.0, 1, 1, false)
+	var mover_row = mover.row
+	m._end_turn()
+	await process_frame
+	ok("όποιος κατέβηκε σειρά μετράει ως σε κίνηση",
+		mover.row > mover_row and mover.is_moving(), "(σειρά %d)" % mover.row)
+	mover.queue_free()
+	var edge_block = m._make_block(0, 1, m.enemy_by_id["goblin"], 5.0, 1, 1, false)
+	ok("φρεσκογεννημένος εχθρός είναι ακίνητος", not edge_block.is_moving())
+	edge_block.begin_move(m.ADVANCE_TIME)
+	ok("όσο κατεβαίνει, μετράει ως σε κίνηση", edge_block.is_moving())
+	edge_block._process(m.ADVANCE_TIME * 0.5)
+	ok("στη μέση της διαδρομής ακόμα κινείται", edge_block.is_moving())
+	edge_block._process(m.ADVANCE_TIME + edge_block.MOVE_GRACE)
+	ok("μόλις φτάσει, ξαναγίνεται ακίνητος", not edge_block.is_moving())
+	edge_block.queue_free()
+
 	print("--- animation δράκου ---")
 	var dg = m.dragon
 	ok("φορτώθηκαν καρέ και στις 3 καταστάσεις",
