@@ -16,4 +16,6 @@ display_name = "Orc Rider"
 sprite = ExtResource("3_8jfpj")
 hp_mult = 0.6
 tier = 1
+min_round = 6
+weight = 16.0
 ability = SubResource("Resource_tikl1")
