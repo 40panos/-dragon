@@ -38,6 +38,7 @@ var death_row := 11
 var phase := "aim"
 var paused := false
 var score := 0
+var kills := 0
 var level := 1
 var ball_count := 1
 var gained := 0
@@ -76,6 +77,9 @@ var dragons: Array = []
 var enemy_by_id := {}
 var area_index := 0
 var dragon: DragonType
+var run_dragons: Array[String] = []   # ξεκλείδωτοι δράκοι σε αυτό το run
+var picker_open := false
+var new_dragon := false               # ξεκλειδώθηκε δράκος που δεν έχει δει ακόμα ο παίκτης
 
 var fireball_tex: Texture2D
 var tex_frame_left: Texture2D
@@ -180,20 +184,42 @@ func current_area() -> AreaDef:
 	return areas[clampi(area_index, 0, areas.size() - 1)]
 
 
-func _pick_dragon() -> void:
-	var unlocked: Array = save.get("unlocked_dragons", ["ember"])
-	var want: String = save.get("selected_dragon", "ember")
-	dragon = null
+## Κάθε run ξεκινάει μόνο με τους δράκους που δεν θέλουν ξεκλείδωμα· οι υπόλοιποι
+## ανοίγουν νικώντας τον boss της περιοχής τους και χάνονται στο game over.
+func _reset_dragons() -> void:
+	run_dragons.clear()
 	for d in dragons:
-		if d.id == want and unlocked.has(d.id):
-			dragon = d
-	if dragon == null:
-		for d in dragons:
-			if unlocked.has(d.id):
-				dragon = d
-				break
-	if dragon == null and not dragons.is_empty():
-		dragon = dragons[0]
+		if d.unlock_after_area <= 0:
+			run_dragons.append(d.id)
+	if run_dragons.is_empty() and not dragons.is_empty():
+		run_dragons.append(dragons[0].id)
+	dragon = dragon_by_id(run_dragons[0]) if not run_dragons.is_empty() else null
+	picker_open = false
+	new_dragon = false
+
+
+func dragon_by_id(id: String) -> DragonType:
+	for d in dragons:
+		if d.id == id:
+			return d
+	return null
+
+
+func is_dragon_unlocked(d: DragonType) -> bool:
+	return d != null and run_dragons.has(d.id)
+
+
+## Αλλαγή δράκου επιτρέπεται μόνο πριν από τη βολή.
+func can_switch_dragon() -> bool:
+	return phase == "aim" and not aiming and not paused
+
+
+func select_dragon(id: String) -> bool:
+	var d := dragon_by_id(id)
+	if not can_switch_dragon() or not is_dragon_unlocked(d):
+		return false
+	dragon = d
+	return true
 
 
 # ---------------------------------------------------------------- στήσιμο
@@ -227,13 +253,14 @@ func _start() -> void:
 
 	grid = BattleGrid.new(COLS)
 	boss = null
-	_pick_dragon()
+	_reset_dragons()
 
-	# ξεκινάμε από την τελευταία ξεκλείδωτη περιοχή
-	area_index = clampi(int(save.get("unlocked_areas", 1)) - 1, 0, maxi(areas.size() - 1, 0))
-	level = area_index * ROUNDS_PER_AREA + 1
+	# κάθε run ξεκινάει από την αρχή
+	area_index = 0
+	level = 1
 
 	score = 0
+	kills = 0
 	ball_count = 1
 	gained = 0
 	live_balls = 0
@@ -359,7 +386,12 @@ func _roll_enemy() -> EnemyType:
 	var area := current_area()
 	if area == null:
 		return null
-	return area.pick(randf())
+	return area.pick(randf(), area_round())
+
+
+## Ο γύρος μέσα στην τρέχουσα περιοχή, από 1 έως ROUNDS_PER_AREA.
+func area_round() -> int:
+	return level - area_index * ROUNDS_PER_AREA
 
 
 func _spawn_enemy(col: int, row: int, type: EnemyType, hp_level: float) -> void:
@@ -405,11 +437,11 @@ func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: in
 
 
 ## Καλείται από το SummonerAbility.
-func summon_minion(source, minion_id: String, hp_ratio: float, min_row: int) -> void:
+func summon_minion(source, minion_id: String, hp_ratio: float, min_row: int, max_row: int) -> void:
 	var type: EnemyType = enemy_by_id.get(minion_id)
 	if type == null:
 		return
-	var cells := grid.free_cells(min_row, death_row - 1)
+	var cells := grid.free_cells(min_row, mini(max_row, death_row - 1))
 	if cells.is_empty():
 		return
 	var spot: Vector2i = cells[randi() % cells.size()]
@@ -446,14 +478,13 @@ func _on_ball_struck(block, ball) -> void:
 	if not is_instance_valid(block):
 		return
 	add_sparks(ball.position, 5, Color("ffd07a"), 190.0, 4.0)
-	var dealt := _hurt(block, ball.damage)
+	_hurt(block, ball.damage)
 	if aoe_mode:
 		for nb in grid.neighbors(block):
 			if ball.splashed.has(nb):
 				continue          # κάθε μπάλα πιτσιλίζει ένα block μία φορά
 			ball.splashed[nb] = true
-			dealt += _hurt(nb, ball.damage)
-	special_charge += dealt
+			_hurt(nb, ball.damage)
 
 
 func _hurt(block, amount: float) -> float:
@@ -468,27 +499,28 @@ func _on_block_damaged(destroyed: bool, _amount: float, block) -> void:
 		return
 	add_sparks(block.position, 16, Color("ffb35c"), 280.0, 6.0)
 	add_shake(7.0 if block.is_boss else 2.5)
+	kills += 1
+	special_charge += 1.0          # το special γεμίζει με σκοτωμούς, όχι με ζημιά
 	grid.erase(block)
 	if block == boss:
 		boss = null
 		_clear_area()
 
 
+func boss_alive() -> bool:
+	return boss != null and is_instance_valid(boss)
+
+
 func _clear_area() -> void:
-	var next_area := area_index + 2        # 1-based αριθμός επόμενης περιοχής
-	var unlocked := int(save.get("unlocked_areas", 1))
-	if next_area > unlocked and next_area <= areas.size():
-		save["unlocked_areas"] = next_area
-	# ξεκλείδωμα δράκου που ανοίγει με αυτή την περιοχή
-	var list: Array = save.get("unlocked_dragons", ["ember"])
+	# ξεκλείδωμα δράκου που ανοίγει με αυτή την περιοχή — μόνο για αυτό το run
+	var unlocked_now := false
 	for d in dragons:
-		if d.unlock_after_area == area_index + 1 and not list.has(d.id):
-			list.append(d.id)
-			save["selected_dragon"] = d.id
+		if d.unlock_after_area == area_index + 1 and not run_dragons.has(d.id):
+			run_dragons.append(d.id)
+			new_dragon = true
+			unlocked_now = true
 			_announce("ΝΕΟΣ ΔΡΑΚΟΣ: %s" % d.display_name)
-	save["unlocked_dragons"] = list
-	SaveManager.save_data(save)
-	if banner == "":
+	if not unlocked_now:
 		_announce("Η περιοχή καθαρίστηκε!")
 
 
@@ -514,6 +546,47 @@ func aoe_rect() -> Rect2:
 	return Rect2(frame_right() - 232.0, ui_top + 10.0, 86.0, 86.0)
 
 
+func dragon_rect() -> Rect2:
+	return Rect2(frame_left() + 136.0, ui_top + 10.0, 86.0, 86.0)
+
+
+# ---------------------------------------------------------------- επιλογή δράκου
+# Κάρτες σε πλέγμα 3 στηλών: χωράνε 9 δράκοι στο πεδίο. Για περισσότερους
+# θα χρειαστούν σελίδες ή κύλιση.
+
+const PICKER_COLS := 3
+const PICKER_PAD := 20.0
+const PICKER_GAP := 14.0
+const PICKER_TITLE := 74.0
+const PICKER_CARD_H := 250.0
+
+
+func picker_panel_rect() -> Rect2:
+	var rows := ceili(float(dragons.size()) / PICKER_COLS)
+	var h := PICKER_TITLE + rows * (PICKER_CARD_H + PICKER_GAP) - PICKER_GAP + PICKER_PAD + 44.0
+	var x := frame_left() + 16.0
+	return Rect2(x, PF_TOP - 20.0, frame_right() - 16.0 - x, h)
+
+
+func picker_card_rect(i: int) -> Rect2:
+	var panel := picker_panel_rect()
+	var w := (panel.size.x - PICKER_PAD * 2.0 - PICKER_GAP * (PICKER_COLS - 1)) / PICKER_COLS
+	var c := i % PICKER_COLS
+	var r := i / PICKER_COLS
+	return Rect2(panel.position.x + PICKER_PAD + c * (w + PICKER_GAP),
+		panel.position.y + PICKER_TITLE + r * (PICKER_CARD_H + PICKER_GAP), w, PICKER_CARD_H)
+
+
+## Πάτημα όσο είναι ανοιχτή η επιλογή: κάρτα = διάλεξε, οπουδήποτε αλλού = κλείσε.
+func picker_press(p: Vector2) -> void:
+	for i in dragons.size():
+		if picker_card_rect(i).has_point(p):
+			if select_dragon(dragons[i].id):
+				picker_open = false
+			return
+	picker_open = false
+
+
 func special_ready() -> bool:
 	return dragon != null and special_charge >= dragon.special_cost
 
@@ -535,6 +608,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		_toggle_pause()
 		return
 	if paused:
+		return
+	if picker_open:
+		if mb.pressed:
+			picker_press(p)
+		return
+	if mb.pressed and dragon_rect().has_point(p):
+		if can_switch_dragon():
+			picker_open = true
+			new_dragon = false
 		return
 	if mb.pressed and aoe_rect().has_point(p):
 		aoe_mode = not aoe_mode
@@ -685,11 +767,14 @@ func _end_turn() -> void:
 	ball_count += gained
 	if next_x >= 0.0:
 		launch_x = next_x
-	level += 1
 	if triple_turns > 0:
 		triple_turns -= 1
-	if dragon and dragon.passive == "ball_every5" and level % 5 == 0:
-		ball_count += 1
+	# όσο ζει ο boss ο γύρος δεν προχωράει, αλλιώς αλλάζει η περιοχή κάτω από τα πόδια του
+	# και το ξεκλείδωμα πάει στη λάθος περιοχή· οι σειρές εχθρών συνεχίζουν κανονικά
+	if not boss_alive():
+		level += 1
+		if dragon and dragon.passive == "ball_every5" and level % 5 == 0:
+			ball_count += 1
 
 	var new_area := clampi(int((level - 1) / ROUNDS_PER_AREA), 0, maxi(areas.size() - 1, 0))
 	if new_area != area_index:

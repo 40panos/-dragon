@@ -15,4 +15,6 @@ display_name = "Shield Knight"
 sprite = ExtResource("3_n7q4g")
 hp_mult = 1.1
 tier = 2
+min_round = 9
+weight = 13.0
 ability = SubResource("Resource_5v0a2")

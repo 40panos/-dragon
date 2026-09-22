@@ -28,6 +28,6 @@ fps_fire = 11.0
 draw_width = 120.0
 tint = Color(1, 1, 1, 1)
 special = "inferno"
-special_cost = 150.0
+special_cost = 15.0
 passive = "every5_double"
 unlock_after_area = 0

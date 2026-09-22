@@ -71,8 +71,8 @@ func sprite_for(phase: String, aiming: bool) -> Texture2D:
 ## swarm   = ρίχνει αμέσως μια ολόκληρη έξτρα βολή
 @export_enum("inferno", "swarm") var special := "inferno"
 
-## Πόση συνολική ζημιά χρειάζεται για να γεμίσει το special.
-@export var special_cost := 150.0
+## Πόσοι σκοτωμοί χρειάζονται για να γεμίσει το special.
+@export var special_cost := 15.0
 
 ## every5_double = κάθε 5η μπάλα κάνει διπλή ζημιά
 ## ball_every5   = +1 μπάλα κάθε 5 γύρους
@@ -86,3 +86,16 @@ func special_name() -> String:
 	match special:
 		"swarm": return "SWARM"
 		_: return "INFERNO"
+
+
+## Σύντομες περιγραφές για την κάρτα επιλογής δράκου.
+func special_desc() -> String:
+	match special:
+		"swarm": return "έξτρα βολή"
+		_: return "x3 ζημιά μία βολή"
+
+
+func passive_desc() -> String:
+	match passive:
+		"ball_every5": return "+1 μπάλα / 5 γύρους"
+		_: return "κάθε 5η μπάλα x2"
