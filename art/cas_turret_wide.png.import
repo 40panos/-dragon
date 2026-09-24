@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c022w0sndhh6y"
-path="res://.godot/imported/cas_brazier_3.png-d05dcfe1e001c9b0c1a040bc502228b1.ctex"
+uid="uid://bh3sios3552i0"
+path="res://.godot/imported/cas_turret_wide.png-de4201ddc84b6474fe258852a4099153.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/cas_brazier_3.png"
-dest_files=["res://.godot/imported/cas_brazier_3.png-d05dcfe1e001c9b0c1a040bc502228b1.ctex"]
+source_file="res://art/cas_turret_wide.png"
+dest_files=["res://.godot/imported/cas_turret_wide.png-de4201ddc84b6474fe258852a4099153.ctex"]
 
 [params]
 

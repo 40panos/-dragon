@@ -10,3 +10,5 @@ display_name = "Goblin"
 sprite = ExtResource("2_ss4os")
 hp_mult = 0.7
 tier = 0
+min_round = 1
+weight = 40.0

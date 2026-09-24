@@ -177,6 +177,8 @@ fps_hit = 12.0
 sprite_scale = 1.0
 hp_mult = 0.7
 tier = 0
+min_round = 1
+weight = 40.0
 
 [sub_resource type="Resource" id="Resource_tikl1"]
 script = ExtResource("6_q04hl")
@@ -195,6 +197,8 @@ fps_hit = 8.0
 sprite_scale = 1.0
 hp_mult = 0.6
 tier = 1
+min_round = 6
+weight = 16.0
 ability = SubResource("Resource_tikl1")
 
 [sub_resource type="Resource" id="Resource_5v0a2"]
@@ -213,6 +217,8 @@ fps_hit = 8.0
 sprite_scale = 1.0
 hp_mult = 1.1
 tier = 2
+min_round = 9
+weight = 13.0
 ability = SubResource("Resource_5v0a2")
 
 [sub_resource type="Resource" id="Resource_kigvc"]
@@ -227,6 +233,8 @@ fps_hit = 12.0
 sprite_scale = 1.0
 hp_mult = 1.6
 tier = 3
+min_round = 4
+weight = 22.0
 
 [sub_resource type="Resource" id="Resource_6qt3e"]
 script = ExtResource("2_q7sd1")
@@ -251,6 +259,8 @@ fps_hit = 8.0
 sprite_scale = 1.0
 hp_mult = 1.2
 tier = 4
+min_round = 9
+weight = 9.0
 ability = SubResource("Resource_6qt3e")
 
 [sub_resource type="Resource" id="Resource_wkcin"]

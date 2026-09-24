@@ -7,13 +7,25 @@ const HEART_TEX := preload("res://art/ui_heart.png")
 const SHIELD_TEX := preload("res://art/ui_shield.png")
 const OUTLINE_OFFSETS := [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]
 
-# περίγραμμα κελιού: διακριτικό άσπρο, στη θέση του παλιού γεμάτου φόντου.
+# περίγραμμα κελιού: ίσα-ίσα ορατό άσπρο, στη θέση του παλιού γεμάτου φόντου.
 # Από κάτω του μπαίνει μια σκούρα γραμμή, αλλιώς χάνεται πάνω στα ανοιχτά
-# πλακάκια του δαπέδου — ίδιο κόλπο με το περίγραμμα των αριθμών.
-const EDGE_COLOR := Color(1, 1, 1, 0.42)
-const EDGE_SHADOW := Color(0, 0, 0, 0.32)
+# πλακάκια του δαπέδου — ίδιο κόλπο με το περίγραμμα των αριθμών. Η σκιά
+# μένει λίγο πιο δυνατή από το άσπρο: αυτή κάνει τη δουλειά πάνω σε φωτεινό
+# φόντο, ενώ το άσπρο μόνο υπαινίσσεται το κελί.
+const EDGE_COLOR := Color(1, 1, 1, 0.13)
+const EDGE_SHADOW := Color(0, 0, 0, 0.16)
 const GLOW_RINGS := 4          # ομόκεντροι δακτύλιοι λάμψης όταν φάει χτύπημα
 const GLOW_ALPHA := 0.9        # ένταση του πιο μέσα δακτυλίου, στο φουλ της λάμψης
+
+# Φλογερό περίγραμμα: το σχέδιο είναι ένα τετράγωνο δαχτυλίδι 48x48 με άδεια
+# μέση (tools/build_glow.gd). Μπαίνει σαν πλαίσιο εννιά κομματιών — γωνίες
+# ατόφιες, πλευρές ΕΠΑΝΑΛΑΜΒΑΝΟΜΕΝΕΣ — γιατί το κουτί αλλάζει μέγεθος: 80px
+# για απλό κελί, 251x165 για boss. Τεντωμένο θα έλιωναν τα pixel του.
+const RING_SRC := 48.0         # ο καμβάς του σχεδίου
+const RING_MARGIN := 16.0      # πόσο πιάνει η γωνία μέσα στο σχέδιο
+const RING_SCALE := 2.0        # ίδια κλίμακα με τον δράκο και τη φωλιά
+const RING_GROW := 6.0         # ξεχειλίζει λίγο έξω από το κελί, όπως η λάμψη
+const RING_FPS := 14.0
 # λίγος παραπάνω χρόνος από το tween του κατεβάσματος, ώστε το περίγραμμα να
 # μην ξαναεμφανιστεί ένα καρέ πριν ακουμπήσει ο εχθρός στη νέα του σειρά
 const MOVE_GRACE := 0.05
@@ -33,6 +45,12 @@ var is_boss := false
 
 # πόσο μέρος του κελιού πιάνει το πορτρέτο· αφορά μόνο τη σχεδίαση
 var sprite_scale := 1.0
+
+# Καρέ του φλογερού περιγράμματος. Έρχονται από τον ΔΡΑΚΟ, όχι από τον εχθρό:
+# η λάμψη είναι το χτύπημα του παίκτη, οπότε ο δράκος της φωτιάς αφήνει φλόγες
+# και ο επόμενος θα αφήνει κάτι δικό του. Άδειο = οι παλιοί λευκοί δακτύλιοι.
+var glow_frames: Array[Texture2D] = []
+var glow_t := 0.0
 
 # ήρεμη στάση (idle loop) — προαιρετική, αλλιώς μένει στο στατικό sprite
 var frames_idle: Array[Texture2D] = []
@@ -110,6 +128,7 @@ func take_damage(amount: float) -> float:
 	if ability:
 		through = ability.absorb(self, amount)
 	flash = 1.0
+	glow_t = 0.0        # η φλόγα ξεκινάει από την αρχή σε κάθε χτύπημα
 	if not frames_hit.is_empty():
 		hit_t = 0.0
 		hit_playing = true
@@ -170,6 +189,7 @@ func _process(delta: float) -> void:
 			queue_redraw()      # σταμάτησε — ξαναδείξε το περίγραμμα
 	if flash > 0.0:
 		flash = maxf(0.0, flash - delta * 6.0)
+		glow_t += delta
 		queue_redraw()
 	if hit_playing:
 		hit_t += delta
@@ -239,10 +259,62 @@ func _draw_edge() -> void:
 		draw_rect(rect, EDGE_COLOR, false, 1.0)
 	if flash <= 0.02:
 		return
-	# λάμψη ζημιάς: ομόκεντροι δακτύλιοι που ξεθωριάζουν προς τα έξω
+	# λάμψη ζημιάς: το φλογερό δαχτυλίδι του δράκου, αν υπάρχει
+	if not glow_frames.is_empty():
+		var gi := int(glow_t * RING_FPS) % glow_frames.size()
+		_draw_ring(glow_frames[gi], rect.grow(RING_GROW), flash)
+		return
+	# αλλιώς οι παλιοί ομόκεντροι δακτύλιοι, που ξεθωριάζουν προς τα έξω
 	for i in GLOW_RINGS:
 		draw_rect(rect.grow(float(i)), Color(1, 1, 1, flash * GLOW_ALPHA / float(i + 1)),
 			false, 1.0)
+
+
+## Πλαίσιο εννιά κομματιών: οι τέσσερις γωνίες μπαίνουν ατόφιες και οι πλευρές
+## επαναλαμβάνονται όσες φορές χρειάζεται, με το τελευταίο κομμάτι κομμένο στο
+## μέτρο. Ίδια λογική με το _draw_band() του hud.gd.
+func _draw_ring(tex: Texture2D, r: Rect2, alpha: float) -> void:
+	var sm := RING_MARGIN
+	var dm := sm * RING_SCALE
+	var far := RING_SRC - sm
+	var col := Color(1, 1, 1, clampf(alpha, 0.0, 1.0))
+	# πολύ μικρό κουτί: οι γωνίες θα επικαλύπτονταν, μπαίνει σκέτο το σχέδιο
+	if r.size.x < dm * 2.0 or r.size.y < dm * 2.0:
+		draw_texture_rect(tex, r, false, col)
+		return
+
+	# --- γωνίες
+	draw_texture_rect_region(tex, Rect2(r.position, Vector2(dm, dm)),
+		Rect2(0, 0, sm, sm), col)
+	draw_texture_rect_region(tex, Rect2(Vector2(r.end.x - dm, r.position.y), Vector2(dm, dm)),
+		Rect2(far, 0, sm, sm), col)
+	draw_texture_rect_region(tex, Rect2(Vector2(r.position.x, r.end.y - dm), Vector2(dm, dm)),
+		Rect2(0, far, sm, sm), col)
+	draw_texture_rect_region(tex, Rect2(r.end - Vector2(dm, dm), Vector2(dm, dm)),
+		Rect2(far, far, sm, sm), col)
+
+	# --- πάνω και κάτω πλευρά
+	var step := (RING_SRC - sm * 2.0) * RING_SCALE
+	var x := r.position.x + dm
+	while x < r.end.x - dm:
+		var w := minf(step, r.end.x - dm - x)
+		var sw := w / RING_SCALE
+		draw_texture_rect_region(tex, Rect2(x, r.position.y, w, dm),
+			Rect2(sm, 0, sw, sm), col)
+		draw_texture_rect_region(tex, Rect2(x, r.end.y - dm, w, dm),
+			Rect2(sm, far, sw, sm), col)
+		x += step
+
+	# --- αριστερή και δεξιά πλευρά
+	var y := r.position.y + dm
+	while y < r.end.y - dm:
+		var h := minf(step, r.end.y - dm - y)
+		var sh := h / RING_SCALE
+		draw_texture_rect_region(tex, Rect2(r.position.x, y, dm, h),
+			Rect2(0, sm, sm, sh), col)
+		draw_texture_rect_region(tex, Rect2(r.end.x - dm, y, dm, h),
+			Rect2(far, sm, sm, sh), col)
+		y += step
 
 
 func _draw() -> void:
@@ -293,12 +365,9 @@ func _draw() -> void:
 	draw_texture_rect(HEART_TEX, Rect2(hpos, Vector2(hic, hic)), false)
 	_draw_outline_text(hpos + Vector2(hic + 2.0, hic - 1.0), str(shown_hp()), 13, Color("ffffff"))
 
-	# ένδειξη ικανότητας
-	if ability:
-		var tag := ability.badge()
-		if tag != "":
-			draw_string(ThemeDB.fallback_font, Vector2(-half.x + 4.0, -half.y + 18.0), tag,
-				HORIZONTAL_ALIGNMENT_LEFT, box.x, 16, Color("ffe1ad"))
+	# Τα σύμβολα ικανότητας (## !! *) δεν σχεδιάζονται πια: γέμιζαν το κελί με
+	# σημάδια που δεν διάβαζε κανείς. Το badge() μένει στο EnemyAbility — το
+	# χρησιμοποιούν τα tests, και είναι εκεί αν ξαναχρειαστεί ένδειξη.
 
 
 func _pix(ch_: String) -> Color:

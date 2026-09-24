@@ -26,6 +26,19 @@ func _load_frames(state: String, prefix := "ember", want_w := FRAME_W) -> Array[
 	return out
 
 
+## Τα καρέ του περιγράμματος λάμψης, από το tools/build_glow.gd. Λείπουν
+## σιωπηλά: χωρίς αυτά το block ξαναπέφτει στους παλιούς λευκούς δακτύλιους,
+## που είναι αποδεκτή εικόνα, όχι σφάλμα.
+func _load_glow(set_: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	for i in range(1, 4):
+		var path := "res://art/glow_%s_%d.png" % [set_, i]
+		var tex: Texture2D = load(path) if ResourceLoader.exists(path) else null
+		if tex:
+			out.append(tex)
+	return out
+
+
 ## Η μορφή που βγαίνει όσο καίει το INFERNO: ίδια λογική καρέ, μεγαλύτερο
 ## σχέδιο. Είναι κανονικός DragonType, οπότε το main τη ζωγραφίζει με τον
 ## ίδιο κώδικα — μόνο ό,τι αφορά την εμφάνιση γεμίζει εδώ.
@@ -48,6 +61,11 @@ func _make_awakened() -> DragonType:
 	a.fps_fire = 12.0
 	a.draw_width = float(AWAKE_W * AWAKE_SCALE)   # 256 = 2x
 	a.tint = Color(1, 1, 1, 1)
+	# Το special_ready() διαβάζει πάντα τον ΚΥΡΙΟ δράκο, όχι την ενεργή μορφή,
+	# οπότε αυτό δεν επηρεάζει το παιχνίδι — μπαίνει ίδιο για να μη διαβάζεται
+	# αντιφατικά το .tres, όπου η ξυπνημένη έδειχνε άλλο κόστος από τον ember.
+	a.special = "inferno"
+	a.special_cost = 8.0
 	return a
 
 
@@ -71,6 +89,9 @@ func _initialize() -> void:
 	d.frames_ready = ready_
 	d.frames_fire = fire
 
+	# το φλογερό περίγραμμα που ανάβει στον εχθρό όταν τον χτυπάς
+	d.glow_frames = _load_glow("fire")
+
 	# ping-pong 0,1,2,1: η περίοδος είναι 4 βήματα
 	d.fps_idle = 3.0          # αργό τρεμόπαιγμα της φλόγας, ~1.3s ο κύκλος
 	d.fps_ready = 6.0         # οι φλέβες ανάβουν όσο σημαδεύει
@@ -80,9 +101,19 @@ func _initialize() -> void:
 	d.tint = Color(1, 1, 1, 1)
 	d.awakened = _make_awakened()
 
-	# ιδιότητες παιχνιδιού, όπως ήταν
+	# ιδιότητες παιχνιδιού
 	d.special = "inferno"
-	d.special_cost = 150.0
+	# ΣΚΟΤΩΜΟΙ, όχι ζημιά — το special φορτίζει ανά νεκρό εχθρό. Το 150 ήταν η
+	# παλιά τιμή σε ζημιά και είχε μείνει εδώ όταν άλλαξε το σύστημα: το
+	# tools/balance_sim.gd έτρεχε πάντα με override, οπότε κανείς δεν είδε ότι
+	# στο πραγματικό παιχνίδι το INFERNO δεν φόρτιζε ΠΟΤΕ (80 σκοτωμοί ως τον
+	# γύρο 20, 0/60 νίκες επί του boss).
+	#
+	# Το 8 βγήκε από σάρωση με 60 runs ανά τιμή: πρώτο γέμισμα στον γύρο 7,
+	# διάμεσος θάνατος 17 (από 14), 22/60 έφτασαν στον boss (από 9/60). Ο
+	# ελάχιστος θάνατος είναι ο γύρος 12, οπότε κάθε παίκτης το βλέπει άνετα
+	# πριν τον boss του γύρου 20.
+	d.special_cost = 8.0
 	d.passive = "every5_double"
 	d.unlock_after_area = 0
 

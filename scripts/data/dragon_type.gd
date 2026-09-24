@@ -18,6 +18,11 @@ extends Resource
 @export var frames_ready: Array[Texture2D] = []
 @export var frames_fire: Array[Texture2D] = []
 
+## Το φλογερό περίγραμμα που ανάβει γύρω από τον εχθρό όταν τον χτυπάς. Ανήκει
+## στον δράκο, όχι στον εχθρό: είναι το σημάδι του χτυπήματος του παίκτη, οπότε
+## ο επόμενος δράκος θα αφήνει δικό του. Άδειο = οι παλιοί λευκοί δακτύλιοι.
+@export var glow_frames: Array[Texture2D] = []
+
 @export var fps_idle := 3.0
 @export var fps_ready := 7.0
 @export var fps_fire := 11.0
@@ -76,8 +81,8 @@ func sprite_for(phase: String, aiming: bool) -> Texture2D:
 ## swarm   = ρίχνει αμέσως μια ολόκληρη έξτρα βολή
 @export_enum("inferno", "swarm") var special := "inferno"
 
-## Πόση συνολική ζημιά χρειάζεται για να γεμίσει το special.
-@export var special_cost := 150.0
+## Πόσοι σκοτωμοί χρειάζονται για να γεμίσει το special.
+@export var special_cost := 15.0
 
 ## every5_double = κάθε 5η μπάλα κάνει διπλή ζημιά
 ## ball_every5   = +1 μπάλα κάθε 5 γύρους
@@ -91,3 +96,16 @@ func special_name() -> String:
 	match special:
 		"swarm": return "SWARM"
 		_: return "INFERNO"
+
+
+## Σύντομες περιγραφές για την κάρτα επιλογής δράκου.
+func special_desc() -> String:
+	match special:
+		"swarm": return "έξτρα βολή"
+		_: return "x3 ζημιά μία βολή"
+
+
+func passive_desc() -> String:
+	match passive:
+		"ball_every5": return "+1 μπάλα / 5 γύρους"
+		_: return "κάθε 5η μπάλα x2"

@@ -8,6 +8,9 @@ extends EnemyAbility
 @export var every := 3
 @export var hp_ratio := 0.5
 @export var min_row := 2
+## Η χαμηλότερη σειρά όπου επιτρέπεται να γεννηθεί minion, ώστε να μη γεννιέται
+## μία ανάσα πριν από το game over.
+@export var max_row := 7
 @export var minion_id := "goblin"
 
 ## Πόσες σειρές αμέσως πριν τη γραμμή θανάτου μένουν απαγορευμένες. Χωρίς αυτό
@@ -31,7 +34,7 @@ func on_round_end(block, game) -> void:
 	if _rounds % every != 0:
 		return
 	for i in maxi(count, 1):
-		game.summon_minion(block, minion_id, hp_ratio, min_row, keep_clear)
+		game.summon_minion(block, minion_id, hp_ratio, min_row, max_row, keep_clear)
 	if not act_frames.is_empty():
 		block.play_act(act_frames, act_fps)
 

@@ -10,3 +10,5 @@ display_name = "Brute"
 sprite = ExtResource("2_f2dvm")
 hp_mult = 1.6
 tier = 3
+min_round = 4
+weight = 22.0

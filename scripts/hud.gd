@@ -109,6 +109,8 @@ func _draw() -> void:
 	draw_string(font, Vector2(bc.x - 40.0, bc.y + 11.0), "x%d" % shown,
 		HORIZONTAL_ALIGNMENT_CENTER, 80.0, 30, Color("ffd98a"))
 
+	_draw_dragon_button(font)
+
 	# όσο υπάρχουν μπάλες στο ταμπλό τα δύο κουμπιά δεν δέχονται πάτημα, οπότε
 	# ξεθωριάζουν κιόλας — αλλιώς φαίνονται ενεργά και δεν απαντάνε
 	var locked: bool = m.controls_locked()
@@ -168,6 +170,9 @@ func _draw() -> void:
 		draw_string(font, Vector2(0, plate.position.y + 35.0), m.banner,
 			HORIZONTAL_ALIGNMENT_CENTER, W, 30, Color(1.0, 0.72, 0.36, alpha))
 
+	if m.picker_open:
+		_draw_picker(font)
+
 	if m.paused:
 		draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color(0.04, 0.03, 0.06, 0.72))
 		draw_string(font, Vector2(0, H * 0.46), "PAUSED",
@@ -182,3 +187,86 @@ func _draw() -> void:
 			HORIZONTAL_ALIGNMENT_CENTER, W, 28, Color("9b93ad"))
 		draw_string(font, Vector2(0, H * 0.44 + 126.0), "TAP TO RESTART",
 			HORIZONTAL_ALIGNMENT_CENTER, W, 26, Color(1, 1, 1, 0.5))
+
+
+## Εικόνα δράκου μέσα σε κουτί, με σωστή αναλογία.
+func _draw_portrait(d: DragonType, box: Rect2, alpha: float) -> void:
+	var tex: Texture2D = d.frame_for("aim", false, m.t)
+	if tex == null:
+		draw_circle(box.get_center(), minf(box.size.x, box.size.y) * 0.3, Color(0.83, 0.27, 0.23, alpha))
+		return
+	var ts := tex.get_size()
+	var s := minf(box.size.x / ts.x, box.size.y / ts.y)
+	var size := ts * s
+	var tint: Color = d.tint
+	tint.a *= alpha
+	draw_texture_rect(tex, Rect2(box.get_center() - size * 0.5, size), false, tint)
+
+
+func _draw_dragon_button(font: Font) -> void:
+	var r: Rect2 = m.dragon_rect()
+	var usable: bool = m.can_switch_dragon()
+	var alpha := 1.0 if usable else 0.45
+	draw_rect(r, Color("2a2740"))
+	draw_rect(Rect2(r.position + Vector2(3, 3), r.size - Vector2(6, 6)), Color("1d1b2e"))
+	if m.new_dragon:
+		# παλμός ώστε να φαίνεται ότι κάτι καινούριο περιμένει
+		var glow := 0.5 + 0.5 * sin(m.t * 6.0)
+		draw_rect(r.grow(3.0 + glow * 2.0), Color(1.0, 0.62, 0.18, 0.35 + glow * 0.3), false, 3.0)
+	if m.dragon:
+		_draw_portrait(m.dragon, r.grow(-8.0), alpha)
+	draw_string(font, Vector2(r.position.x - 22.0, r.end.y + 24.0),
+		"NEW!" if m.new_dragon else (m.dragon.display_name if m.dragon else "DRAGON"),
+		HORIZONTAL_ALIGNMENT_CENTER, r.size.x + 44.0, 20,
+		Color("ffb35c") if m.new_dragon else Color(0.79, 0.76, 0.84, alpha))
+
+
+func _draw_picker(font: Font) -> void:
+	draw_rect(Rect2(Vector2.ZERO, Vector2(m.W, m.H)), Color(0.04, 0.03, 0.06, 0.70))
+	var panel: Rect2 = m.picker_panel_rect()
+	draw_rect(panel, Color("2a2740"))
+	draw_rect(panel.grow(-3.0), Color("15162b"))
+	draw_string(font, Vector2(panel.position.x, panel.position.y + 48.0), "ΔΙΑΛΕΞΕ ΔΡΑΚΟ",
+		HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 32, Color("ffe1ad"))
+
+	for i in m.dragons.size():
+		var d: DragonType = m.dragons[i]
+		var card: Rect2 = m.picker_card_rect(i)
+		var unlocked: bool = m.is_dragon_unlocked(d)
+		var current: bool = d == m.dragon
+		draw_rect(card, Color("ff9e2c") if current else Color("2a2740"))
+		draw_rect(card.grow(-3.0), Color("262440") if unlocked else Color("1a1929"))
+
+		var a := 1.0 if unlocked else 0.25
+		_draw_portrait(d, Rect2(card.position + Vector2(12, 12), Vector2(card.size.x - 24.0, 110.0)), a)
+
+		var x := card.position.x + 6.0
+		var w := card.size.x - 12.0
+		var y := card.position.y + 150.0
+		draw_string(font, Vector2(x, y), d.display_name, HORIZONTAL_ALIGNMENT_CENTER, w, 24,
+			Color(1.0, 0.95, 0.81, 1.0 if unlocked else 0.5))
+
+		if unlocked:
+			draw_string(font, Vector2(x, y + 28.0), "%s · %d kills" % [d.special_name(), int(d.special_cost)],
+				HORIZONTAL_ALIGNMENT_CENTER, w, 16, Color("6fc3ff"))
+			draw_string(font, Vector2(x, y + 50.0), d.special_desc(),
+				HORIZONTAL_ALIGNMENT_CENTER, w, 15, Color("c9c2d6"))
+			draw_string(font, Vector2(x, y + 72.0), d.passive_desc(),
+				HORIZONTAL_ALIGNMENT_CENTER, w, 15, Color("9b93ad"))
+		else:
+			draw_string(font, Vector2(x, y + 32.0), "ΚΛΕΙΔΩΜΕΝΟΣ",
+				HORIZONTAL_ALIGNMENT_CENTER, w, 17, Color("ff9b3d"))
+			draw_string(font, Vector2(x, y + 56.0), "νίκησε τον boss:",
+				HORIZONTAL_ALIGNMENT_CENTER, w, 15, Color("9b93ad"))
+			draw_string(font, Vector2(x, y + 76.0), _unlock_area_name(d),
+				HORIZONTAL_ALIGNMENT_CENTER, w, 15, Color("c9c2d6"))
+
+	draw_string(font, Vector2(panel.position.x, panel.end.y - 18.0), "πάτα έξω για κλείσιμο",
+		HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 18, Color(1, 1, 1, 0.4))
+
+
+func _unlock_area_name(d: DragonType) -> String:
+	var idx := d.unlock_after_area - 1
+	if idx >= 0 and idx < m.areas.size():
+		return m.areas[idx].display_name
+	return "περιοχή %d" % d.unlock_after_area

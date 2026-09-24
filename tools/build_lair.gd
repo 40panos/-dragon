@@ -58,9 +58,9 @@ const SETS := [
 		# λάβας, οπότε δεν κρύβουν τον δράκο. Μόνο το μαγκάλι κινείται.
 		"out": "castle",
 		"floor_a": "cas_wall_a", "floor_b": "cas_wall_b",
-		"tall_out": "cas_turret", "tall_in": "",
-		"rock": "cas_rubble", "fire": "cas_brazier",
-		"animated": ["cas_brazier"],
+		"tall_out": "cas_turret_wide", "tall_in": "cas_turret",
+		"rock": "cas_rubble", "fire": "",
+		"animated": [],
 	},
 ]
 
@@ -131,8 +131,11 @@ func _build(s: Dictionary) -> Image:
 
 	# --- 1. το πάτωμα, σε όλο το πλάτος. Το αδιάφανό του είναι γύρω στα 14
 	# art px = 28 οθόνη, δηλαδή περίπου το ένα τρίτο ενός κελιού (85.7 / 3).
+	# Το floor_b (η χαλασμένη εκδοχή) μπαίνει ΜΙΑ φορά μόνο: εναλλάξ με το
+	# floor_a έδειχνε το μισό τείχος γκρεμισμένο. Όχι στη μέση — εκεί στέκεται
+	# ο δράκος και το έκρυβε ολόκληρο.
 	for i in 5:
-		var tile: String = s["floor_a"] if i % 2 == 0 else s["floor_b"]
+		var tile: String = s["floor_b"] if i == 1 else s["floor_a"]
 		_place(out, tile, 36 + i * 72, H + rng.randi_range(0, 1), i % 2 == 1)
 
 	# --- 2. ψηλά στοιχεία. Κάθονται ΠΑΝΩ στα ξύλινα πλαϊνά και αμέσως δίπλα

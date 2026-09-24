@@ -28,6 +28,6 @@ fps_fire = 11.0
 draw_width = 120.0
 tint = Color(0.66, 0.86, 1.18, 1)
 special = "swarm"
-special_cost = 180.0
+special_cost = 18.0
 passive = "ball_every5"
 unlock_after_area = 1

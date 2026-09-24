@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://db6lo2x01oefg"
-path="res://.godot/imported/cas_brazier_2.png-77022cad951cdd96f540df3bb65af8ea.ctex"
+uid="uid://d2k3bt7tisw6i"
+path="res://.godot/imported/glow_fire_3.png-a18cb90c1bc19ca5781a144d49cb78dd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/cas_brazier_2.png"
-dest_files=["res://.godot/imported/cas_brazier_2.png-77022cad951cdd96f540df3bb65af8ea.ctex"]
+source_file="res://art/glow_fire_3.png"
+dest_files=["res://.godot/imported/glow_fire_3.png-a18cb90c1bc19ca5781a144d49cb78dd.ctex"]
 
 [params]
 
