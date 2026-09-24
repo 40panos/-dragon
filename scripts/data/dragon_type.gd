@@ -43,6 +43,14 @@ extends Resource
 ## πορτοκαλί θα τα σκούραινε. Ο death το γυρίζει πράσινο.
 @export var awaken_tint := Color.WHITE
 
+## Πώς παίζει η αύρα της μεταμόρφωσης: "flame" = τα ζωγραφισμένα καρέ φωτιάς,
+## "skull" = μαύρη νεκροκεφαλή που ανοίγει, φτιαγμένη από το ίδιο το κεφάλι
+## του δράκου. Ο death δεν έχει δικά του καρέ φλόγας και δεν του ταιριάζουν.
+@export_enum("flame", "skull") var awaken_style := "flame"
+
+## Αντί για λάμψη στο στόμα, χύνεται σκοτάδι από τις κόγχες όταν ρίχνει.
+@export var dark_eyes := false
+
 @export var fps_idle := 3.0
 @export var fps_ready := 7.0
 @export var fps_fire := 11.0

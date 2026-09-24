@@ -289,7 +289,10 @@ func is_dragon_unlocked(d: DragonType) -> bool:
 ## λάμψη του στόματος ήταν σταθερά πορτοκαλί, που πάνω στον πράσινο δράκο του
 ## θανάτου έδειχνε σαν να πετάει φωτιά ενώ πετάει δρεπάνια.
 func _accent(f: float) -> Color:
-	var c: Color = dragon.accent if dragon else Color("ff9e2c")
+	# ο ΕΝΕΡΓΟΣ δράκος, όχι ο κύριος: η εξελιγμένη μορφή έχει δικό της χρώμα,
+	# οπότε οι σπίθες της αλλάζουν μαζί της όταν βγαίνει
+	var dg := active_dragon()
+	var c: Color = dg.accent if dg else Color("ff9e2c")
 	return c.lerp(Color.WHITE, 1.0 - clampf(f, 0.0, 1.0))
 
 
@@ -1178,7 +1181,12 @@ func dragon_phase() -> String:
 ## Η φλόγα της εναλλαγής, πάνω από τον δράκο. Παίζει μία φορά προς τα εμπρός
 ## και σβήνει στο τέλος, ώστε να μη «γδέρνει» το καρέ όπου αλλάζει η μορφή.
 func _draw_awaken(base: Vector2, dragon_w: float) -> void:
-	if awaken_t <= 0.0 or awaken_frames.is_empty():
+	if awaken_t <= 0.0:
+		return
+	if dragon and dragon.awaken_style == "skull":
+		_draw_awaken_skull(base, dragon_w)
+		return
+	if awaken_frames.is_empty():
 		return
 	var f := 1.0 - awaken_t / AWAKEN_TIME          # 0 στην αρχή, 1 στο τέλος
 	var i := clampi(int(f * awaken_frames.size()), 0, awaken_frames.size() - 1)
@@ -1192,6 +1200,33 @@ func _draw_awaken(base: Vector2, dragon_w: float) -> void:
 	var tint: Color = dragon.awaken_tint if dragon else Color.WHITE
 	tint.a = clampf(awaken_t / (AWAKEN_TIME * 0.4), 0.0, 1.0)
 	draw_texture_rect(tex, Rect2(base.x - w * 0.5, base.y - h, w, h), false, tint)
+
+
+## Αύρα μεταμόρφωσης για τον θάνατο: μια μαύρη νεκροκεφαλή που ανοίγει προς τα
+## έξω μέσα σε σκοτεινή δίνη, αντί για φλόγα. Δεν χρειάζεται δικά της καρέ —
+## είναι το ίδιο το κεφάλι του δράκου, βαμμένο μαύρο, σε μεγέθυνση που τρέχει
+## με τον χρόνο. Γι' αυτό δούλεψε χωρίς νέα γραφικά.
+func _draw_awaken_skull(base: Vector2, dragon_w: float) -> void:
+	var f := 1.0 - awaken_t / AWAKEN_TIME          # 0 στην αρχή, 1 στο τέλος
+	var fade := clampf(awaken_t / (AWAKEN_TIME * 0.5), 0.0, 1.0)
+	var c := base + Vector2(0, -dragon_w * 0.42)
+
+	# η δίνη: δαχτυλίδια σκότους που ανοίγουν και αραιώνουν
+	for i in 4:
+		var r := dragon_w * (0.30 + 0.48 * f) + i * 9.0
+		draw_circle(c, r, Color(0.03, 0.0, 0.05, fade * 0.16 / float(i + 1)))
+	# λίγη πράσινη ανταύγεια στο χείλος, ώστε να δένει με τον δράκο
+	draw_arc(c, dragon_w * (0.30 + 0.48 * f), 0.0, TAU, 48,
+		Color(0.35, 0.75, 0.2, fade * 0.22), 2.0)
+
+	# η νεκροκεφαλή: το κεφάλι του δράκου σε μαύρη σιλουέτα, να μεγαλώνει
+	var tex: Texture2D = dragon.sprite_idle if dragon else null
+	if tex == null:
+		return
+	var w := dragon_w * (0.72 + 0.62 * f)
+	var h := w * float(tex.get_height()) / float(tex.get_width())
+	draw_texture_rect(tex, Rect2(c.x - w * 0.5, c.y - h * 0.5, w, h), false,
+		Color(0.0, 0.0, 0.0, fade * 0.85))
 
 
 func _draw_dragon() -> void:
@@ -1217,11 +1252,27 @@ func _draw_dragon() -> void:
 
 		draw_set_transform(pivot, tilt, Vector2(1.0, breathe))
 		draw_texture_rect(dt, Rect2(-w * 0.5, -h, w, h), false, dg.tint)
-		# λάμψη στο στόμα την ώρα που φεύγει η μπάλα
+		# λάμψη στο στόμα την ώρα που φεύγει η μπάλα — ή, για όσους έχουν άδειες
+		# κόγχες, σκοτάδι που χύνεται από τα μάτια αντί για φως από το στόμα
 		if recoil > 0.05:
 			var g := recoil
-			draw_circle(Vector2(0, -h * 0.45), 26.0 * g, Color(_accent(1.0), 0.30 * g))
-			draw_circle(Vector2(0, -h * 0.45), 12.0 * g, Color(1.0, 0.92, 0.70, 0.55 * g))
+			if dg.dark_eyes:
+				# Το σκοτάδι ΧΥΝΕΤΑΙ προς τα έξω και κάτω, πέρα από το
+				# περίγραμμα του κεφαλιού. Μέσα στο ίδιο το πρόσωπο δεν
+				# διαβαζόταν: η μορφή χωρίς μάσκα είναι ήδη σχεδόν μαύρη,
+				# οπότε μαύρο πάνω σε μαύρο χανόταν.
+				for sx in [-1.0, 1.0]:
+					var e := Vector2(sx * w * 0.16, -h * 0.55)
+					for k in 9:
+						var t2 := float(k) / 8.0
+						# κυλάει προς τα κάτω-έξω, μεγαλώνοντας και αραιώνοντας
+						var p := e + Vector2(sx * t2 * w * 0.46, t2 * h * 0.50)
+						var r := (7.0 + t2 * 26.0) * g
+						draw_circle(p, r, Color(0.04, 0.0, 0.07, (0.60 - t2 * 0.44) * g))
+					draw_circle(e, 11.0 * g, Color(0, 0, 0, 0.95 * g))
+			else:
+				draw_circle(Vector2(0, -h * 0.45), 26.0 * g, Color(_accent(1.0), 0.30 * g))
+				draw_circle(Vector2(0, -h * 0.45), 12.0 * g, Color(1.0, 0.92, 0.70, 0.55 * g))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		_draw_awaken(base, w)
 		return
