@@ -42,6 +42,13 @@ func _initialize() -> void:
 	root.add_child(m)
 	await process_frame
 
+	# Η σημαία unlock_all_dragons είναι βοήθημα για χειροκίνητες δοκιμές. Τα
+	# tests πρέπει να ελέγχουν τους αληθινούς κανόνες ξεκλειδώματος, οπότε τη
+	# σβήνουν και ξαναστήνουν τη λίστα.
+	m.unlock_all_dragons = false
+	m._reset_dragons()
+	await process_frame
+
 	print("--- περιεχόμενο ---")
 	ok("φορτώθηκαν περιοχές", m.areas.size() >= 2, "(%d)" % m.areas.size())
 	ok("φορτώθηκαν δράκοι", m.dragons.size() >= 2, "(%d)" % m.dragons.size())

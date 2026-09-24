@@ -41,6 +41,13 @@ const DECO_BANNER_ROW := 5
 const ROUNDS_PER_AREA := 20   # ο boss εμφανίζεται στον τελευταίο γύρο κάθε περιοχής
 const SPLASH_RATIO := 0.33    # ζημιά σε λειτουργία AoE, στον στόχο και στους γείτονες
 
+## ΔΟΚΙΜΕΣ: ξεκλειδώνει κάθε δράκο από τον πρώτο γύρο, ώστε να τους δοκιμάζεις
+## χωρίς να φτάνεις στους boss. Γύρνα το σε false για κανονικό παιχνίδι — τα
+## δεδομένα των δράκων (unlock_after_area) δεν πειράχτηκαν, μόνο παρακάμπτονται.
+## Είναι μεταβλητή κι όχι σταθερά ώστε τα tests να τη γυρίζουν false και να
+## ελέγχουν την πραγματική λογική ξεκλειδώματος.
+var unlock_all_dragons := true
+
 const BlockScene := preload("res://scenes/block.tscn")
 const BallScene := preload("res://scenes/ball.tscn")
 const OrbScene := preload("res://scenes/orb.tscn")
@@ -254,7 +261,7 @@ func current_area() -> AreaDef:
 func _reset_dragons() -> void:
 	run_dragons.clear()
 	for d in dragons:
-		if d.unlock_after_area <= 0:
+		if unlock_all_dragons or d.unlock_after_area <= 0:
 			run_dragons.append(d.id)
 	if run_dragons.is_empty() and not dragons.is_empty():
 		run_dragons.append(dragons[0].id)
