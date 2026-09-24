@@ -46,7 +46,7 @@ const SPLASH_RATIO := 0.33    # ζημιά σε λειτουργία AoE, στο
 ## δεδομένα των δράκων (unlock_after_area) δεν πειράχτηκαν, μόνο παρακάμπτονται.
 ## Είναι μεταβλητή κι όχι σταθερά ώστε τα tests να τη γυρίζουν false και να
 ## ελέγχουν την πραγματική λογική ξεκλειδώματος.
-var unlock_all_dragons := true
+var unlock_all_dragons := false
 
 const BlockScene := preload("res://scenes/block.tscn")
 const BallScene := preload("res://scenes/ball.tscn")
