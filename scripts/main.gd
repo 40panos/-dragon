@@ -80,6 +80,10 @@ var banner_time := 0.0
 var aoe_mode := false
 var special_charge := 0.0
 var inferno_active := false
+## Η ΜΟΡΦΗ είναι ξεχωριστή από το bonus ζημιάς: κάθε δράκος με awakened μορφή
+## μεταμορφώνεται όταν ρίχνει το special του, αλλά μόνο το INFERNO τριπλασιάζει
+## τη ζημιά. Χωρίς τον διαχωρισμό, ο death θα έπαιρνε δώρο x3 μαζί με το SWARM.
+var awake_active := false
 
 # χρόνος που απομένει στη φλόγα που καλύπτει την εναλλαγή μικρού/μεγάλου
 # δράκου. Παίζει ΜΙΑ φορά, και στις δύο κατευθύνσεις της αλλαγής.
@@ -357,6 +361,7 @@ func _start() -> void:
 	balls_fired = 0
 	special_charge = 0.0
 	inferno_active = false
+	awake_active = false
 	aoe_mode = false
 	launch_x = W * 0.5
 	phase = "aim"
@@ -398,7 +403,7 @@ func add_shake(amount: float) -> void:
 ## ξυπνημένη μορφή, αν ο τύπος έχει μία. Όλα τα υπόλοιπα (καρέ, ρυθμοί, πλάτος
 ## σχεδίασης) βγαίνουν από αυτήν, οπότε δεν χρειάζεται δεύτερο μονοπάτι κώδικα.
 func active_dragon() -> DragonType:
-	if dragon and inferno_active and dragon.awakened is DragonType:
+	if dragon and awake_active and dragon.awakened is DragonType:
 		return dragon.awakened
 	return dragon
 
@@ -809,8 +814,12 @@ func _use_special() -> void:
 			_announce("SWARM!")
 		_:
 			inferno_active = true
-			_awaken_flash()
 			_announce("INFERNO!")
+	# η μεταμόρφωση δεν ανήκει σε ένα συγκεκριμένο special: όποιος δράκος έχει
+	# δεύτερη μορφή τη βγάζει όταν ρίχνει το δικό του, όποιο κι αν είναι αυτό
+	if dragon.awakened is DragonType:
+		awake_active = true
+		_awaken_flash()
 	special_charge = 0.0
 
 
@@ -889,7 +898,10 @@ func _make_ball(dir: Vector2) -> void:
 	b.sprite = ball_tex(aoe_mode)
 	# στο INFERNO η μπάλα ζωγραφίζεται μεγαλύτερη· το σχήμα σύγκρουσης μένει
 	# ίδιο, ώστε να μη μεγαλώνει κρυφά και η ευκολία του σημαδιού
-	b.draw_scale = INFERNO_BALL_SCALE if inferno_active else 1.0
+	b.draw_scale = INFERNO_BALL_SCALE if awake_active else 1.0
+	if dragon:
+		b.spin = dragon.ball_spin
+		b.trail_color = dragon.accent
 	b.damage = _ball_damage()
 	b.died.connect(_on_ball_died)
 	b.struck.connect(_on_ball_struck)
@@ -920,9 +932,10 @@ func _on_ball_died(x: float) -> void:
 
 func _end_turn() -> void:
 	Engine.time_scale = 1.0
-	if inferno_active:
+	if awake_active:
 		_awaken_flash()      # η ίδια φλόγα καλύπτει και την επιστροφή
 	inferno_active = false
+	awake_active = false
 	ball_count += gained
 	if next_x >= 0.0:
 		launch_x = next_x
@@ -1165,8 +1178,13 @@ func _draw_awaken(base: Vector2, dragon_w: float) -> void:
 	var tex := awaken_frames[i]
 	var w := dragon_w * 1.5                        # ξεπερνάει το κεφάλι, να το τυλίγει
 	var h := w * float(tex.get_height()) / float(tex.get_width())
-	draw_texture_rect(tex, Rect2(base.x - w * 0.5, base.y - h, w, h), false,
-		Color(1, 1, 1, clampf(awaken_t / (AWAKEN_TIME * 0.4), 0.0, 1.0)))
+	# Τα καρέ είναι ζωγραφισμένα σε φωτιά, οπότε ο ember τα δείχνει ατόφια
+	# (awaken_tint λευκό) και ο death τα βάφει πράσινα. Δεν χρησιμοποιείται το
+	# accent εδώ: είναι πολλαπλασιασμός, και πορτοκαλί πάνω σε πορτοκαλί θα
+	# σκούραινε τη φλόγα του ember χωρίς λόγο.
+	var tint: Color = dragon.awaken_tint if dragon else Color.WHITE
+	tint.a = clampf(awaken_t / (AWAKEN_TIME * 0.4), 0.0, 1.0)
+	draw_texture_rect(tex, Rect2(base.x - w * 0.5, base.y - h, w, h), false, tint)
 
 
 func _draw_dragon() -> void:

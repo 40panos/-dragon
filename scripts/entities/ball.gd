@@ -17,11 +17,22 @@ var trail: Array[Vector2] = []
 ## το INFERNO να μη γίνεται κρυφά και ευκολότερο στο σημάδι.
 var draw_scale := 1.0
 
+## Στροφές ανά δευτερόλεπτο του σχεδίου. Στο 0 το βλήμα απλώς κοιτάει προς την
+## πορεία του, που είναι το σωστό για μπάλα φωτιάς με ουρά. Τα δρεπάνια του
+## death στριφογυρίζουν, οπότε παίρνουν δική τους ταχύτητα από τον δράκο.
+var spin := 0.0
+var spin_t := 0.0
+
+## Το χρώμα της ουράς. Ήταν σταθερά πορτοκαλί, που πίσω από ένα δρεπάνι
+## έμοιαζε με φλόγα.
+var trail_color := Color(1.0, 0.5, 0.1)
+
 ## Ποια blocks έχει ήδη πιτσιλίσει αυτή η μπάλα — το splash μετράει μία φορά ανά μπάλα.
 var splashed := {}
 
 
 func _physics_process(delta: float) -> void:
+	spin_t += delta
 	var motion := velocity * delta
 
 	for i in 4:
@@ -54,7 +65,7 @@ func _draw() -> void:
 	for i in trail.size():
 		var p := to_local(trail[i])
 		var f := float(i + 1) / float(trail.size())
-		draw_circle(p, 5.0 * f * draw_scale, Color(1.0, 0.5, 0.1, 0.22 * f))
+		draw_circle(p, 5.0 * f * draw_scale, Color(trail_color, 0.22 * f))
 
 	if sprite:
 		var w := 30.0 * draw_scale
@@ -62,6 +73,9 @@ func _draw() -> void:
 		# γυρνάει να δείχνει προς την πορεία — αλλιώς η φλόγα δείχνει
 		# πάντα στο ίδιο σημείο όπου κι αν πάει η μπάλα
 		var ang := velocity.angle() + PI if velocity.length_squared() > 0.01 else 0.0
+		# ...εκτός αν στριφογυρίζει: τότε η πορεία δεν μετράει, μετράει ο χρόνος
+		if spin != 0.0:
+			ang = spin_t * spin * TAU
 		draw_set_transform(Vector2.ZERO, ang, Vector2.ONE)
 		draw_texture_rect(sprite, Rect2(-w * 0.5, -w * 0.5, w, w), false)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

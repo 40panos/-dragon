@@ -394,10 +394,19 @@ func _initialize() -> void:
 	for tex in awake.frames_idle + awake.frames_ready + awake.frames_fire:
 		awake_sizes[tex.get_size()] = true
 	ok("όλα τα καρέ της σε ίδιο καμβά", awake_sizes.size() == 1, str(awake_sizes.keys()))
+	# Η ΜΟΡΦΗ κρέμεται από το awake_active, όχι από το inferno_active: κάθε
+	# δράκος με δεύτερη μορφή τη βγάζει όταν ρίχνει το special του, αλλά μόνο
+	# το INFERNO τριπλασιάζει τη ζημιά. Τα δύο ελέγχονται ξεχωριστά.
+	m.awake_active = false
 	m.inferno_active = false
-	ok("χωρίς INFERNO παίζει η κανονική μορφή", m.active_dragon() == dg)
+	ok("χωρίς special παίζει η κανονική μορφή", m.active_dragon() == dg)
+	m.awake_active = true
+	ok("στο special παίζει η ξυπνημένη", m.active_dragon() == awake)
+	var dmg_plain: float = m._ball_damage()
 	m.inferno_active = true
-	ok("με INFERNO παίζει η ξυπνημένη", m.active_dragon() == awake)
+	ok("μόνο το INFERNO τριπλασιάζει τη ζημιά", m._ball_damage() == dmg_plain * 3.0,
+		"(%.2f -> %.2f)" % [dmg_plain, m._ball_damage()])
+	m.awake_active = false
 	m.inferno_active = false
 
 	print("--- κλείδωμα χειριστηρίων ---")

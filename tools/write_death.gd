@@ -4,29 +4,62 @@ extends SceneTree
 ##   godot --headless --path . --script tools/write_death.gd
 ##
 ## Ο δράκος του θανάτου: κρανίο με κέρατα, πράσινη φωτιά ψυχών, και δρεπάνια
-## αντί για μπάλες φωτιάς. Χτισμένος σαν τον frost και όχι σαν τον ember —
-## δεν έχει ξυπνημένη μορφή, οπότε το special του είναι το SWARM, που δεν
-## χρειάζεται δεύτερο σετ καρέ.
+## αντί για μπάλες φωτιάς — τα οποία στριφογυρίζουν στον αέρα.
+##
+## Έχει εξελιγμένη μορφή, που βγαίνει όσο τρέχει το SWARM: το main δείχνει τη
+## δεύτερη μορφή όποιου δράκου έχει μία, ανεξάρτητα από το ποιο special ρίχνει.
 
 const RES_PATH := "res://data/dragons/03_death.tres"
 const FRAME_W := 64          # φυσικό πλάτος καρέ
 const SCALE := 2             # ακέραια μεγέθυνση, χωρίς αναδειγματοληψία
+const EVO_W := 128           # η εξελιγμένη μορφή, διπλάσια στο σχέδιο
+const EVO_SCALE := 2
 
 
-func _load_frames(state: String) -> Array[Texture2D]:
+func _load_frames(prefix: String, state: String, want_w: int) -> Array[Texture2D]:
 	var out: Array[Texture2D] = []
 	for i in range(1, 4):
-		var path := "res://art/death_%s_%d.png" % [state, i]
+		var path := "res://art/%s_%s_%d.png" % [prefix, state, i]
 		var tex: Texture2D = load(path)
 		if tex == null:
 			push_error("λείπει το καρέ: " + path)
 			quit(1)
 		# όλα τα καρέ πρέπει να έχουν ίδιο καμβά, αλλιώς ο δράκος πηδάει
-		if tex.get_width() != FRAME_W:
-			push_error("%s: πλάτος %d, περίμενα %d" % [path, tex.get_width(), FRAME_W])
+		if tex.get_width() != want_w:
+			push_error("%s: πλάτος %d, περίμενα %d" % [path, tex.get_width(), want_w])
 			quit(1)
 		out.append(tex)
 	return out
+
+
+## Η εξελιγμένη μορφή — βγαίνει όσο τρέχει το special, όπως ο ξυπνημένος ember.
+## Είναι κανονικός DragonType, οπότε το main τη ζωγραφίζει με τον ίδιο κώδικα·
+## γεμίζει μόνο ό,τι αφορά την εμφάνιση.
+func _make_evolved() -> DragonType:
+	var a := DragonType.new()
+	var idle := _load_frames("evo", "idle", EVO_W)
+	var ready_ := _load_frames("evo", "ready", EVO_W)
+	var fire := _load_frames("evo", "fire", EVO_W)
+	a.id = "death_evolved"
+	a.display_name = "Death Evolved"
+	a.sprite = idle[0]
+	a.sprite_idle = idle[0]
+	a.sprite_ready = ready_[0]
+	a.sprite_fire = fire[0]
+	a.frames_idle = idle
+	a.frames_ready = ready_
+	a.frames_fire = fire
+	a.fps_idle = 3.0
+	a.fps_ready = 6.0
+	a.fps_fire = 12.0
+	a.draw_width = float(EVO_W * EVO_SCALE)   # 256 = 2x
+	a.tint = Color(1, 1, 1, 1)
+	a.accent = Color("7bd93a")
+	# το main διαβάζει τον ΚΥΡΙΟ δράκο γι' αυτά, αλλά μπαίνουν ίδια ώστε το
+	# .tres να μη διαβάζεται σαν να διαφωνούν οι δύο μορφές
+	a.special = "swarm"
+	a.special_cost = 12.0
+	return a
 
 
 ## Τα καρέ του περιγράμματος λάμψης, από το tools/build_glow.gd. Λείπουν
@@ -51,9 +84,9 @@ func _tex(name_: String) -> Texture2D:
 func _initialize() -> void:
 	var d := DragonType.new()
 
-	var idle := _load_frames("idle")
-	var ready_ := _load_frames("ready")
-	var fire := _load_frames("fire")
+	var idle := _load_frames("death", "idle", FRAME_W)
+	var ready_ := _load_frames("death", "ready", FRAME_W)
+	var fire := _load_frames("death", "fire", FRAME_W)
 
 	d.id = "death"
 	d.display_name = "Death"
@@ -81,12 +114,12 @@ func _initialize() -> void:
 	d.draw_width = float(FRAME_W * SCALE)   # 128 = 2x, ακέραιο πολλαπλάσιο
 	d.tint = Color(1, 1, 1, 1)
 	d.accent = Color("7bd93a")     # πράσινη φωτιά ψυχών, όχι πορτοκαλί
-
-	# Το SWARM ρίχνει άλλη μια πλήρη ριπή· ταιριάζει σε δράκο που πετάει
-	# δρεπάνια και δεν χρειάζεται δεύτερη μορφή όπως το INFERNO.
-	# Το κόστος είναι ΣΚΟΤΩΜΟΙ: ο ember είναι στο 8 μετά τη σάρωση, και ο
-	# death μπαίνει λίγο πιο ψηλά γιατί ξεκλειδώνει αργότερα, με τον παίκτη
-	# να σκοτώνει ήδη πολύ πιο γρήγορα.
+	d.ball_spin = 2.4              # στροφές/δευτ. — τα δρεπάνια στριφογυρίζουν
+	d.awaken_tint = Color("8fe04a")  # η φλόγα μεταμόρφωσης βάφεται πράσινη
+	d.awakened = _make_evolved()
+	# Το SWARM ρίχνει άλλη μια πλήρη ριπή. Το κόστος είναι ΣΚΟΤΩΜΟΙ: ο ember
+	# είναι στο 8 μετά τη σάρωση, και ο death μπαίνει λίγο πιο ψηλά γιατί
+	# ξεκλειδώνει αργότερα, με τον παίκτη να σκοτώνει ήδη πολύ πιο γρήγορα.
 	d.special = "swarm"
 	d.special_cost = 12.0
 	d.passive = "ball_every5"
