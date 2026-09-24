@@ -15,12 +15,25 @@ extends SceneTree
 ## Το γέμισμα ξεκινάει από τη ΜΕΣΗ και απλώνεται, σταματώντας στο σκούρο
 ## περίγραμμα του σχεδίου· έτσι οι φλόγες απ' έξω μένουν ανέγγιχτες.
 
-const SRC_DIR := "C:/Users/panos/Documents/bbdragon-art-proposals/glow"
+## Κάθε σετ δείχνει στον φάκελο με τα ακατέργαστα καρέ του και στο πρόθεμα
+## που έχουν εκεί. Ο δράκος διαλέγει σετ μέσω του write_<δράκος>.gd.
+const SETS := [
+	{
+		"name": "fire",
+		"dir": "C:/Users/panos/Documents/bbdragon-art-proposals/glow",
+		"prefix": "raw",
+	},
+	{
+		"name": "death",
+		"dir": "C:/Users/panos/Documents/bbdragon-art-proposals/death",
+		"prefix": "glowraw",
+	},
+]
+
 const FRAMES := 3            # όσα καρέ κρατάμε — λίγα φτάνουν, η λάμψη είναι στιγμιαία
 ## Ποια από τα καρέ που ήρθαν κρατάμε. Το PixelLab δίνει 5 (το αρχικό + 4)·
 ## παίρνουμε ένα στα δύο, ώστε τα τρία να απέχουν αισθητά μεταξύ τους.
 const PICK := [1, 3, 5]
-const SET := "fire"
 
 ## Το γέμισμα περνάει ΜΟΝΟ από σχεδόν λευκό ή ήδη διάφανο. Πρώτη δοκιμή ήταν
 ## «σταμάτα στο σκούρο», αλλά οι φλόγες έχουν ανοιχτά κίτρινα που πέρναγαν το
@@ -69,21 +82,20 @@ func _hollow(im: Image) -> int:
 
 
 func _initialize() -> void:
-	var n := 0
-	for i in FRAMES:
-		var src := "%s/raw_%d.png" % [SRC_DIR, PICK[i]]
-		var im := Image.load_from_file(src)
-		if im == null:
-			push_error("λείπει: " + src)
-			quit(1)
-		im.convert(Image.FORMAT_RGBA8)
-		var cleared := _hollow(im)
-		var path := "res://art/glow_%s_%d.png" % [SET, i + 1]
-		var err := im.save_png(ProjectSettings.globalize_path(path))
-		if err != OK:
-			push_error("η αποθήκευση απέτυχε (%d): %s" % [err, path])
-			quit(1)
-		print("γράφτηκε %s — άδειασαν %d pixel" % [path, cleared])
-		n += 1
-	print("%d καρέ για το σετ '%s'" % [n, SET])
+	for s in SETS:
+		for i in FRAMES:
+			var src := "%s/%s_%d.png" % [s["dir"], s["prefix"], PICK[i]]
+			var im := Image.load_from_file(src)
+			if im == null:
+				push_error("λείπει: " + src)
+				quit(1)
+			im.convert(Image.FORMAT_RGBA8)
+			var cleared := _hollow(im)
+			var path := "res://art/glow_%s_%d.png" % [s["name"], i + 1]
+			var err := im.save_png(ProjectSettings.globalize_path(path))
+			if err != OK:
+				push_error("η αποθήκευση απέτυχε (%d): %s" % [err, path])
+				quit(1)
+			print("  %s — άδειασαν %d pixel" % [path, cleared])
+		print("%d καρέ για το σετ '%s'" % [FRAMES, s["name"]])
 	quit(0)

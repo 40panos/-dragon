@@ -270,6 +270,27 @@ func is_dragon_unlocked(d: DragonType) -> bool:
 	return d != null and run_dragons.has(d.id)
 
 
+## Το βλήμα που ρίχνει ο τρέχων δράκος. Ο ember ρίχνει φωτιά, ο death δρεπάνια.
+## Το ίδιο εικονίδιο δείχνει και το κουμπί του HUD, ώστε να μη λέει άλλο το
+## κουμπί κι άλλο να φεύγει από το στόμα. Δράκος χωρίς δικό του βλήμα πέφτει
+## στα καθολικά, οπότε δεν χρειάστηκε να αλλάξουν οι παλιοί.
+## Το χρώμα που εκπέμπει ο τρέχων δράκος, σε ένταση `f`. Οι σπίθες και η
+## λάμψη του στόματος ήταν σταθερά πορτοκαλί, που πάνω στον πράσινο δράκο του
+## θανάτου έδειχνε σαν να πετάει φωτιά ενώ πετάει δρεπάνια.
+func _accent(f: float) -> Color:
+	var c: Color = dragon.accent if dragon else Color("ff9e2c")
+	return c.lerp(Color.WHITE, 1.0 - clampf(f, 0.0, 1.0))
+
+
+func ball_tex(aoe: bool) -> Texture2D:
+	if dragon:
+		if aoe and dragon.ball_aoe_sprite:
+			return dragon.ball_aoe_sprite
+		if not aoe and dragon.ball_sprite:
+			return dragon.ball_sprite
+	return fireball_aoe_tex if (aoe and fireball_aoe_tex) else fireball_tex
+
+
 ## Αλλαγή δράκου επιτρέπεται μόνο πριν από τη βολή.
 func can_switch_dragon() -> bool:
 	return phase == "aim" and not aiming and not paused
@@ -578,7 +599,7 @@ func _on_orb_taken(_body: Node, orb: Node) -> void:
 func _on_ball_struck(block, ball) -> void:
 	if not is_instance_valid(block):
 		return
-	add_sparks(ball.position, 5, Color("ffd07a"), 190.0, 4.0)
+	add_sparks(ball.position, 5, _accent(0.82), 190.0, 4.0)
 	_hurt(block, ball.damage)
 	if aoe_mode:
 		for nb in grid.neighbors(block):
@@ -602,7 +623,7 @@ func _on_block_damaged(destroyed: bool, _amount: float, block) -> void:
 		if block.ability:
 			block.ability.on_damaged(block, self)
 		return
-	add_sparks(block.position, 16, Color("ffb35c"), 280.0, 6.0)
+	add_sparks(block.position, 16, _accent(0.70), 280.0, 6.0)
 	add_shake(7.0 if block.is_boss else 2.5)
 	kills += 1
 	special_charge += 1.0          # το special γεμίζει με σκοτωμούς, όχι με ζημιά
@@ -865,7 +886,7 @@ func _make_ball(dir: Vector2) -> void:
 	b.floor_y = floor_y
 	# σε λειτουργία AoE η μπάλα σκάει σε γειτονικά κελιά, οπότε δείχνει
 	# διαφορετικό βλήμα — το ίδιο που δείχνει και το κουμπί
-	b.sprite = fireball_aoe_tex if (aoe_mode and fireball_aoe_tex) else fireball_tex
+	b.sprite = ball_tex(aoe_mode)
 	# στο INFERNO η μπάλα ζωγραφίζεται μεγαλύτερη· το σχήμα σύγκρουσης μένει
 	# ίδιο, ώστε να μη μεγαλώνει κρυφά και η ευκολία του σημαδιού
 	b.draw_scale = INFERNO_BALL_SCALE if inferno_active else 1.0
@@ -875,7 +896,7 @@ func _make_ball(dir: Vector2) -> void:
 	live_balls += 1
 	balls_fired += 1
 	recoil = 1.0
-	add_sparks(mouth_pos(), 7, Color("ff9e2c"), 230.0, 5.0)
+	add_sparks(mouth_pos(), 7, _accent(1.0), 230.0, 5.0)
 
 
 func _ball_damage() -> float:
@@ -1174,7 +1195,7 @@ func _draw_dragon() -> void:
 		# λάμψη στο στόμα την ώρα που φεύγει η μπάλα
 		if recoil > 0.05:
 			var g := recoil
-			draw_circle(Vector2(0, -h * 0.45), 26.0 * g, Color(1.0, 0.62, 0.18, 0.30 * g))
+			draw_circle(Vector2(0, -h * 0.45), 26.0 * g, Color(_accent(1.0), 0.30 * g))
 			draw_circle(Vector2(0, -h * 0.45), 12.0 * g, Color(1.0, 0.92, 0.70, 0.55 * g))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		_draw_awaken(base, w)

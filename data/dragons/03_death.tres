@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="DragonType" load_steps=16 format=3]
+
+[ext_resource type="Texture2D" path="res://art/scythe_aoe.png" id="1_ypsco"]
+[ext_resource type="Texture2D" path="res://art/scythe.png" id="2_aret3"]
+[ext_resource type="Texture2D" path="res://art/death_fire_1.png" id="3_r4ni4"]
+[ext_resource type="Texture2D" path="res://art/death_fire_2.png" id="4_wbg83"]
+[ext_resource type="Texture2D" path="res://art/death_fire_3.png" id="5_fch0b"]
+[ext_resource type="Texture2D" path="res://art/death_idle_1.png" id="6_ghp2u"]
+[ext_resource type="Texture2D" path="res://art/death_idle_2.png" id="7_57q01"]
+[ext_resource type="Texture2D" path="res://art/death_idle_3.png" id="8_jordm"]
+[ext_resource type="Texture2D" path="res://art/death_ready_1.png" id="9_c4lim"]
+[ext_resource type="Texture2D" path="res://art/death_ready_2.png" id="10_rm6m0"]
+[ext_resource type="Texture2D" path="res://art/death_ready_3.png" id="11_rj33s"]
+[ext_resource type="Texture2D" path="res://art/glow_death_1.png" id="12_i2kk3"]
+[ext_resource type="Texture2D" path="res://art/glow_death_2.png" id="13_43ikd"]
+[ext_resource type="Texture2D" path="res://art/glow_death_3.png" id="14_cv2mf"]
+[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="15_xfmfu"]
+
+[resource]
+script = ExtResource("15_xfmfu")
+id = "death"
+display_name = "Death"
+sprite = ExtResource("6_ghp2u")
+sprite_idle = ExtResource("6_ghp2u")
+sprite_ready = ExtResource("9_c4lim")
+sprite_fire = ExtResource("3_r4ni4")
+frames_idle = Array[Texture2D]([ExtResource("6_ghp2u"), ExtResource("7_57q01"), ExtResource("8_jordm")])
+frames_ready = Array[Texture2D]([ExtResource("9_c4lim"), ExtResource("10_rm6m0"), ExtResource("11_rj33s")])
+frames_fire = Array[Texture2D]([ExtResource("3_r4ni4"), ExtResource("4_wbg83"), ExtResource("5_fch0b")])
+glow_frames = Array[Texture2D]([ExtResource("12_i2kk3"), ExtResource("13_43ikd"), ExtResource("14_cv2mf")])
+ball_sprite = ExtResource("2_aret3")
+ball_aoe_sprite = ExtResource("1_ypsco")
+accent = Color(0.482353, 0.85098, 0.227451, 1)
+fps_idle = 3.0
+fps_ready = 6.0
+fps_fire = 12.0
+draw_width = 128.0
+tint = Color(1, 1, 1, 1)
+special = "swarm"
+special_cost = 12.0
+passive = "ball_every5"
+unlock_after_area = 2

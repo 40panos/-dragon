@@ -23,6 +23,17 @@ extends Resource
 ## ο επόμενος δράκος θα αφήνει δικό του. Άδειο = οι παλιοί λευκοί δακτύλιοι.
 @export var glow_frames: Array[Texture2D] = []
 
+## Τα βλήματα του δράκου. Ο ember ρίχνει μπάλες φωτιάς, ο death δρεπάνια.
+## Άδειο = πέφτει στα καθολικά fireball / fireball_aoe, ώστε οι παλιοί δράκοι
+## να μη χρειάζονται αλλαγή.
+@export var ball_sprite: Texture2D
+@export var ball_aoe_sprite: Texture2D
+
+## Το χρώμα που εκπέμπει ο δράκος: λάμψη στο στόμα, σπίθες στη βολή και στο
+## χτύπημα. Ο ember είναι πορτοκαλί, ο death πράσινος. Χωρίς αυτό οι σπίθες
+## έμεναν φωτιάς σε κάθε δράκο.
+@export var accent := Color("ff9e2c")
+
 @export var fps_idle := 3.0
 @export var fps_ready := 7.0
 @export var fps_fire := 11.0

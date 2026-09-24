@@ -11,8 +11,6 @@ const PLATE_ROUND := preload("res://art/ui_plate_round.png")    # 73x73, μπα�
 const PLATE_LABEL := preload("res://art/ui_plate_label.png")    # 192x64, πινακίδα κειμένου
 const BAND := preload("res://art/ui_band.png")                  # 64x64, υφή για τις μπάρες
 const BTN_INFERNO := preload("res://art/ui_btn_inferno.png")    # 84x91, το κουμπί του special
-const BALL_SINGLE := preload("res://art/fireball.png")
-const BALL_AOE := preload("res://art/fireball_aoe.png")
 
 const BAND_TILE := 64.0
 const BAND_TINT := Color(0.52, 0.50, 0.58)   # σκουραίνει την υφή, να μην τραβάει το μάτι
@@ -124,9 +122,9 @@ func _draw() -> void:
 		# αναμμένο: ζεστή λάμψη μέσα στην πλάκα, αντί για δεύτερο χρώμα φόντου
 		draw_rect(Rect2(ar.position + Vector2(8, 8), ar.size - Vector2(16, 16)),
 			Color(1.0, 0.55, 0.15, 0.16))
-	# μέσα στο κουμπί μπαίνει το βλήμα που θα φύγει πραγματικά
 	var ac := ar.position + ar.size * 0.5
-	var shot: Texture2D = BALL_AOE if m.aoe_mode else BALL_SINGLE
+	# το ίδιο βλήμα που θα φύγει πραγματικά — ακολουθεί τον δράκο
+	var shot: Texture2D = m.ball_tex(m.aoe_mode)
 	draw_texture_rect(shot, Rect2(ac - Vector2(32, 32), Vector2(64, 64)), false, lock_tint)
 	draw_string(font, Vector2(ar.position.x - 22.0, ar.end.y + 22.0),
 		"AOE" if m.aoe_mode else "SINGLE",
