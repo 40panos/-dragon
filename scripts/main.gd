@@ -130,6 +130,7 @@ var tex_banner: Texture2D
 var tex_hud_wall: Texture2D
 var tex_hud_panel: Texture2D
 var font: Font
+var bestiary       # το Book και οι ειδοποιήσεις νέων εχθρών (scripts/bestiary.gd)
 
 
 func _ready() -> void:
@@ -193,6 +194,12 @@ func _make_hud() -> void:
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	layer.add_child(hud)
 	hud.m = self
+	# το Book από πάνω από το HUD, στο ίδιο layer
+	bestiary = Node2D.new()
+	bestiary.set_script(load("res://scripts/bestiary.gd"))
+	bestiary.process_mode = Node.PROCESS_MODE_ALWAYS
+	bestiary.m = self
+	layer.add_child(bestiary)
 
 
 # ---------------------------------------------------------------- περιεχόμενο
@@ -313,7 +320,7 @@ func ball_tex(aoe: bool) -> Texture2D:
 
 ## Αλλαγή δράκου επιτρέπεται μόνο πριν από τη βολή.
 func can_switch_dragon() -> bool:
-	return phase == "aim" and not aiming and not paused
+	return phase == "aim" and not aiming and not frozen()
 
 
 func select_dragon(id: String) -> bool:
@@ -590,6 +597,8 @@ func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: in
 		b.modulate = area.tint
 	grid.place(b)
 	b.damaged.connect(_on_block_damaged.bind(b))
+	if bestiary:
+		bestiary.saw(type)
 	return b
 
 
@@ -818,6 +827,11 @@ func special_ready() -> bool:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# όσο είναι ανοιχτό το Book ή μια κάρτα εχθρού, όλα τα πατήματα πάνε εκεί
+	if bestiary and bestiary.is_open():
+		if event is InputEventMouseButton and event.pressed 				and event.button_index == MOUSE_BUTTON_LEFT:
+			bestiary.press(get_global_mouse_position())
+		return
 	if event is InputEventMouseMotion:
 		if phase == "aim" and aiming:
 			_set_aim(get_global_mouse_position())
@@ -830,6 +844,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	var p := get_global_mouse_position()
+	# ειδοποιήσεις νέων εχθρών και κουμπί του Book
+	if mb.pressed and not paused and bestiary and bestiary.press(p):
+		aiming = false
+		return
 	if mb.pressed and pause_rect().has_point(p):
 		_toggle_pause()
 		return
@@ -912,6 +930,11 @@ func _use_special() -> void:
 	special_charge = 0.0
 
 
+## Παγωμένο παιχνίδι: παύση, ή ανοιχτό Book / κάρτα εχθρού.
+func frozen() -> bool:
+	return paused or (bestiary != null and bestiary.is_open())
+
+
 func _toggle_pause() -> void:
 	if phase == "over":
 		return
@@ -950,10 +973,10 @@ func _process(delta: float) -> void:
 		banner_time = maxf(0.0, banner_time - delta)
 		if banner_time == 0.0:
 			banner = ""
-	if not paused:
+	if not frozen():
 		_update_life(delta)
 	queue_redraw()
-	if paused or phase != "shoot":
+	if frozen() or phase != "shoot":
 		return
 	shot_time += delta
 	if shot_time > 9.0:
@@ -1272,21 +1295,22 @@ func _draw_ground() -> void:
 static func strip2(ci: CanvasItem, t: Texture2D, src: Rect2, x0: float, x1: float, y: float) -> void:
 	var cap := int(src.size.x * 0.12)
 	var h := src.size.y
+	# η μέση πρώτα: το τελευταίο κομμάτι στρογγυλεύει ΠΡΟΣ ΤΑ ΠΑΝΩ και χώνεται
+	# κάτω από την άκρη — με int() έμενε κενό μισού pixel όταν το πλάτος
+	# δεν ήταν ακέραιο, και φαινόταν το φόντο σαν λεπτή γραμμή
+	var body := int(src.size.x) - cap * 2
+	var x := x0 + cap * 2
+	var end := x1 - cap * 2
+	while x < end:
+		var bw := mini(body, ceili((end - x) / 2.0))
+		ci.draw_texture_rect_region(t, Rect2(x, y, bw * 2, h * 2),
+			Rect2(src.position.x + cap, src.position.y, bw, h))
+		x += bw * 2
 	ci.draw_texture_rect_region(t, Rect2(x0, y, cap * 2, h * 2),
 		Rect2(src.position.x, src.position.y, cap, h))
 	# αρνητικό πλάτος = καθρέφτισμα στην ΙΔΙΑ θέση (x1-2cap .. x1)
 	ci.draw_texture_rect_region(t, Rect2(x1 - cap * 2, y, -cap * 2, h * 2),
 		Rect2(src.position.x, src.position.y, cap, h))
-	var body := int(src.size.x) - cap * 2
-	var x := x0 + cap * 2
-	var end := x1 - cap * 2
-	while x < end:
-		var bw := mini(body, int((end - x) / 2.0))
-		if bw <= 0:
-			break
-		ci.draw_texture_rect_region(t, Rect2(x, y, bw * 2, h * 2),
-			Rect2(src.position.x + cap, src.position.y, bw, h))
-		x += bw * 2
 
 
 ## Το φόντο της κάτω μπάρας: η κορυφή του τείχους ως σκηνικό, και πάνω της

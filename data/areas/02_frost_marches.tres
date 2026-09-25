@@ -98,8 +98,12 @@ script = ExtResource("2_x2kko")
 every = 2
 hp_ratio = 0.35
 min_row = 2
+max_row = 7
 minion_id = "bat"
 keep_clear = 2
+count = 1
+act_frames = Array[Texture2D]([])
+act_fps = 10.0
 
 [sub_resource type="Resource" id="Resource_77lvw"]
 script = ExtResource("3_j4m42")
@@ -113,7 +117,10 @@ fps_hit = 8.0
 sprite_scale = 1.0
 hp_mult = 1.0
 tier = 5
+min_round = 1
+weight = 1.0
 ability = SubResource("Resource_y72qm")
+description = "Master of the frozen covens. Keeps calling servants from the ice until he falls."
 
 [sub_resource type="Resource" id="Resource_k23ck"]
 script = ExtResource("3_j4m42")
@@ -129,6 +136,7 @@ hp_mult = 0.7
 tier = 0
 min_round = 1
 weight = 40.0
+description = "Small, greedy and never alone. One goblin is a joke; a whole row of them is a wall."
 
 [sub_resource type="Resource" id="Resource_tikl1"]
 script = ExtResource("6_xxenw")
@@ -150,6 +158,7 @@ tier = 1
 min_round = 6
 weight = 16.0
 ability = SubResource("Resource_tikl1")
+description = "Rides a war boar that charges forward every other turn. Burn it before it closes the gap."
 
 [sub_resource type="Resource" id="Resource_5v0a2"]
 script = ExtResource("8_5ttue")
@@ -170,6 +179,7 @@ tier = 2
 min_round = 9
 weight = 13.0
 ability = SubResource("Resource_5v0a2")
+description = "A deserter in stolen plate. The shield soaks every blow until it cracks, so hit it hard and often."
 
 [sub_resource type="Resource" id="Resource_kigvc"]
 script = ExtResource("3_j4m42")
@@ -185,14 +195,19 @@ hp_mult = 1.6
 tier = 3
 min_round = 4
 weight = 22.0
+description = "All muscle and no plan. Slow to fall, so bring plenty of fire."
 
 [sub_resource type="Resource" id="Resource_6qt3e"]
 script = ExtResource("2_x2kko")
 every = 3
 hp_ratio = 0.5
 min_row = 2
+max_row = 7
 minion_id = "bat"
 keep_clear = 2
+count = 1
+act_frames = Array[Texture2D]([])
+act_fps = 10.0
 
 [sub_resource type="Resource" id="Resource_yx2hu"]
 script = ExtResource("3_j4m42")
@@ -209,6 +224,7 @@ tier = 4
 min_round = 9
 weight = 9.0
 ability = SubResource("Resource_6qt3e")
+description = "Chants in the back rows and calls servants to the field. Silence it first."
 
 [sub_resource type="Resource" id="Resource_kk7ub"]
 script = ExtResource("3_j4m42")
@@ -222,6 +238,9 @@ fps_hit = 12.0
 sprite_scale = 0.78
 hp_mult = 1.0
 tier = 0
+min_round = 1
+weight = 1.0
+description = "Summoned by warlocks and kings. Weak alone, but they fill the gaps fast."
 
 [resource]
 script = ExtResource("11_j18ks")

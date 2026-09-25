@@ -48,3 +48,7 @@ func advance_rows(_block, default_rows: int) -> int:
 
 func badge() -> String:
 	return "!!" if raged else ""
+
+
+func describe() -> String:
+	return "Rage: below %d%% health it charges" % roundi(threshold * 100.0)

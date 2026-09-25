@@ -56,3 +56,14 @@ func badge() -> String:
 		if t != "":
 			tags.append(t)
 	return " ".join(tags)
+
+
+func describe() -> String:
+	var lines: PackedStringArray = []
+	for p in parts:
+		if p:
+			var d := p.describe()
+			if d != "":
+				lines.append(d)
+	return "
+".join(lines)

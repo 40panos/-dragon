@@ -33,6 +33,10 @@ func _process(_delta: float) -> void:
 	queue_redraw()
 
 
+## Το πορτρέτο μπαίνει σε x1, όχι x2 όπως το υπόλοιπο HUD: σε x2 χωρούσε
+## μόνο η μέση του κεφαλιού και ο δράκος δεν αναγνωριζόταν. Γι' αυτό το
+## texture φτιάχνεται σε ανάλυση οθόνης (διπλάσια της μάσκας): κάθε pixel της
+## μάσκας γίνεται 2x2, και μέσα του πέφτουν 2x2 pixel του δράκου.
 func _make_portrait(d: DragonType) -> Texture2D:
 	var src: Texture2D = d.frame_for("aim", false, 0.0)
 	if src == null:
@@ -42,13 +46,12 @@ func _make_portrait(d: DragonType) -> Texture2D:
 	var hole := MEDAL_HOLE.get_image()
 	hole.convert(Image.FORMAT_RGBA8)
 	var box := hole.get_used_rect()
-	# το κέντρο του κεφαλιού, λίγο ψηλότερα από τη μέση του καρέ, στο κέντρο της τρύπας
-	var off := Vector2i(por.get_width() / 2, por.get_height() / 2 - 2) \
-		- (box.position + box.size / 2)
-	var out := Image.create(hole.get_width(), hole.get_height(), false, Image.FORMAT_RGBA8)
-	for y in range(box.position.y, box.end.y):
-		for x in range(box.position.x, box.end.x):
-			if hole.get_pixel(x, y).a < 0.5:
+	var center := (box.position * 2 + box.size)   # κέντρο της τρύπας, σε pixel οθόνης
+	var off := Vector2i(por.get_width() / 2, por.get_height() / 2) - center
+	var out := Image.create(hole.get_width() * 2, hole.get_height() * 2, false, Image.FORMAT_RGBA8)
+	for y in range(box.position.y * 2, box.end.y * 2):
+		for x in range(box.position.x * 2, box.end.x * 2):
+			if hole.get_pixel(x / 2, y / 2).a < 0.5:
 				continue
 			var col := Color("140f12")
 			var p := Vector2i(x, y) + off

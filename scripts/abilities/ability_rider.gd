@@ -17,3 +17,7 @@ func advance_rows(_block, default_rows: int) -> int:
 
 func badge() -> String:
 	return ">>"
+
+
+func describe() -> String:
+	return "Charge: every %d turns it moves %d rows" % [every, step]

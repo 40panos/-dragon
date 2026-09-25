@@ -34,3 +34,8 @@ extends Resource
 
 ## Προαιρετική ικανότητα. Αντιγράφεται σε κάθε εχθρό ώστε να έχει δική του κατάσταση.
 @export var ability: EnemyAbility
+
+## Κείμενο για το Book. ΜΟΝΟ ASCII: η pixel γραμματοσειρά δεν έχει ελληνικά,
+## και στο web δεν υπάρχουν γραμματοσειρές συστήματος να τα καλύψουν.
+## Γράφεται από το tools/write_enemy_lore.gd.
+@export_multiline var description := ""

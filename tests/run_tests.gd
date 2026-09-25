@@ -337,6 +337,52 @@ func _initialize() -> void:
 	ok("μενού και παύση στις πάνω γωνίες, χωρίς επικάλυψη",
 		not m.menu_rect().intersects(m.pause_rect()) and m.pause_rect().end.y < m.PF_TOP)
 
+	print("--- book ---")
+	var bk = m.bestiary
+	ok("ο goblin ανήκει στην πρώτη περιοχή, ο Warlock Lord στη δεύτερη",
+		bk.area_of("goblin") == 0 and bk.area_of("warlock_boss") == 1)
+	var bk_ids0: Array = bk.entries(0).map(func(e): return e.id)
+	var bk_ids1: Array = bk.entries(1).map(func(e): return e.id)
+	ok("κάθε εχθρός μπαίνει σε μία μόνο σελίδα",
+		"goblin" in bk_ids0 and "goblin_king" in bk_ids0 and not "goblin" in bk_ids1
+		and bk_ids1 == ["warlock_boss"], "(%s | %s)" % [bk_ids0, bk_ids1])
+	var bk_all_described := true
+	for bk_i in m.areas.size():
+		for bk_e in bk.entries(bk_i):
+			if bk_e.description == "":
+				bk_all_described = false
+			for bk_c in bk_e.description:
+				if bk_c.unicode_at(0) > 126:
+					bk_all_described = false
+	ok("κάθε εχθρός έχει περιγραφή σε ASCII", bk_all_described)
+	var bk_dummy := EnemyType.new()
+	bk_dummy.id = "test_dummy"
+	var bk_saved: Array = m.save.get("seen_enemies", []).duplicate()
+	# οι πρώτοι εχθροί του test έχουν ήδη βγάλει ειδοποιήσεις· άδειασμα για καθαρή αρχή
+	bk.notices.clear()
+	bk._born.clear()
+	bk.saw(bk_dummy)
+	bk.saw(bk_dummy)
+	ok("νέος εχθρός: μία ειδοποίηση και καταγραφή, όχι δεύτερη φορά",
+		bk.notices.size() == 1 and bk.is_seen("test_dummy"))
+	bk.press(bk.notice_rect(0).get_center())
+	ok("πάτημα στην ειδοποίηση ανοίγει την κάρτα και παγώνει",
+		bk.view == "card" and bk.card == bk_dummy and m.frozen() and m.get_tree().paused)
+	ok("η ειδοποίηση φεύγει μόλις διαβαστεί", bk.notices.is_empty())
+	bk.press(bk.card_button_rect(1).get_center())
+	ok("OK κλείνει την κάρτα και ξεπαγώνει", not bk.is_open() and not m.get_tree().paused)
+	bk.press(bk.book_button_rect().get_center())
+	ok("το κουμπί ανοίγει το Book", bk.view == "book")
+	bk.press(bk.tab_rect(1).get_center())
+	ok("η καρτέλα αλλάζει σελίδα", bk.book_area == 1)
+	bk.press(bk.close_rect(bk.book_rect()).get_center())
+	ok("το X κλείνει το Book", not bk.is_open() and not m.get_tree().paused)
+	ok("το κουμπί του Book δεν πέφτει πάνω σε μενού ή παύση",
+		not bk.book_button_rect().intersects(m.menu_rect())
+		and not bk.book_button_rect().intersects(m.pause_rect()))
+	m.save["seen_enemies"] = bk_saved
+	SaveManager.save_data(m.save)
+
 	print("--- ροή γύρου ---")
 	var before_level = m.level
 	m._end_turn()

@@ -16,6 +16,8 @@ static func defaults() -> Dictionary:
 		"unlocked_areas": 1,
 		"unlocked_dragons": ["ember"],
 		"selected_dragon": "ember",
+		# όσοι τύποι εχθρών έχουν φανεί — το Book δείχνει μόνο αυτούς
+		"seen_enemies": [],
 	}
 
 
