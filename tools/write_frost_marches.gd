@@ -81,6 +81,13 @@ func _initialize() -> void:
 	yeti_ab.parts = [regen, howl] as Array[EnemyAbility]
 	var yeti := _enemy("yeti", "Yeti", "yeti", 1.0, 5, 1, 1.0, yeti_ab)
 
+	# δικό της πάτωμα από χιόνι και πάγο (tools/build_floor.gd). Ο τόνος της
+	# περιοχής γίνεται λευκός: ο γαλάζιος ήταν η προσωρινή «παγωνιά» όσο
+	# έπαιρνε το πράσινο πάτωμα των goblins, και τώρα θα έβαφε και τους
+	# εχθρούς, που είναι ήδη παγωμένοι στα χρώματά τους.
+	area.background = _tex("background_frost")
+	area.tint = Color(1, 1, 1, 1)
+
 	area.enemies = [imp, wolf, viking, golem] as Array[EnemyType]
 	area.minions = [shard] as Array[EnemyType]
 	area.boss = yeti

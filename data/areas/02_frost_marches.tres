@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="AreaDef" load_steps=29 format=3]
 
-[ext_resource type="Texture2D" path="res://art/background.png" id="1_ci0x5"]
+[ext_resource type="Texture2D" path="res://art/background_frost.png" id="1_tmhq6"]
 [ext_resource type="Script" path="res://scripts/abilities/enemy_ability.gd" id="2_232pq"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="2_x2kko"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_regen.gd" id="3_1cbmq"]
@@ -17,11 +17,11 @@
 [ext_resource type="Texture2D" path="res://art/crystal_golem.png" id="14_wyhix"]
 [ext_resource type="Texture2D" path="res://art/shardling.png" id="15_4ldbo"]
 
-[sub_resource type="Resource" id="Resource_nw5wv"]
+[sub_resource type="Resource" id="Resource_ixbhh"]
 script = ExtResource("3_1cbmq")
 ratio = 0.05
 
-[sub_resource type="Resource" id="Resource_xxxrj"]
+[sub_resource type="Resource" id="Resource_t2jig"]
 script = ExtResource("2_x2kko")
 every = 2
 hp_ratio = 0.25
@@ -33,11 +33,11 @@ count = 2
 act_frames = Array[Texture2D]([])
 act_fps = 10.0
 
-[sub_resource type="Resource" id="Resource_f5ge3"]
+[sub_resource type="Resource" id="Resource_l5svi"]
 script = ExtResource("5_t8hfc")
-parts = Array[ExtResource("2_232pq")]([SubResource("Resource_nw5wv"), SubResource("Resource_xxxrj")])
+parts = Array[ExtResource("2_232pq")]([SubResource("Resource_ixbhh"), SubResource("Resource_t2jig")])
 
-[sub_resource type="Resource" id="Resource_086c2"]
+[sub_resource type="Resource" id="Resource_sk5eg"]
 script = ExtResource("3_j4m42")
 id = "yeti"
 display_name = "Yeti"
@@ -51,10 +51,10 @@ hp_mult = 1.0
 tier = 5
 min_round = 1
 weight = 1.0
-ability = SubResource("Resource_f5ge3")
+ability = SubResource("Resource_l5svi")
 description = "The white terror of the Marches. Its wounds close if you let it rest, and its howl calls the wolves."
 
-[sub_resource type="Resource" id="Resource_nvlso"]
+[sub_resource type="Resource" id="Resource_c6wfa"]
 script = ExtResource("3_j4m42")
 id = "frost_imp"
 display_name = "Frost Imp"
@@ -70,11 +70,11 @@ min_round = 1
 weight = 40.0
 description = "Born in snowdrifts, sharp as the ice it carries. Harmless alone, never alone for long."
 
-[sub_resource type="Resource" id="Resource_xksxc"]
+[sub_resource type="Resource" id="Resource_4exyl"]
 script = ExtResource("9_bxuds")
 extra = 1
 
-[sub_resource type="Resource" id="Resource_ayq3y"]
+[sub_resource type="Resource" id="Resource_w1ka2"]
 script = ExtResource("3_j4m42")
 id = "snow_wolf"
 display_name = "Snow Wolf"
@@ -88,14 +88,14 @@ hp_mult = 0.6
 tier = 1
 min_round = 4
 weight = 22.0
-ability = SubResource("Resource_xksxc")
+ability = SubResource("Resource_4exyl")
 description = "Hunts in pairs. Next to another wolf it runs faster, so break up the pack first."
 
-[sub_resource type="Resource" id="Resource_of2v6"]
+[sub_resource type="Resource" id="Resource_twkgj"]
 script = ExtResource("8_5ttue")
 ratio = 1.0
 
-[sub_resource type="Resource" id="Resource_c152h"]
+[sub_resource type="Resource" id="Resource_p0wiv"]
 script = ExtResource("3_j4m42")
 id = "viking"
 display_name = "Viking"
@@ -109,16 +109,16 @@ hp_mult = 1.1
 tier = 2
 min_round = 7
 weight = 14.0
-ability = SubResource("Resource_of2v6")
+ability = SubResource("Resource_twkgj")
 description = "A raider from the north behind a painted shield. The shield takes every blow until it splits."
 
-[sub_resource type="Resource" id="Resource_83pyk"]
+[sub_resource type="Resource" id="Resource_83yon"]
 script = ExtResource("13_bjdxh")
 minion_id = "shardling"
 count = 2
 hp_ratio = 0.3
 
-[sub_resource type="Resource" id="Resource_ufe6c"]
+[sub_resource type="Resource" id="Resource_7hfkf"]
 script = ExtResource("3_j4m42")
 id = "crystal_golem"
 display_name = "Crystal Golem"
@@ -132,10 +132,10 @@ hp_mult = 1.5
 tier = 3
 min_round = 9
 weight = 12.0
-ability = SubResource("Resource_83pyk")
+ability = SubResource("Resource_83yon")
 description = "A walking cliff of blue crystal. Break it and the shards keep fighting."
 
-[sub_resource type="Resource" id="Resource_brtis"]
+[sub_resource type="Resource" id="Resource_up1cy"]
 script = ExtResource("3_j4m42")
 id = "shardling"
 display_name = "Shardling"
@@ -155,11 +155,11 @@ description = "A living splinter of a fallen golem. Small, but it still wants yo
 script = ExtResource("11_j18ks")
 id = "frost_marches"
 display_name = "Frost Marches"
-background = ExtResource("1_ci0x5")
-tint = Color(0.72, 0.86, 1.05, 1)
-enemies = Array[ExtResource("3_j4m42")]([SubResource("Resource_nvlso"), SubResource("Resource_ayq3y"), SubResource("Resource_c152h"), SubResource("Resource_ufe6c")])
-minions = Array[ExtResource("3_j4m42")]([SubResource("Resource_brtis")])
-boss = SubResource("Resource_086c2")
+background = ExtResource("1_tmhq6")
+tint = Color(1, 1, 1, 1)
+enemies = Array[ExtResource("3_j4m42")]([SubResource("Resource_c6wfa"), SubResource("Resource_w1ka2"), SubResource("Resource_p0wiv"), SubResource("Resource_7hfkf")])
+minions = Array[ExtResource("3_j4m42")]([SubResource("Resource_up1cy")])
+boss = SubResource("Resource_sk5eg")
 boss_cols = 3
 boss_rows = 2
 boss_hp_mult = 16.0
