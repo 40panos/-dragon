@@ -297,11 +297,14 @@ func _accent(f: float) -> Color:
 
 
 func ball_tex(aoe: bool) -> Texture2D:
-	if dragon:
-		if aoe and dragon.ball_aoe_sprite:
-			return dragon.ball_aoe_sprite
-		if not aoe and dragon.ball_sprite:
-			return dragon.ball_sprite
+	# ο ΕΝΕΡΓΟΣ δράκος: η εξελιγμένη μορφή ρίχνει δικά της βλήματα, οπότε όσο
+	# κρατάει η μεταμόρφωση φεύγουν τα μαύρα δρεπάνια αντί για τα οστέινα
+	var dg := active_dragon()
+	if dg:
+		if aoe and dg.ball_aoe_sprite:
+			return dg.ball_aoe_sprite
+		if not aoe and dg.ball_sprite:
+			return dg.ball_sprite
 	return fireball_aoe_tex if (aoe and fireball_aoe_tex) else fireball_tex
 
 
@@ -1202,6 +1205,32 @@ func _draw_awaken(base: Vector2, dragon_w: float) -> void:
 	draw_texture_rect(tex, Rect2(base.x - w * 0.5, base.y - h, w, h), false, tint)
 
 
+## Καπνός σκότους που βγαίνει αδιάκοπα από τις άδειες κόγχες. Τρέχει με τον
+## χρόνο, οπότε δίνει κίνηση σε μια μορφή που έχει ένα μόνο καρέ: τα μάτια
+## πάλλονται, και τολύπες ανεβαίνουν και σβήνουν σε ανεξάρτητους ρυθμούς ώστε
+## να μην πάλλονται οι δύο πλευρές συγχρονισμένα.
+func _draw_eye_smoke(w: float, h: float) -> void:
+	var pulse := 0.72 + sin(t * 2.6) * 0.28
+	for side in 2:
+		# ρητός float: από λίστα το στοιχείο βγαίνει Variant και το := δεν
+		# μπορεί να συμπεράνει τύπο στους υπολογισμούς παρακάτω
+		var sx := -1.0 if side == 0 else 1.0
+		var e := Vector2(sx * w * 0.16, -h * 0.55)
+		# η ίδια η κόγχη: βαθύ μαύρο που ανασαίνει
+		draw_circle(e, (7.0 + pulse * 3.0), Color(0, 0, 0, 0.55 + pulse * 0.25))
+		draw_circle(e, (13.0 + pulse * 5.0), Color(0.03, 0.0, 0.06, 0.20 * pulse))
+		# τρεις τολύπες, η καθεμία με δική της φάση
+		# ανεβαίνουν αρκετά ψηλά ώστε να βγουν πάνω από το κεφάλι: μέσα στο
+		# περίγραμμά του, που είναι ήδη σχεδόν μαύρο, δεν φαίνονταν καθόλου
+		for k in 4:
+			var ph := fmod(t * 0.42 + float(k) * 0.27 + (0.14 if sx > 0.0 else 0.0), 1.0)
+			var rise := ph * h * 0.62
+			var drift := sx * ph * w * 0.12 + sin(ph * 4.4 + float(k)) * w * 0.05
+			var fade := (1.0 - ph) * 0.42 * minf(ph * 4.0, 1.0)
+			draw_circle(e + Vector2(drift, -rise), 5.0 + ph * 15.0,
+				Color(0.05, 0.0, 0.09, fade))
+
+
 ## Αύρα μεταμόρφωσης για τον θάνατο: μια μαύρη νεκροκεφαλή που ανοίγει προς τα
 ## έξω μέσα σε σκοτεινή δίνη, αντί για φλόγα. Δεν χρειάζεται δικά της καρέ —
 ## είναι το ίδιο το κεφάλι του δράκου, βαμμένο μαύρο, σε μεγέθυνση που τρέχει
@@ -1252,6 +1281,11 @@ func _draw_dragon() -> void:
 
 		draw_set_transform(pivot, tilt, Vector2(1.0, breathe))
 		draw_texture_rect(dt, Rect2(-w * 0.5, -h, w, h), false, dg.tint)
+		# Οι άδειες κόγχες καπνίζουν ΣΥΝΕΧΩΣ, όχι μόνο στη βολή. Η μορφή χωρίς
+		# μάσκα έχει ένα μόνο καρέ όσο λείπουν τα generations, οπότε χωρίς αυτό
+		# στεκόταν εντελώς ακίνητη· ο καπνός της δίνει την κίνηση που θα είχε.
+		if dg.dark_eyes:
+			_draw_eye_smoke(w, h)
 		# λάμψη στο στόμα την ώρα που φεύγει η μπάλα — ή, για όσους έχουν άδειες
 		# κόγχες, σκοτάδι που χύνεται από τα μάτια αντί για φως από το στόμα
 		if recoil > 0.05:

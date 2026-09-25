@@ -60,6 +60,12 @@ func _make_evolved() -> DragonType:
 	# σκοτάδι. Το _accent() διαβάζει τον ενεργό δράκο, οπότε αλλάζουν μαζί της.
 	a.accent = Color("221a2b")
 	a.dark_eyes = true
+	# δικά της βλήματα: τα ίδια δρεπάνια ξαναβαμμένα σε σκοτάδι, από το
+	# tools/build_dark_balls.gd. Το ball_tex() διαβάζει τον ενεργό δράκο,
+	# οπότε αλλάζουν τη στιγμή που βγαίνει η μορφή.
+	a.ball_sprite = load("res://art/scythe_dark.png")
+	a.ball_aoe_sprite = load("res://art/scythe_aoe_dark.png")
+	a.ball_spin = 2.4
 	# το main διαβάζει τον ΚΥΡΙΟ δράκο γι' αυτά, αλλά μπαίνουν ίδια ώστε το
 	# .tres να μη διαβάζεται σαν να διαφωνούν οι δύο μορφές
 	a.special = "swarm"
