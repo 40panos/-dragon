@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b64f6x36xseb1"
-path="res://.godot/imported/ui_btn_inferno.png-0a6e7c8f7d724ae71f13dd9307e9ee07.ctex"
+uid="uid://d2y4wswai6l3r"
+path="res://.godot/imported/hud_btn.png-74b6c34f373202a031ebc792c65856df.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/ui_btn_inferno.png"
-dest_files=["res://.godot/imported/ui_btn_inferno.png-0a6e7c8f7d724ae71f13dd9307e9ee07.ctex"]
+source_file="res://art/hud_btn.png"
+dest_files=["res://.godot/imported/hud_btn.png-74b6c34f373202a031ebc792c65856df.ctex"]
 
 [params]
 

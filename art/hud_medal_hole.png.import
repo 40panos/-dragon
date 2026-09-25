@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dimik0v436ol3"
-path="res://.godot/imported/ui_plate_label.png-c27bdb0c20752a3f13ac93540e6a5434.ctex"
+uid="uid://bcptps7rs2itj"
+path="res://.godot/imported/hud_medal_hole.png-3a479db00087c6ad5634f3d61649259b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/ui_plate_label.png"
-dest_files=["res://.godot/imported/ui_plate_label.png-c27bdb0c20752a3f13ac93540e6a5434.ctex"]
+source_file="res://art/hud_medal_hole.png"
+dest_files=["res://.godot/imported/hud_medal_hole.png-3a479db00087c6ad5634f3d61649259b.ctex"]
 
 [params]
 

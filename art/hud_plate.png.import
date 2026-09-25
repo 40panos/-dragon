@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0rqb5vqnmu2m"
-path="res://.godot/imported/ui_plate_pause.png-90aac80fcbe2a789ee45b934702501ff.ctex"
+uid="uid://dc0fssdnsp36q"
+path="res://.godot/imported/hud_plate.png-afd9ac9665eaecdb406a54d727ffe248.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/ui_plate_pause.png"
-dest_files=["res://.godot/imported/ui_plate_pause.png-90aac80fcbe2a789ee45b934702501ff.ctex"]
+source_file="res://art/hud_plate.png"
+dest_files=["res://.godot/imported/hud_plate.png-afd9ac9665eaecdb406a54d727ffe248.ctex"]
 
 [params]
 

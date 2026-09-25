@@ -322,6 +322,21 @@ func _initialize() -> void:
 			not m.dragon_rect().intersects(m.aoe_rect()) and not m.dragon_rect().intersects(m.special_rect()))
 		m.select_dragon("ember")
 
+	print("--- κάτω μπάρα ---")
+	var hud_btns: Array[Rect2] = [m.dragon_rect(), m.aoe_rect(), m.special_rect()]
+	var hud_fits := true
+	for hb in hud_btns:
+		if hb.position.x < m.frame_left() or hb.end.x > m.frame_right() 				or hb.position.y < m.floor_y or hb.end.y > m.H:
+			hud_fits = false
+	ok("τα κουμπιά της κάτω μπάρας χωράνε κάτω από το δάπεδο", hud_fits)
+	ok("special και διακόπτης δεν πέφτουν το ένα πάνω στο άλλο",
+		not m.special_rect().intersects(m.aoe_rect()))
+	var ar_: Rect2 = m.aoe_rect()
+	ok("ο διακόπτης διαλέγει τη θέση που πατήθηκε",
+		not m.aoe_pick(ar_.position + Vector2(4, 4)) and m.aoe_pick(ar_.end - Vector2(4, 4)))
+	ok("μενού και παύση στις πάνω γωνίες, χωρίς επικάλυψη",
+		not m.menu_rect().intersects(m.pause_rect()) and m.pause_rect().end.y < m.PF_TOP)
+
 	print("--- ροή γύρου ---")
 	var before_level = m.level
 	m._end_turn()

@@ -12,7 +12,6 @@ const BORDER := 60.0
 const PF_TOP := 190.0
 const DEATH_GAP := 218.0
 const UI_BAND := 142.0
-const HUD_BAND := 154.0
 const TRIPLE_TURNS := 3
 const PTS_HIT := 5
 const PTS_KILL := 25
@@ -128,6 +127,8 @@ var tex_frame_top: Texture2D
 var lair_frames: Array[Texture2D] = []
 var torch_frames: Array[Texture2D] = []
 var tex_banner: Texture2D
+var tex_hud_wall: Texture2D
+var tex_hud_panel: Texture2D
 var font: Font
 
 
@@ -162,6 +163,8 @@ func _ready() -> void:
 		if tf:
 			torch_frames.append(tf)
 	tex_banner = _load_tex("deco_banner")
+	tex_hud_wall = _load_tex("hud_wall")
+	tex_hud_panel = _load_tex("hud_panel")
 
 	_load_content()
 	save = SaveManager.load_data()
@@ -698,28 +701,67 @@ func frame_right() -> float:
 	return pf_right + BORDER
 
 
-# Τα μεγέθη ακολουθούν τα πλακίδια του ui_buttons: 57 στο φυσικό του μέγεθος
-# για την παύση, 45x2 για τα δύο μεγάλα — ακέραια πολλαπλάσια, ώστε να μη
-# χρειαστεί αναδειγματοληψία σε pixel art.
+# Η γεωμετρία του HUD ζει εδώ και όχι στο hud.gd, γιατί από αυτήν βγαίνουν
+# και τα πατήματα. Όλα τα γραφικά του είναι σε art pixels και δείχνονται x2,
+# οπότε τα μεγέθη εδώ είναι τα διπλά των PNG (π.χ. hud_btn 38 -> 76).
+
+const HUD_BTN := 76.0                          # hud_btn.png, μενού και παύση
+const HUD_PANEL := Vector2(344.0, 160.0)       # hud_panel.png, ένα από τα δύο πάνελ
+const HUD_PANEL_GAP := 24.0                    # κενό ανάμεσά τους, κάτω από τον δράκο
+const HUD_MEDAL := Vector2(146.0, 110.0)       # hud_medal.png
+const HUD_CLAW := Vector2(132.0, 130.0)        # hud_claw.png
+
+
+## Παύση: πάνω δεξιά γωνία. Το μενού είναι το συμμετρικό της, πάνω αριστερά.
 func pause_rect() -> Rect2:
-	return Rect2(frame_right() - 85.0, 16.0, 57.0, 57.0)
+	return Rect2(frame_right() - 20.0 - HUD_BTN, 18.0, HUD_BTN, HUD_BTN)
 
 
-## Το κουμπί με τις τρεις γραμμές, δίπλα στην παύση.
 func menu_rect() -> Rect2:
-	return Rect2(frame_right() - 150.0, 16.0, 57.0, 57.0)
+	return Rect2(frame_left() + 20.0, 18.0, HUD_BTN, HUD_BTN)
 
 
+## Τα δύο πάνελ της κάτω μπάρας, αριστερό και δεξί (το δεξί είναι καθρέφτισμα).
+func hud_panel_rect(right: bool) -> Rect2:
+	var y := H - HUD_PANEL.y - 18.0
+	var cx := (frame_left() + frame_right()) * 0.5
+	if right:
+		return Rect2(cx + HUD_PANEL_GAP * 0.5, y, HUD_PANEL.x, HUD_PANEL.y)
+	return Rect2(cx - HUD_PANEL_GAP * 0.5 - HUD_PANEL.x, y, HUD_PANEL.x, HUD_PANEL.y)
+
+
+## Το κέντρο της στρογγυλής υποδοχής κάθε πάνελ, κοντά στην εξωτερική του άκρη.
+func hud_socket(right: bool) -> Vector2:
+	var r := hud_panel_rect(right)
+	var y := r.position.y + r.size.y * 0.54
+	if right:
+		return Vector2(r.end.x - r.size.x * 0.21, y)
+	return Vector2(r.position.x + r.size.x * 0.21, y)
+
+
+## Special: το δαχτυλίδι με τα νύχια, στην υποδοχή του δεξιού πάνελ.
 func special_rect() -> Rect2:
-	return Rect2(frame_right() - 124.0, ui_top + 10.0, 90.0, 90.0)
+	var s := hud_socket(true)
+	return Rect2(s - Vector2(HUD_CLAW.x * 0.5, HUD_CLAW.y * 0.5 + 4.0), HUD_CLAW)
 
 
+## Διακόπτης SINGLE / AOE: δύο θέσεις μέσα στο δεξί πάνελ.
 func aoe_rect() -> Rect2:
-	return Rect2(frame_right() - 236.0, ui_top + 10.0, 90.0, 90.0)
+	var r := hud_panel_rect(true)
+	var x := r.position.x + 30.0
+	var w := hud_socket(true).x - 78.0 - x
+	return Rect2(x, r.position.y + r.size.y * 0.57, w, 40.0)
 
 
+## Ποια θέση του διακόπτη πατήθηκε: αριστερά SINGLE (false), δεξιά AOE (true).
+func aoe_pick(p: Vector2) -> bool:
+	return p.x >= aoe_rect().get_center().x
+
+
+## Επιλογή δράκου: το μετάλλιο στην υποδοχή του αριστερού πάνελ.
 func dragon_rect() -> Rect2:
-	return Rect2(frame_left() + 136.0, ui_top + 10.0, 86.0, 86.0)
+	var s := hud_socket(false)
+	return Rect2(s - Vector2(HUD_MEDAL.x * 0.5, HUD_MEDAL.y * 0.5 + 6.0), HUD_MEDAL)
 
 
 # ---------------------------------------------------------------- επιλογή δράκου
@@ -757,6 +799,18 @@ func picker_press(p: Vector2) -> void:
 				picker_open = false
 			return
 	picker_open = false
+
+
+## Πόσο κοντά είναι το passive του δράκου στο επόμενο «χτύπημά» του, 0..1.
+## Γεμάτο = η επόμενη μπάλα (ή ο επόμενος γύρος) το ενεργοποιεί.
+func passive_progress() -> float:
+	if dragon == null:
+		return 0.0
+	match dragon.passive:
+		"ball_every5":
+			return float(level % 5) / 5.0
+		_:
+			return float(balls_fired % 5) / 4.0
 
 
 func special_ready() -> bool:
@@ -799,8 +853,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	# όσο πετάνε μπάλες, τα δύο αυτά κουμπιά είναι κλειδωμένα — το HUD τα
 	# δείχνει γκριζαρισμένα, και εδώ το πάτημα απλώς καταπίνεται
 	if mb.pressed and aoe_rect().has_point(p):
+		# δύο θέσεις δίπλα-δίπλα: το πάτημα διαλέγει εκείνη που πατήθηκε
 		if not controls_locked():
-			aoe_mode = not aoe_mode
+			aoe_mode = aoe_pick(p)
 		return
 	if mb.pressed and special_rect().has_point(p):
 		if not controls_locked():
@@ -1053,6 +1108,7 @@ func _draw() -> void:
 	_draw_frame()
 	_draw_torches()
 	_draw_ground()
+	_draw_hud_base()
 	_draw_dragon()
 	_draw_aim()
 	# το HUD σχεδιάζεται σε CanvasLayer, δες scripts/hud.gd
@@ -1205,6 +1261,57 @@ func _draw_ground() -> void:
 		# κεντραρισμένη, όχι δεμένη στο pf_left: η φωλιά είναι πλατύτερη από
 		# την πίστα και τα ηφαίστεια πατάνε πάνω στα ξύλινα πλαϊνά
 		draw_texture_rect(lt, Rect2((W - lw) * 0.5, ui_top - lh, lw, lh), false)
+
+
+## Λωρίδα σε x2 που πιάνει από x0 ως x1: η αριστερή άκρη του texture μένει
+## ως έχει, η δεξιά είναι το καθρέφτισμά της, και η μέση επαναλαμβάνεται με
+## το τελευταίο κομμάτι κομμένο — ποτέ τεντωμένο. Τα κομμάτια του HUD είναι
+## ΜΙΣΑ πάνελ (η δεξιά τους άκρη ήταν το κέντρο), γι' αυτό η δεξιά άκρη δεν
+## παίρνεται από το ίδιο το texture. `src` είναι το κομμάτι που χρησιμοποιείται.
+## Static με τον καμβά ως όρισμα, ώστε να τη μοιράζεται και το hud.gd.
+static func strip2(ci: CanvasItem, t: Texture2D, src: Rect2, x0: float, x1: float, y: float) -> void:
+	var cap := int(src.size.x * 0.12)
+	var h := src.size.y
+	ci.draw_texture_rect_region(t, Rect2(x0, y, cap * 2, h * 2),
+		Rect2(src.position.x, src.position.y, cap, h))
+	# αρνητικό πλάτος = καθρέφτισμα στην ΙΔΙΑ θέση (x1-2cap .. x1)
+	ci.draw_texture_rect_region(t, Rect2(x1 - cap * 2, y, -cap * 2, h * 2),
+		Rect2(src.position.x, src.position.y, cap, h))
+	var body := int(src.size.x) - cap * 2
+	var x := x0 + cap * 2
+	var end := x1 - cap * 2
+	while x < end:
+		var bw := mini(body, int((end - x) / 2.0))
+		if bw <= 0:
+			break
+		ci.draw_texture_rect_region(t, Rect2(x, y, bw * 2, h * 2),
+			Rect2(src.position.x + cap, src.position.y, bw, h))
+		x += bw * 2
+
+
+## Το φόντο της κάτω μπάρας: η κορυφή του τείχους ως σκηνικό, και πάνω της
+## τα δύο πάνελ όπου κάθονται τα κουμπιά. Ζωγραφίζεται εδώ και όχι στο HUD
+## ώστε ο δράκος, που κάθεται ανάμεσα στα πάνελ, να μένει ΜΠΡΟΣΤΑ τους.
+## Τα κουμπιά και τα κείμενα από πάνω τα βάζει το hud.gd.
+func _draw_hud_base() -> void:
+	if tex_hud_wall == null or tex_hud_panel == null:
+		return
+	var ws := tex_hud_wall.get_size()
+	var by := ui_top - 48.0
+	draw_rect(Rect2(0, by + 16.0, W, H - by), Color("232226"))
+	strip2(self, tex_hud_wall, Rect2(Vector2.ZERO, ws), 0.0, W, by)
+	# ψηλές οθόνες: το τείχος συνεχίζει με τις κάτω σειρές του, επαναλαμβανόμενες
+	var band := int(ws.y * 0.28)
+	var src := Rect2(0, ws.y - band, ws.x, band)
+	var y := by + ws.y * 2.0
+	while y < H:
+		strip2(self, tex_hud_wall, src, 0.0, W, y)
+		y += band * 2.0
+	# δεξί πάνελ = καθρέφτισμα του αριστερού (αρνητικό πλάτος, ίδια θέση)
+	var lr := hud_panel_rect(false)
+	var rr := hud_panel_rect(true)
+	draw_texture_rect(tex_hud_panel, lr, false)
+	draw_texture_rect(tex_hud_panel, Rect2(rr.position, Vector2(-rr.size.x, rr.size.y)), false)
 
 
 ## Ποια κατάσταση δείχνει ο δράκος τώρα. Η φλόγα ανάβει ΜΟΝΟ όσο φεύγουν
