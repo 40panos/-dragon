@@ -46,11 +46,22 @@ jobs:
         run: godot --headless --path . --script tests/run_tests.gd
 
       - name: Export για Web
+        shell: bash
         run: |
           mkdir -v -p build/web
           godot --headless --path . --export-release "Web" build/web/index.html
           # χωρίς αυτό το Pages περνάει τα αρχεία από Jekyll
           touch build/web/.nojekyll
+
+          # Το Pages στέλνει Cache-Control: max-age=600, οπότε ο browser
+          # κρατούσε το παλιό index.pck έως 10 λεπτά μετά από κάθε deploy —
+          # και το κινητό έδειχνε την προηγούμενη έκδοση ακόμα και με refresh.
+          # Κάθε build ζητάει πλέον το πακέτο με δικό του URL. Αν μια σελίδα
+          # είναι ακόμα παλιά, ζητάει το παλιό URL και παίρνει μια συνεπή
+          # έκδοση, ποτέ ένα μισό μείγμα. Το .wasm και το .js είναι η μηχανή
+          # του Godot και αλλάζουν μόνο με την έκδοσή της.
+          sed -i "s|\"executable\":\"index\"|\"executable\":\"index\",\"mainPack\":\"index.pck?v=${GITHUB_SHA:0:8}\"|" build/web/index.html
+          grep -q "mainPack" build/web/index.html || { echo "το mainPack δεν γράφτηκε"; exit 1; }
           ls -la build/web
 
       - uses: actions/upload-artifact@v4
