@@ -37,20 +37,23 @@ func _load_frames(prefix: String, state: String, want_w: int) -> Array[Texture2D
 ## γεμίζει μόνο ό,τι αφορά την εμφάνιση.
 func _make_evolved() -> DragonType:
 	var a := DragonType.new()
-	# Η μορφή χωρίς μάσκα, με τα μαύρα μάτια. Είναι ΣΤΑΤΙΚΗ προς το παρόν: τα
-	# καρέ της θέλουν generations που είχαν εξαντληθεί όταν μπήκε. Μόλις
-	# υπάρξουν, φορτώνονται με _load_frames("evo2", ...) όπως όλες οι άλλες,
-	# και οι τρεις γραμμές sprite_* από κάτω γίνονται frames_*.
-	var face: Texture2D = load("res://art/evo2_unmasked.png")
-	if face == null:
-		push_error("λείπει: res://art/evo2_unmasked.png")
-		quit(1)
+	# Η μορφή χωρίς μάσκα. Στην ηρεμία τα μάτια είναι μαύρα κενά· στη στόχευση
+	# μαζεύεται σκοτάδι γύρω τους· στη βολή εμφανίζονται άσπρες ίριδες που
+	# στενεύουν σε σχισμή.
+	var idle := _load_frames("evo2", "idle", EVO_W)
+	var ready_ := _load_frames("evo2", "ready", EVO_W)
+	var fire := _load_frames("evo2", "fire", EVO_W)
 	a.id = "death_evolved"
 	a.display_name = "Death Unmasked"
-	a.sprite = face
-	a.sprite_idle = face
-	a.sprite_ready = face
-	a.sprite_fire = face
+	a.sprite = idle[0]
+	a.sprite_idle = idle[0]
+	a.sprite_ready = ready_[0]
+	a.sprite_fire = fire[0]
+	a.frames_idle = idle
+	a.frames_ready = ready_
+	a.frames_fire = fire
+	# η λάμψη πάνω στον εχθρό που χτυπάει: σκοτεινή φλόγα αντί για πράσινη
+	a.glow_frames = _load_glow("void")
 	a.fps_idle = 3.0
 	a.fps_ready = 6.0
 	a.fps_fire = 12.0

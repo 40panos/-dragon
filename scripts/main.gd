@@ -320,10 +320,30 @@ func select_dragon(id: String) -> bool:
 	dragon = d
 	# οι εχθροί που στέκονται ήδη στο ταμπλό πρέπει να πάρουν τη λάμψη του νέου
 	# δράκου — αλλιώς θα συνέχιζαν να ανάβουν με τη φλόγα του προηγούμενου
+	_refresh_glow()
+	return true
+
+
+## Η λάμψη χτυπήματος που αφήνει ο δράκος ΑΥΤΗ τη στιγμή. Ακολουθεί την ενεργή
+## μορφή, όπως τα βλήματα και τα particles: η ξεσκέπαστη μορφή του death αφήνει
+## σκοτάδι αντί για πράσινη φλόγα. Μορφή χωρίς δική της πέφτει στου βασικού.
+func glow_now() -> Array[Texture2D]:
+	var dg := active_dragon()
+	if dg and not dg.glow_frames.is_empty():
+		return dg.glow_frames
+	if dragon:
+		return dragon.glow_frames
+	return []
+
+
+## Περνάει τη λάμψη της τρέχουσας μορφής σε όσους εχθρούς στέκονται ήδη στο
+## ταμπλό. Καλείται όταν αλλάζει δράκος ΚΑΙ όταν αλλάζει μορφή — αλλιώς όσοι
+## ζούσαν πριν τη μεταμόρφωση θα συνέχιζαν να ανάβουν με την παλιά.
+func _refresh_glow() -> void:
+	var g := glow_now()
 	for b in get_tree().get_nodes_in_group("block"):
 		if is_instance_valid(b):
-			b.glow_frames = dragon.glow_frames
-	return true
+			b.glow_frames = g
 
 
 # ---------------------------------------------------------------- στήσιμο
@@ -560,7 +580,7 @@ func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: in
 	b.setup(hp, box, type.id, type.sprite, type.ability, cw, ch,
 		type.frames_idle, type.fps_idle, type.frames_hit, type.fps_hit,
 		type.sprite_scale)
-	b.glow_frames = dragon.glow_frames if dragon else []
+	b.glow_frames = glow_now()
 	b.position = block_center(col, row, cw, ch)
 	var area := current_area()
 	if area:
@@ -833,6 +853,7 @@ func _use_special() -> void:
 	if dragon.awakened is DragonType:
 		awake_active = true
 		_awaken_flash()
+		_refresh_glow()
 	special_charge = 0.0
 
 
@@ -947,8 +968,11 @@ func _end_turn() -> void:
 	Engine.time_scale = 1.0
 	if awake_active:
 		_awaken_flash()      # η ίδια φλόγα καλύπτει και την επιστροφή
+	var was_awake := awake_active
 	inferno_active = false
 	awake_active = false
+	if was_awake:
+		_refresh_glow()        # γύρισε η βασική μορφή, γυρίζει και η λάμψη της
 	ball_count += gained
 	if next_x >= 0.0:
 		launch_x = next_x
@@ -1218,15 +1242,18 @@ func _draw_awaken(base: Vector2, dragon_w: float) -> void:
 ## χρόνο, οπότε δίνει κίνηση σε μια μορφή που έχει ένα μόνο καρέ: τα μάτια
 ## πάλλονται, και τολύπες ανεβαίνουν και σβήνουν σε ανεξάρτητους ρυθμούς ώστε
 ## να μην πάλλονται οι δύο πλευρές συγχρονισμένα.
-func _draw_eye_smoke(w: float, h: float) -> void:
+func _draw_eye_smoke(w: float, h: float, open_eyes := false) -> void:
 	var pulse := 0.72 + sin(t * 2.6) * 0.28
 	for side in 2:
 		# ρητός float: από λίστα το στοιχείο βγαίνει Variant και το := δεν
 		# μπορεί να συμπεράνει τύπο στους υπολογισμούς παρακάτω
 		var sx := -1.0 if side == 0 else 1.0
 		var e := Vector2(sx * w * 0.16, -h * 0.55)
-		# η ίδια η κόγχη: βαθύ μαύρο που ανασαίνει
-		draw_circle(e, (7.0 + pulse * 3.0), Color(0, 0, 0, 0.55 + pulse * 0.25))
+		# η ίδια η κόγχη: βαθύ μαύρο που ανασαίνει. ΟΧΙ όταν βαράει: τότε τα
+		# καρέ έχουν άσπρες ίριδες μέσα στις κόγχες, και ο συμπαγής μαύρος
+		# πυρήνας θα τις σκέπαζε — μένει μόνο η αραιή άλω γύρω τους.
+		if not open_eyes:
+			draw_circle(e, (7.0 + pulse * 3.0), Color(0, 0, 0, 0.55 + pulse * 0.25))
 		draw_circle(e, (13.0 + pulse * 5.0), Color(0.03, 0.0, 0.06, 0.20 * pulse))
 		# τρεις τολύπες, η καθεμία με δική της φάση
 		# ανεβαίνουν αρκετά ψηλά ώστε να βγουν πάνω από το κεφάλι: μέσα στο
@@ -1294,7 +1321,7 @@ func _draw_dragon() -> void:
 		# μάσκα έχει ένα μόνο καρέ όσο λείπουν τα generations, οπότε χωρίς αυτό
 		# στεκόταν εντελώς ακίνητη· ο καπνός της δίνει την κίνηση που θα είχε.
 		if dg.dark_eyes:
-			_draw_eye_smoke(w, h)
+			_draw_eye_smoke(w, h, dph == "shoot")
 		# λάμψη στο στόμα την ώρα που φεύγει η μπάλα — ή, για όσους έχουν άδειες
 		# κόγχες, σκοτάδι που χύνεται από τα μάτια αντί για φως από το στόμα
 		if recoil > 0.05:
@@ -1306,13 +1333,13 @@ func _draw_dragon() -> void:
 				# οπότε μαύρο πάνω σε μαύρο χανόταν.
 				for sx in [-1.0, 1.0]:
 					var e := Vector2(sx * w * 0.16, -h * 0.55)
-					for k in 9:
+					for k in range(2, 9):     # από λίγο κάτω από την κόγχη, όχι πάνω της
 						var t2 := float(k) / 8.0
 						# κυλάει προς τα κάτω-έξω, μεγαλώνοντας και αραιώνοντας
 						var p := e + Vector2(sx * t2 * w * 0.46, t2 * h * 0.50)
 						var r := (7.0 + t2 * 26.0) * g
 						draw_circle(p, r, Color(0.04, 0.0, 0.07, (0.60 - t2 * 0.44) * g))
-					draw_circle(e, 11.0 * g, Color(0, 0, 0, 0.95 * g))
+					# χωρίς συμπαγή μαύρο πυρήνα: στη βολή τα μάτια έχουν άσπρες ίριδες
 			else:
 				draw_circle(Vector2(0, -h * 0.45), 26.0 * g, Color(_accent(1.0), 0.30 * g))
 				draw_circle(Vector2(0, -h * 0.45), 12.0 * g, Color(1.0, 0.92, 0.70, 0.55 * g))
