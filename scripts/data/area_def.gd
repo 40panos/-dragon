@@ -10,6 +10,14 @@ extends Resource
 ## μέχρι να υπάρχουν ξεχωριστά γραφικά ανά περιοχή.
 @export var tint := Color.WHITE
 
+## Σετ σκηνικού γύρω από την πίστα (πλαίσιο, κάστρο, δάδες, λάβαρο, τείχος
+## του HUD). "" = τα βασικά σχέδια· αλλιώς το main ψάχνει <όνομα>_<theme>.png
+## (π.χ. frame_left_frost, από το tools/build_frost_theme.gd).
+@export var theme := ""
+
+## Καιρός πάνω από το ταμπλό (scripts/weather.gd): "" κανένας, "snow" χιόνι.
+@export var weather := ""
+
 ## Οι τύποι εχθρών που εμφανίζονται εδώ.
 @export var enemies: Array[EnemyType] = []
 

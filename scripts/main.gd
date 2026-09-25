@@ -134,9 +134,11 @@ var lair_frames: Array[Texture2D] = []
 var torch_frames: Array[Texture2D] = []
 var tex_banner: Texture2D
 var tex_hud_wall: Texture2D
+var tex_hud_top: Texture2D
 var tex_hud_panel: Texture2D
 var font: Font
 var bestiary       # το Book και οι ειδοποιήσεις νέων εχθρών (scripts/bestiary.gd)
+var weather        # χιόνι κ.λπ. πάνω από το ταμπλό (scripts/weather.gd)
 
 
 func _ready() -> void:
@@ -159,21 +161,10 @@ func _ready() -> void:
 		var af := _load_tex("awaken_%d" % i)
 		if af:
 			awaken_frames.append(af)
-	tex_frame_left = _load_tex("frame_left")
-	tex_frame_right = _load_tex("frame_right")
-	tex_frame_top = _load_tex("frame_top")
-	for i in range(1, LAIR_FRAMES + 1):
-		var lf := _load_tex("%s_%d" % [LAIR_SET, i])
-		if lf:
-			lair_frames.append(lf)
-		var tf := _load_tex("deco_torch_%d" % i)
-		if tf:
-			torch_frames.append(tf)
-	tex_banner = _load_tex("deco_banner")
-	tex_hud_wall = _load_tex("hud_wall")
 	tex_hud_panel = _load_tex("hud_panel")
 
 	_load_content()
+	_apply_theme()
 	save = SaveManager.load_data()
 	_build_walls()
 	_make_fx()
@@ -183,6 +174,13 @@ func _ready() -> void:
 
 ## Τα εφέ μπαίνουν σε ψηλό z_index, πάνω από τους εχθρούς.
 func _make_fx() -> void:
+	# ο καιρός κάτω από τα εφέ: οι σπίθες των χτυπημάτων μένουν μπροστά
+	weather = Node2D.new()
+	weather.set_script(load("res://scripts/weather.gd"))
+	weather.z_index = 40
+	weather.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(weather)
+	weather.m = self
 	fx = Node2D.new()
 	fx.set_script(load("res://scripts/fx.gd"))
 	fx.z_index = 50
@@ -209,6 +207,35 @@ func _make_hud() -> void:
 
 
 # ---------------------------------------------------------------- περιεχόμενο
+
+## Φορτώνει το σκηνικό της τρέχουσας περιοχής (βλ. AreaDef.theme): για κάθε
+## στοιχείο προτιμά το <όνομα>_<theme>.png και, αν λείπει, πέφτει στο βασικό.
+## Καλείται στην αρχή του run και όποτε αλλάζει περιοχή — όχι σε κάθε καρέ.
+func _apply_theme() -> void:
+	var area := current_area()
+	var theme: String = area.theme if area else ""
+	var pick := func(name_: String) -> Texture2D:
+		if theme != "":
+			var t := _load_tex("%s_%s" % [name_, theme])
+			if t:
+				return t
+		return _load_tex(name_)
+	tex_frame_left = pick.call("frame_left")
+	tex_frame_right = pick.call("frame_right")
+	tex_frame_top = pick.call("frame_top")
+	lair_frames.clear()
+	torch_frames.clear()
+	for i in range(1, LAIR_FRAMES + 1):
+		var lf: Texture2D = pick.call("%s_%d" % [LAIR_SET, i])
+		if lf:
+			lair_frames.append(lf)
+		var tf: Texture2D = pick.call("deco_torch_%d" % i)
+		if tf:
+			torch_frames.append(tf)
+	tex_banner = pick.call("deco_banner")
+	tex_hud_wall = pick.call("hud_wall")
+	tex_hud_top = pick.call("hud_top")
+
 
 func _load_tex(name_: String) -> Texture2D:
 	var p := "res://art/%s.png" % name_
@@ -398,6 +425,7 @@ func _start() -> void:
 	# κάθε run ξεκινάει από την αρχή
 	area_index = 0
 	level = 1
+	_apply_theme()
 
 	score = 0
 	kills = 0
@@ -1057,6 +1085,9 @@ func _make_ball(dir: Vector2) -> void:
 	if dragon:
 		b.spin = dragon.ball_spin
 		b.trail_color = dragon.accent
+	var bdg := active_dragon()
+	if bdg:
+		b.heading = bdg.ball_heading
 	b.damage = _ball_damage()
 	b.died.connect(_on_ball_died)
 	b.struck.connect(_on_ball_struck)
@@ -1115,6 +1146,7 @@ func _end_turn() -> void:
 	var new_area := clampi(int((level - 1) / ROUNDS_PER_AREA), 0, maxi(areas.size() - 1, 0))
 	if new_area != area_index:
 		area_index = new_area
+		_apply_theme()
 		_announce(current_area().display_name if current_area() else "")
 
 	if frozen_turn:

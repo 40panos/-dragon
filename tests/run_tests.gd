@@ -597,14 +597,17 @@ func _initialize() -> void:
 		"(%d)" % knight_type.frames_idle.size())
 	ok("ο warlock πήρε 8 καρέ idle", warlock_type.frames_idle.size() == 8,
 		"(%d)" % warlock_type.frames_idle.size())
-	# κανένας εχθρός του Goblin Land δεν μένει με στατικό πορτρέτο. Οι εχθροί
-	# του Frost Marches είναι ακόμα στατικοί, ως τα animations τους.
+	# κανένας εχθρός, σε καμία περιοχή, δεν μένει με στατικό πορτρέτο
 	var still := []
-	var gl: AreaDef = m.areas[0]
-	for et0 in gl.enemies + gl.minions + [gl.boss]:
-		if et0.frames_idle.is_empty():
-			still.append(et0.id)
-	ok("κανένας εχθρός του Goblin Land χωρίς idle", still.is_empty(), str(still))
+	for id in m.enemy_by_id:
+		if m.enemy_by_id[id].frames_idle.is_empty():
+			still.append(id)
+	ok("κανένας εχθρός χωρίς idle", still.is_empty(), str(still))
+	var no_hit := []
+	for id in m.enemy_by_id:
+		if m.enemy_by_id[id].frames_hit.is_empty():
+			no_hit.append(id)
+	ok("κανένας εχθρός χωρίς αντίδραση στο χτύπημα", no_hit.is_empty(), str(no_hit))
 	for id in ["knight", "warlock"]:
 		var et: EnemyType = m.enemy_by_id[id]
 		var sz := {}
@@ -850,6 +853,30 @@ func _initialize() -> void:
 		fr_sz[tex.get_size()] = true
 	ok("η εξελιγμένη σε ίδιο καμβά σε όλες τις καταστάσεις", fr_sz.size() == 1, str(fr_sz.keys()))
 	ok("κλειστό στόμα στην ηρεμία, ανοιχτό στη βολή", fr_aw.frames_idle[0] != fr_aw.frames_fire[0])
+	# ο κρύσταλλος γυρνάει με την πορεία: η μύτη του (heading) κοιτάει εκεί που πάει
+	ok("ο παγοκρύσταλλος έχει μύτη πάνω-δεξιά", is_equal_approx(fr.ball_heading, -PI / 4.0))
+	var fb_ball = m.BallScene.instantiate()
+	fb_ball.heading = fr.ball_heading
+	fb_ball.velocity = Vector2(1, -1)           # προς τα πάνω-δεξιά
+	ok("...οπότε προς τα πάνω-δεξιά δεν γυρνάει καθόλου",
+		is_zero_approx(wrapf(fb_ball.velocity.angle() - fb_ball.heading, -PI, PI)))
+	fb_ball.free()
+
+	print("--- σκηνικό και καιρός ---")
+	m.area_index = 1
+	m._apply_theme()
+	ok("στο Frost Marches το πλαίσιο είναι χιονισμένο",
+		m.tex_frame_left.resource_path.ends_with("frame_left_frost.png"), m.tex_frame_left.resource_path)
+	ok("...και οι δάδες με μπλε φλόγα",
+		m.torch_frames.size() == 5 and m.torch_frames[0].resource_path.ends_with("_frost.png"))
+	m.weather._process(0.1)
+	ok("στο Frost Marches χιονίζει", m.weather._active == "snow" and m.weather._flakes.size() > 0)
+	m.area_index = 0
+	m._apply_theme()
+	m.weather._process(0.1)
+	ok("στο Goblin Land ξαναγυρνάει το κανονικό σκηνικό",
+		m.tex_frame_left.resource_path.ends_with("frame_left.png"))
+	ok("...και δεν χιονίζει", m.weather._active == "" and m.weather._flakes.is_empty())
 
 	print("--- αποθήκευση ---")
 	var d = SaveManager.defaults()

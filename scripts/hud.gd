@@ -7,7 +7,6 @@ extends Node2D
 ## από τις ίδιες συναρτήσεις που ελέγχουν και τα πατήματα. Το φόντο της κάτω
 ## μπάρας (τείχος και πάνελ) το ζωγραφίζει το main, πίσω από τον δράκο.
 
-const TOP := preload("res://art/hud_top.png")          # δοκάρι πάνω σε πέτρα, 3-slice
 const PLATE := preload("res://art/hud_plate.png")      # κρεμαστή πινακίδα
 const BTN := preload("res://art/hud_btn.png")          # μενού / παύση
 const SKULL := preload("res://art/hud_skull.png")      # πόσο απέχει ο boss
@@ -198,6 +197,8 @@ func _draw_top() -> void:
 	var top: float = m.PF_TOP - 36.0
 
 	# δοκάρι πάνω σε πέτρα, από άκρη σε άκρη· από πάνω του σκοτάδι
+	# δοκάρι πάνω σε πέτρα, 3-slice — από το σκηνικό της περιοχής (main._apply_theme)
+	var TOP: Texture2D = m.tex_hud_top
 	var ty := top - TOP.get_height() * 2.0
 	draw_rect(Rect2(0, 0, m.W, ty + 4.0), Color("141216"))
 	m.strip2(self, TOP, Rect2(Vector2.ZERO, TOP.get_size()), 0.0, m.W, ty)

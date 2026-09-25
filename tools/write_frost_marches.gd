@@ -11,7 +11,10 @@ extends SceneTree
 ## της, με ικανότητες κίνησης και αναγέννησης αντί για άμυνα. Οι εχθροί ζουν
 ## ως sub-resources της περιοχής — τα data/enemies/*.tres δεν φορτώνονται.
 ##
-## Προς το παρόν χωρίς καρέ: ένα στατικό sprite ο καθένας, ως τα animations.
+## Καρέ: idle σε βρόχο (8, ο Yeti 6) και hit που παίζει μία φορά (6). Βγήκαν
+## με το animate_image του PixelLab με το τελευταίο καρέ καρφωμένο στο πρώτο,
+## ώστε ο βρόχος να κλείνει και η αντίδραση να γυρίζει στη στάση· το
+## καρφωμένο καρέ δεν μπαίνει, γιατί θα έδειχνε δύο φορές την ίδια στάση.
 
 const PATH := "res://data/areas/02_frost_marches.tres"
 
@@ -24,12 +27,32 @@ func _tex(name_: String) -> Texture2D:
 	return load(p)
 
 
+## Όλα τα καρέ <όνομα>_<κατάσταση>_1..N, σε ίδιο καμβά με το στατικό sprite —
+## αλλιώς ο εχθρός πηδάει από καρέ σε καρέ.
+func _frames(name_: String, state: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	var size := _tex(name_).get_size()
+	var i := 1
+	while ResourceLoader.exists("res://art/%s_%s_%d.png" % [name_, state, i]):
+		var t: Texture2D = load("res://art/%s_%s_%d.png" % [name_, state, i])
+		if t.get_size() != size:
+			push_error("%s_%s_%d: %s, περίμενα %s" % [name_, state, i, t.get_size(), size])
+			quit(1)
+		out.append(t)
+		i += 1
+	return out
+
+
 func _enemy(id: String, name_: String, sprite: String, hp_mult: float, tier: int,
 		min_round: int, weight: float, ability: EnemyAbility = null) -> EnemyType:
 	var e := EnemyType.new()
 	e.id = id
 	e.display_name = name_
-	e.sprite = _tex(sprite)
+	e.frames_idle = _frames(sprite, "idle")
+	e.frames_hit = _frames(sprite, "hit")
+	e.sprite = e.frames_idle[0] if not e.frames_idle.is_empty() else _tex(sprite)
+	e.fps_idle = 7.0
+	e.fps_hit = 12.0
 	e.hp_mult = hp_mult
 	e.tier = tier
 	e.min_round = min_round
@@ -87,6 +110,8 @@ func _initialize() -> void:
 	# εχθρούς, που είναι ήδη παγωμένοι στα χρώματά τους.
 	area.background = _tex("background_frost")
 	area.tint = Color(1, 1, 1, 1)
+	area.weather = "snow"        # νιφάδες πάνω από το ταμπλό (scripts/weather.gd)
+	area.theme = "frost"         # χιονισμένο σκηνικό (tools/build_frost_theme.gd)
 
 	area.enemies = [imp, wolf, viking, golem] as Array[EnemyType]
 	area.minions = [shard] as Array[EnemyType]

@@ -18,6 +18,9 @@ const SCALE := 2
 const EVO_W := 128
 const EVO_SCALE := 2
 const ACCENT := Color("8fe3ff")      # σπίθες και δαχτυλίδι φόρτισης: παγωμένο γαλάζιο
+## Ο παγοκρύσταλλος είναι σχεδιασμένος με τη μύτη πάνω-δεξιά (-45°): το βλήμα
+## γυρνάει ώστε η μύτη να κοιτάει την πορεία του, όπου κι αν πάει.
+const SHARD_HEADING := -PI / 4.0
 
 
 func _tex(name_: String, want_w: int = 0) -> Texture2D:
@@ -50,6 +53,7 @@ func _make_evolved() -> DragonType:
 	a.accent = ACCENT
 	a.ball_sprite = _tex("ice_shard")
 	a.ball_aoe_sprite = _tex("ice_shard_aoe")
+	a.ball_heading = SHARD_HEADING
 	a.special = "freeze"
 	a.special_cost = 18.0
 	return a
@@ -69,6 +73,7 @@ func _initialize() -> void:
 	d.frames_fire = [base] as Array[Texture2D]
 	d.ball_sprite = _tex("ice_shard")
 	d.ball_aoe_sprite = _tex("ice_shard_aoe")
+	d.ball_heading = SHARD_HEADING
 	d.draw_width = float(FRAME_W * SCALE)   # 128 = 2x, ακέραιο πολλαπλάσιο
 	# λευκό: ο παλιός frost ήταν μαύρος drake βαμμένος γαλάζιος, και το ίδιο
 	# tint έβαφε τα νέα σχέδια πολύ πιο μπλε απ' ό,τι είναι
