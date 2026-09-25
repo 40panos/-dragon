@@ -1142,11 +1142,13 @@ func _pingpong(n: int, fps: float, off := 0.0) -> int:
 ## Καθρεφτίζει ένα rect οριζόντια. Το draw_texture_rect ΔΕΝ έχει όρισμα flip:
 ## το πέμπτο του είναι `transpose`, που γυρίζει την εικόνα 90° — περασμένο
 ## κατά λάθος ως flip έστριβε τις δεξιές δάδες και το λάβαρο στο πλάι.
-## Το αρνητικό πλάτος είναι ο σωστός τρόπος.
+## Το αρνητικό πλάτος είναι ο σωστός τρόπος. Το Godot κρατάει το rect στην
+## ίδια θέση (position .. position+|size|) και απλώς γυρίζει την εικόνα —
+## με μετατόπιση κατά size.x οι δεξιές δάδες έβγαιναν ένα BORDER έξω από το ξύλο.
 func _mirror(r: Rect2, flip: bool) -> Rect2:
 	if not flip:
 		return r
-	return Rect2(r.position.x + r.size.x, r.position.y, -r.size.x, r.size.y)
+	return Rect2(r.position.x, r.position.y, -r.size.x, r.size.y)
 
 
 ## Δάδες και λάβαρα. Ήταν ψημένα μέσα στο frame_left.png· βγήκαν από εκεί ώστε
