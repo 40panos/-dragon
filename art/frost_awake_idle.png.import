@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dnqwjaoy5lne1"
-path="res://.godot/imported/drake_idle_3.png-e8ef53124f7456850cd9a805e4ed2b7e.ctex"
+uid="uid://bx1fgfvlmwnd0"
+path="res://.godot/imported/frost_awake_idle.png-fa6b38d2bdb4f1ebf5f582c7a8af39b9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/drake_idle_3.png"
-dest_files=["res://.godot/imported/drake_idle_3.png-e8ef53124f7456850cd9a805e4ed2b7e.ctex"]
+source_file="res://art/frost_awake_idle.png"
+dest_files=["res://.godot/imported/frost_awake_idle.png-fa6b38d2bdb4f1ebf5f582c7a8af39b9.ctex"]
 
 [params]
 

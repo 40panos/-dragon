@@ -11,6 +11,13 @@ func on_spawn(_block) -> void:
 	pass
 
 
+## Λίγο πριν κατέβουν όλοι, με το ταμπλό ακόμα όπως ήταν στον γύρο. Για
+## ικανότητες που κοιτάνε γύρω τους (π.χ. η αγέλη) — το advance_rows δεν
+## έχει αναφορά στο παιχνίδι, και καλείται μέσα στο κατέβασμα.
+func before_advance(_block, _game) -> void:
+	pass
+
+
 ## Πόσες σειρές κατεβαίνει φέτος. Ο καλών ελέγχει αν χωράει.
 func advance_rows(_block, default_rows: int) -> int:
 	return default_rows
@@ -29,6 +36,11 @@ func on_round_end(_block, _game) -> void:
 ## Μόλις ο εχθρός φάει ζημιά και επιβιώσει. Το καλεί το main, γιατί εκεί
 ## υπάρχει η αναφορά στο παιχνίδι — το block δεν την κρατάει.
 func on_damaged(_block, _game) -> void:
+	pass
+
+
+## Μόλις σκοτωθεί, αφού έχει βγει από το ταμπλό (το κελί του είναι ελεύθερο).
+func on_death(_block, _game) -> void:
 	pass
 
 

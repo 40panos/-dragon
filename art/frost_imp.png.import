@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cure6xt57sdr3"
-path="res://.godot/imported/drake_ready_1.png-b80b6e614bdf0bccb255847a8dc45487.ctex"
+uid="uid://cct0ttdkv0liq"
+path="res://.godot/imported/frost_imp.png-474faaaefa560a28f5b8f34dff992117.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/drake_ready_1.png"
-dest_files=["res://.godot/imported/drake_ready_1.png-b80b6e614bdf0bccb255847a8dc45487.ctex"]
+source_file="res://art/frost_imp.png"
+dest_files=["res://.godot/imported/frost_imp.png-474faaaefa560a28f5b8f34dff992117.ctex"]
 
 [params]
 

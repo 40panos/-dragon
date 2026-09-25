@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://rbvo5kijx1t4"
-path="res://.godot/imported/drake_fire_2.png-9f667d837123c493feaeaa2b02d19d2f.ctex"
+uid="uid://cey8rkdniq4ek"
+path="res://.godot/imported/snow_wolf.png-6140d5300fb49579fa8f2025ec535de8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/drake_fire_2.png"
-dest_files=["res://.godot/imported/drake_fire_2.png-9f667d837123c493feaeaa2b02d19d2f.ctex"]
+source_file="res://art/snow_wolf.png"
+dest_files=["res://.godot/imported/snow_wolf.png-6140d5300fb49579fa8f2025ec535de8.ctex"]
 
 [params]
 

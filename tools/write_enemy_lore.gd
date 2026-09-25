@@ -21,7 +21,13 @@ const LORE := {
 	"warlock": "Chants in the back rows and calls servants to the field. Silence it first.",
 	"bat": "Summoned by warlocks and kings. Weak alone, but they fill the gaps fast.",
 	"goblin_king": "Crowned by the biggest club. Thick hide, a furious temper when wounded, and guards who answer his call.",
-	"warlock_boss": "Master of the frozen covens. Keeps calling servants from the ice until he falls.",
+	# Frost Marches
+	"frost_imp": "Born in snowdrifts, sharp as the ice it carries. Harmless alone, never alone for long.",
+	"snow_wolf": "Hunts in pairs. Next to another wolf it runs faster, so break up the pack first.",
+	"viking": "A raider from the north behind a painted shield. The shield takes every blow until it splits.",
+	"crystal_golem": "A walking cliff of blue crystal. Break it and the shards keep fighting.",
+	"shardling": "A living splinter of a fallen golem. Small, but it still wants you gone.",
+	"yeti": "The white terror of the Marches. Its wounds close if you let it rest, and its howl calls the wolves.",
 }
 
 

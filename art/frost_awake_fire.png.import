@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cmd7y6wcbhpm8"
-path="res://.godot/imported/drake_ready_3.png-be088f5360b714d7e58d6b1dc7088c46.ctex"
+uid="uid://c4p627dsf8lyn"
+path="res://.godot/imported/frost_awake_fire.png-fee41f46cd7aa3930dcd2056e21d5e71.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/drake_ready_3.png"
-dest_files=["res://.godot/imported/drake_ready_3.png-be088f5360b714d7e58d6b1dc7088c46.ctex"]
+source_file="res://art/frost_awake_fire.png"
+dest_files=["res://.godot/imported/frost_awake_fire.png-fee41f46cd7aa3930dcd2056e21d5e71.ctex"]
 
 [params]
 

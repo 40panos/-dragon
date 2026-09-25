@@ -1,246 +1,155 @@
-[gd_resource type="Resource" script_class="AreaDef" load_steps=104 format=3]
+[gd_resource type="Resource" script_class="AreaDef" load_steps=29 format=3]
 
 [ext_resource type="Texture2D" path="res://art/background.png" id="1_ci0x5"]
+[ext_resource type="Script" path="res://scripts/abilities/enemy_ability.gd" id="2_232pq"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="2_x2kko"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_regen.gd" id="3_1cbmq"]
 [ext_resource type="Script" path="res://scripts/data/enemy_type.gd" id="3_j4m42"]
-[ext_resource type="Texture2D" path="res://art/warlock_hit_1.png" id="3_vttci"]
-[ext_resource type="Texture2D" path="res://art/warlock.png" id="4_hnv1f"]
-[ext_resource type="Texture2D" path="res://art/warlock_hit_2.png" id="4_y60ro"]
-[ext_resource type="Texture2D" path="res://art/goblin_hit_1.png" id="5_0lbh5"]
-[ext_resource type="Texture2D" path="res://art/goblin.png" id="5_d6wr2"]
-[ext_resource type="Texture2D" path="res://art/warlock_hit_3.png" id="5_v4me4"]
-[ext_resource type="Texture2D" path="res://art/warlock_hit_4.png" id="6_2q6ww"]
-[ext_resource type="Texture2D" path="res://art/goblin_hit_2.png" id="6_jtbsu"]
-[ext_resource type="Script" path="res://scripts/abilities/ability_rider.gd" id="6_xxenw"]
-[ext_resource type="Texture2D" path="res://art/warlock_idle_1.png" id="7_3xxue"]
-[ext_resource type="Texture2D" path="res://art/goblin_hit_3.png" id="7_okfbe"]
-[ext_resource type="Texture2D" path="res://art/orc.png" id="7_uar83"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_composite.gd" id="5_t8hfc"]
+[ext_resource type="Texture2D" path="res://art/yeti.png" id="7_a5o6x"]
+[ext_resource type="Texture2D" path="res://art/frost_imp.png" id="8_4awli"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_shield.gd" id="8_5ttue"]
-[ext_resource type="Texture2D" path="res://art/goblin_hit_4.png" id="8_lvsop"]
-[ext_resource type="Texture2D" path="res://art/warlock_idle_2.png" id="8_okl3e"]
-[ext_resource type="Texture2D" path="res://art/warlock_idle_3.png" id="9_1dfma"]
-[ext_resource type="Texture2D" path="res://art/goblin_hit_5.png" id="9_ev6rd"]
-[ext_resource type="Texture2D" path="res://art/knight.png" id="9_sod61"]
-[ext_resource type="Texture2D" path="res://art/brute.png" id="10_igkcm"]
-[ext_resource type="Texture2D" path="res://art/warlock_idle_4.png" id="10_kxx5c"]
-[ext_resource type="Texture2D" path="res://art/goblin_hit_6.png" id="10_rrixm"]
-[ext_resource type="Texture2D" path="res://art/warlock_idle_5.png" id="11_gljcj"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_pack.gd" id="9_bxuds"]
+[ext_resource type="Texture2D" path="res://art/snow_wolf.png" id="10_pm3b5"]
 [ext_resource type="Script" path="res://scripts/data/area_def.gd" id="11_j18ks"]
-[ext_resource type="Texture2D" path="res://art/goblin_hit_7.png" id="11_l3x01"]
-[ext_resource type="Texture2D" path="res://art/warlock_idle_6.png" id="12_5tl8e"]
-[ext_resource type="Texture2D" path="res://art/goblin_hit_8.png" id="12_dyftl"]
-[ext_resource type="Texture2D" path="res://art/goblin_hit_9.png" id="13_dmute"]
-[ext_resource type="Texture2D" path="res://art/warlock_idle_7.png" id="13_w6qs0"]
-[ext_resource type="Texture2D" path="res://art/goblin_idle_1.png" id="14_5l17x"]
-[ext_resource type="Texture2D" path="res://art/warlock_idle_8.png" id="14_rg600"]
-[ext_resource type="Texture2D" path="res://art/goblin_idle_2.png" id="15_8ogvm"]
-[ext_resource type="Texture2D" path="res://art/goblin_idle_3.png" id="16_j8ltx"]
-[ext_resource type="Texture2D" path="res://art/goblin_idle_4.png" id="17_f2l75"]
-[ext_resource type="Texture2D" path="res://art/goblin_idle_5.png" id="18_gupbj"]
-[ext_resource type="Texture2D" path="res://art/goblin_idle_6.png" id="19_q3ktb"]
-[ext_resource type="Texture2D" path="res://art/goblin_idle_7.png" id="20_jbbh5"]
-[ext_resource type="Texture2D" path="res://art/goblin_idle_8.png" id="21_18cil"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_1.png" id="29_kk1be"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_2.png" id="30_afcsd"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_3.png" id="31_hbrwq"]
-[ext_resource type="Texture2D" path="res://art/orc_hit_4.png" id="32_gds8e"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_1.png" id="34_8v22s"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_2.png" id="35_d5apj"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_3.png" id="36_ovi8w"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_4.png" id="37_ajolk"]
-[ext_resource type="Texture2D" path="res://art/orc_idle_5.png" id="38_maqyw"]
-[ext_resource type="Texture2D" path="res://art/knight_hit_1.png" id="41_kc5u6"]
-[ext_resource type="Texture2D" path="res://art/knight_hit_2.png" id="42_4t5mw"]
-[ext_resource type="Texture2D" path="res://art/knight_hit_3.png" id="43_2m05t"]
-[ext_resource type="Texture2D" path="res://art/brute_hit_1.png" id="44_03mtb"]
-[ext_resource type="Texture2D" path="res://art/knight_hit_4.png" id="44_gruhx"]
-[ext_resource type="Texture2D" path="res://art/brute_hit_2.png" id="45_7h0ts"]
-[ext_resource type="Texture2D" path="res://art/brute_hit_3.png" id="46_b4jxk"]
-[ext_resource type="Texture2D" path="res://art/brute_hit_4.png" id="47_mo18n"]
-[ext_resource type="Texture2D" path="res://art/brute_hit_5.png" id="48_b5qrb"]
-[ext_resource type="Texture2D" path="res://art/brute_hit_6.png" id="49_d7gwn"]
-[ext_resource type="Texture2D" path="res://art/brute_hit_7.png" id="50_tuunk"]
-[ext_resource type="Texture2D" path="res://art/brute_hit_8.png" id="51_c2qlt"]
-[ext_resource type="Texture2D" path="res://art/knight_idle_1.png" id="51_q7elk"]
-[ext_resource type="Texture2D" path="res://art/brute_hit_9.png" id="52_4hule"]
-[ext_resource type="Texture2D" path="res://art/knight_idle_2.png" id="52_aqgjn"]
-[ext_resource type="Texture2D" path="res://art/brute_idle_1.png" id="53_3dhip"]
-[ext_resource type="Texture2D" path="res://art/knight_idle_3.png" id="53_ke573"]
-[ext_resource type="Texture2D" path="res://art/brute_idle_2.png" id="54_5hggb"]
-[ext_resource type="Texture2D" path="res://art/knight_idle_4.png" id="54_ujmsq"]
-[ext_resource type="Texture2D" path="res://art/brute_idle_3.png" id="55_detp4"]
-[ext_resource type="Texture2D" path="res://art/knight_idle_5.png" id="55_yj22l"]
-[ext_resource type="Texture2D" path="res://art/knight_idle_6.png" id="56_kjvmv"]
-[ext_resource type="Texture2D" path="res://art/brute_idle_4.png" id="56_pka0f"]
-[ext_resource type="Texture2D" path="res://art/knight_idle_7.png" id="57_1t1ev"]
-[ext_resource type="Texture2D" path="res://art/brute_idle_5.png" id="57_fvhr4"]
-[ext_resource type="Texture2D" path="res://art/knight_idle_8.png" id="58_2pdqi"]
-[ext_resource type="Texture2D" path="res://art/brute_idle_6.png" id="58_7tibr"]
-[ext_resource type="Texture2D" path="res://art/brute_idle_7.png" id="59_316sg"]
-[ext_resource type="Texture2D" path="res://art/brute_idle_8.png" id="60_us0a8"]
-[ext_resource type="Texture2D" path="res://art/bat_hit_1.png" id="78_gtvpw"]
-[ext_resource type="Texture2D" path="res://art/bat_hit_2.png" id="79_xdt38"]
-[ext_resource type="Texture2D" path="res://art/bat_hit_3.png" id="80_whwnw"]
-[ext_resource type="Texture2D" path="res://art/bat_hit_4.png" id="81_iq2jb"]
-[ext_resource type="Texture2D" path="res://art/bat_hit_5.png" id="82_2hijc"]
-[ext_resource type="Texture2D" path="res://art/bat_hit_6.png" id="83_n08sr"]
-[ext_resource type="Texture2D" path="res://art/bat_idle_1.png" id="84_glma4"]
-[ext_resource type="Texture2D" path="res://art/bat_idle_2.png" id="85_e8yfr"]
-[ext_resource type="Texture2D" path="res://art/bat_idle_3.png" id="86_xaob2"]
-[ext_resource type="Texture2D" path="res://art/bat_idle_4.png" id="87_mnisf"]
-[ext_resource type="Texture2D" path="res://art/bat_idle_5.png" id="88_wpoxi"]
-[ext_resource type="Texture2D" path="res://art/bat_idle_6.png" id="89_456pg"]
-[ext_resource type="Texture2D" path="res://art/bat_idle_7.png" id="90_h11jw"]
-[ext_resource type="Texture2D" path="res://art/bat_idle_8.png" id="91_dkjlp"]
+[ext_resource type="Texture2D" path="res://art/viking.png" id="12_s2k15"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_shatter.gd" id="13_bjdxh"]
+[ext_resource type="Texture2D" path="res://art/crystal_golem.png" id="14_wyhix"]
+[ext_resource type="Texture2D" path="res://art/shardling.png" id="15_4ldbo"]
 
-[sub_resource type="Resource" id="Resource_y72qm"]
+[sub_resource type="Resource" id="Resource_nw5wv"]
+script = ExtResource("3_1cbmq")
+ratio = 0.05
+
+[sub_resource type="Resource" id="Resource_xxxrj"]
 script = ExtResource("2_x2kko")
 every = 2
-hp_ratio = 0.35
+hp_ratio = 0.25
 min_row = 2
 max_row = 7
-minion_id = "bat"
+minion_id = "snow_wolf"
 keep_clear = 2
-count = 1
+count = 2
 act_frames = Array[Texture2D]([])
 act_fps = 10.0
 
-[sub_resource type="Resource" id="Resource_77lvw"]
+[sub_resource type="Resource" id="Resource_f5ge3"]
+script = ExtResource("5_t8hfc")
+parts = Array[ExtResource("2_232pq")]([SubResource("Resource_nw5wv"), SubResource("Resource_xxxrj")])
+
+[sub_resource type="Resource" id="Resource_086c2"]
 script = ExtResource("3_j4m42")
-id = "warlock_boss"
-display_name = "Warlock Lord"
-sprite = ExtResource("4_hnv1f")
-frames_idle = Array[Texture2D]([ExtResource("7_3xxue"), ExtResource("8_okl3e"), ExtResource("9_1dfma"), ExtResource("10_kxx5c"), ExtResource("11_gljcj"), ExtResource("12_5tl8e"), ExtResource("13_w6qs0"), ExtResource("14_rg600")])
+id = "yeti"
+display_name = "Yeti"
+sprite = ExtResource("7_a5o6x")
+frames_idle = Array[Texture2D]([])
 fps_idle = 6.0
-frames_hit = Array[Texture2D]([ExtResource("3_vttci"), ExtResource("4_y60ro"), ExtResource("5_v4me4"), ExtResource("6_2q6ww")])
-fps_hit = 8.0
+frames_hit = Array[Texture2D]([])
+fps_hit = 12.0
 sprite_scale = 1.0
 hp_mult = 1.0
 tier = 5
 min_round = 1
 weight = 1.0
-ability = SubResource("Resource_y72qm")
-description = "Master of the frozen covens. Keeps calling servants from the ice until he falls."
+ability = SubResource("Resource_f5ge3")
+description = "The white terror of the Marches. Its wounds close if you let it rest, and its howl calls the wolves."
 
-[sub_resource type="Resource" id="Resource_k23ck"]
+[sub_resource type="Resource" id="Resource_nvlso"]
 script = ExtResource("3_j4m42")
-id = "goblin"
-display_name = "Goblin"
-sprite = ExtResource("5_d6wr2")
-frames_idle = Array[Texture2D]([ExtResource("14_5l17x"), ExtResource("15_8ogvm"), ExtResource("16_j8ltx"), ExtResource("17_f2l75"), ExtResource("18_gupbj"), ExtResource("19_q3ktb"), ExtResource("20_jbbh5"), ExtResource("21_18cil")])
+id = "frost_imp"
+display_name = "Frost Imp"
+sprite = ExtResource("8_4awli")
+frames_idle = Array[Texture2D]([])
 fps_idle = 6.0
-frames_hit = Array[Texture2D]([ExtResource("5_0lbh5"), ExtResource("6_jtbsu"), ExtResource("7_okfbe"), ExtResource("8_lvsop"), ExtResource("9_ev6rd"), ExtResource("10_rrixm"), ExtResource("11_l3x01"), ExtResource("12_dyftl"), ExtResource("13_dmute")])
+frames_hit = Array[Texture2D]([])
 fps_hit = 12.0
 sprite_scale = 1.0
 hp_mult = 0.7
 tier = 0
 min_round = 1
 weight = 40.0
-description = "Small, greedy and never alone. One goblin is a joke; a whole row of them is a wall."
+description = "Born in snowdrifts, sharp as the ice it carries. Harmless alone, never alone for long."
 
-[sub_resource type="Resource" id="Resource_tikl1"]
-script = ExtResource("6_xxenw")
-every = 2
-step = 2
+[sub_resource type="Resource" id="Resource_xksxc"]
+script = ExtResource("9_bxuds")
+extra = 1
 
-[sub_resource type="Resource" id="Resource_ock6s"]
+[sub_resource type="Resource" id="Resource_ayq3y"]
 script = ExtResource("3_j4m42")
-id = "orc"
-display_name = "Orc Rider"
-sprite = ExtResource("7_uar83")
-frames_idle = Array[Texture2D]([ExtResource("34_8v22s"), ExtResource("35_d5apj"), ExtResource("36_ovi8w"), ExtResource("37_ajolk"), ExtResource("38_maqyw")])
-fps_idle = 5.0
-frames_hit = Array[Texture2D]([ExtResource("29_kk1be"), ExtResource("30_afcsd"), ExtResource("31_hbrwq"), ExtResource("32_gds8e")])
-fps_hit = 8.0
+id = "snow_wolf"
+display_name = "Snow Wolf"
+sprite = ExtResource("10_pm3b5")
+frames_idle = Array[Texture2D]([])
+fps_idle = 6.0
+frames_hit = Array[Texture2D]([])
+fps_hit = 12.0
 sprite_scale = 1.0
 hp_mult = 0.6
 tier = 1
-min_round = 6
-weight = 16.0
-ability = SubResource("Resource_tikl1")
-description = "Rides a war boar that charges forward every other turn. Burn it before it closes the gap."
+min_round = 4
+weight = 22.0
+ability = SubResource("Resource_xksxc")
+description = "Hunts in pairs. Next to another wolf it runs faster, so break up the pack first."
 
-[sub_resource type="Resource" id="Resource_5v0a2"]
+[sub_resource type="Resource" id="Resource_of2v6"]
 script = ExtResource("8_5ttue")
 ratio = 1.0
 
-[sub_resource type="Resource" id="Resource_00qy8"]
+[sub_resource type="Resource" id="Resource_c152h"]
 script = ExtResource("3_j4m42")
-id = "knight"
-display_name = "Shield Knight"
-sprite = ExtResource("9_sod61")
-frames_idle = Array[Texture2D]([ExtResource("51_q7elk"), ExtResource("52_aqgjn"), ExtResource("53_ke573"), ExtResource("54_ujmsq"), ExtResource("55_yj22l"), ExtResource("56_kjvmv"), ExtResource("57_1t1ev"), ExtResource("58_2pdqi")])
+id = "viking"
+display_name = "Viking"
+sprite = ExtResource("12_s2k15")
+frames_idle = Array[Texture2D]([])
 fps_idle = 6.0
-frames_hit = Array[Texture2D]([ExtResource("41_kc5u6"), ExtResource("42_4t5mw"), ExtResource("43_2m05t"), ExtResource("44_gruhx")])
-fps_hit = 8.0
+frames_hit = Array[Texture2D]([])
+fps_hit = 12.0
 sprite_scale = 1.0
 hp_mult = 1.1
 tier = 2
-min_round = 9
-weight = 13.0
-ability = SubResource("Resource_5v0a2")
-description = "A deserter in stolen plate. The shield soaks every blow until it cracks, so hit it hard and often."
+min_round = 7
+weight = 14.0
+ability = SubResource("Resource_of2v6")
+description = "A raider from the north behind a painted shield. The shield takes every blow until it splits."
 
-[sub_resource type="Resource" id="Resource_kigvc"]
+[sub_resource type="Resource" id="Resource_83pyk"]
+script = ExtResource("13_bjdxh")
+minion_id = "shardling"
+count = 2
+hp_ratio = 0.3
+
+[sub_resource type="Resource" id="Resource_ufe6c"]
 script = ExtResource("3_j4m42")
-id = "brute"
-display_name = "Brute"
-sprite = ExtResource("10_igkcm")
-frames_idle = Array[Texture2D]([ExtResource("53_3dhip"), ExtResource("54_5hggb"), ExtResource("55_detp4"), ExtResource("56_pka0f"), ExtResource("57_fvhr4"), ExtResource("58_7tibr"), ExtResource("59_316sg"), ExtResource("60_us0a8")])
+id = "crystal_golem"
+display_name = "Crystal Golem"
+sprite = ExtResource("14_wyhix")
+frames_idle = Array[Texture2D]([])
 fps_idle = 6.0
-frames_hit = Array[Texture2D]([ExtResource("44_03mtb"), ExtResource("45_7h0ts"), ExtResource("46_b4jxk"), ExtResource("47_mo18n"), ExtResource("48_b5qrb"), ExtResource("49_d7gwn"), ExtResource("50_tuunk"), ExtResource("51_c2qlt"), ExtResource("52_4hule")])
+frames_hit = Array[Texture2D]([])
 fps_hit = 12.0
 sprite_scale = 1.0
-hp_mult = 1.6
+hp_mult = 1.5
 tier = 3
-min_round = 4
-weight = 22.0
-description = "All muscle and no plan. Slow to fall, so bring plenty of fire."
-
-[sub_resource type="Resource" id="Resource_6qt3e"]
-script = ExtResource("2_x2kko")
-every = 3
-hp_ratio = 0.5
-min_row = 2
-max_row = 7
-minion_id = "bat"
-keep_clear = 2
-count = 1
-act_frames = Array[Texture2D]([])
-act_fps = 10.0
-
-[sub_resource type="Resource" id="Resource_yx2hu"]
-script = ExtResource("3_j4m42")
-id = "warlock"
-display_name = "Warlock"
-sprite = ExtResource("4_hnv1f")
-frames_idle = Array[Texture2D]([ExtResource("7_3xxue"), ExtResource("8_okl3e"), ExtResource("9_1dfma"), ExtResource("10_kxx5c"), ExtResource("11_gljcj"), ExtResource("12_5tl8e"), ExtResource("13_w6qs0"), ExtResource("14_rg600")])
-fps_idle = 6.0
-frames_hit = Array[Texture2D]([ExtResource("3_vttci"), ExtResource("4_y60ro"), ExtResource("5_v4me4"), ExtResource("6_2q6ww")])
-fps_hit = 8.0
-sprite_scale = 1.0
-hp_mult = 1.2
-tier = 4
 min_round = 9
-weight = 9.0
-ability = SubResource("Resource_6qt3e")
-description = "Chants in the back rows and calls servants to the field. Silence it first."
+weight = 12.0
+ability = SubResource("Resource_83pyk")
+description = "A walking cliff of blue crystal. Break it and the shards keep fighting."
 
-[sub_resource type="Resource" id="Resource_kk7ub"]
+[sub_resource type="Resource" id="Resource_brtis"]
 script = ExtResource("3_j4m42")
-id = "bat"
-display_name = "Orc Bat"
-sprite = ExtResource("84_glma4")
-frames_idle = Array[Texture2D]([ExtResource("84_glma4"), ExtResource("85_e8yfr"), ExtResource("86_xaob2"), ExtResource("87_mnisf"), ExtResource("88_wpoxi"), ExtResource("89_456pg"), ExtResource("90_h11jw"), ExtResource("91_dkjlp")])
-fps_idle = 8.0
-frames_hit = Array[Texture2D]([ExtResource("78_gtvpw"), ExtResource("79_xdt38"), ExtResource("80_whwnw"), ExtResource("81_iq2jb"), ExtResource("82_2hijc"), ExtResource("83_n08sr")])
+id = "shardling"
+display_name = "Shardling"
+sprite = ExtResource("15_4ldbo")
+frames_idle = Array[Texture2D]([])
+fps_idle = 6.0
+frames_hit = Array[Texture2D]([])
 fps_hit = 12.0
-sprite_scale = 0.78
+sprite_scale = 0.8
 hp_mult = 1.0
 tier = 0
 min_round = 1
 weight = 1.0
-description = "Summoned by warlocks and kings. Weak alone, but they fill the gaps fast."
+description = "A living splinter of a fallen golem. Small, but it still wants you gone."
 
 [resource]
 script = ExtResource("11_j18ks")
@@ -248,9 +157,9 @@ id = "frost_marches"
 display_name = "Frost Marches"
 background = ExtResource("1_ci0x5")
 tint = Color(0.72, 0.86, 1.05, 1)
-enemies = Array[ExtResource("3_j4m42")]([SubResource("Resource_k23ck"), SubResource("Resource_ock6s"), SubResource("Resource_00qy8"), SubResource("Resource_kigvc"), SubResource("Resource_yx2hu")])
-minions = Array[ExtResource("3_j4m42")]([SubResource("Resource_kk7ub")])
-boss = SubResource("Resource_77lvw")
+enemies = Array[ExtResource("3_j4m42")]([SubResource("Resource_nvlso"), SubResource("Resource_ayq3y"), SubResource("Resource_c152h"), SubResource("Resource_ufe6c")])
+minions = Array[ExtResource("3_j4m42")]([SubResource("Resource_brtis")])
+boss = SubResource("Resource_086c2")
 boss_cols = 3
 boss_rows = 2
 boss_hp_mult = 16.0

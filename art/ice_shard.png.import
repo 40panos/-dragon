@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bq0hv1solwhln"
-path="res://.godot/imported/drake_fire_1.png-16bf20816a9ace41440b2395d0409a8d.ctex"
+uid="uid://d1dnqc1w8aeni"
+path="res://.godot/imported/ice_shard.png-a3ccc7c2417a59757cd70e846fd59821.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/drake_fire_1.png"
-dest_files=["res://.godot/imported/drake_fire_1.png-16bf20816a9ace41440b2395d0409a8d.ctex"]
+source_file="res://art/ice_shard.png"
+dest_files=["res://.godot/imported/ice_shard.png-a3ccc7c2417a59757cd70e846fd59821.ctex"]
 
 [params]
 

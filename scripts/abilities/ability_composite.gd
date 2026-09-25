@@ -25,6 +25,11 @@ func on_spawn(block) -> void:
 		p.on_spawn(block)
 
 
+func before_advance(block, game) -> void:
+	for p in parts:
+		p.before_advance(block, game)
+
+
 func advance_rows(block, default_rows: int) -> int:
 	var rows := default_rows
 	for p in parts:
@@ -49,6 +54,11 @@ func on_damaged(block, game) -> void:
 		p.on_damaged(block, game)
 
 
+func on_death(block, game) -> void:
+	for p in parts:
+		p.on_death(block, game)
+
+
 func badge() -> String:
 	var tags: Array[String] = []
 	for p in parts:
@@ -65,5 +75,4 @@ func describe() -> String:
 			var d := p.describe()
 			if d != "":
 				lines.append(d)
-	return "
-".join(lines)
+	return "\n".join(lines)

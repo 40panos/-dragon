@@ -146,6 +146,12 @@ func take_damage(amount: float) -> float:
 	return through
 
 
+## Γιατρειά (π.χ. RegenerateAbility). Ποτέ πάνω από τη μέγιστη ζωή.
+func heal(amount: float) -> void:
+	hp = minf(max_hp, hp + maxf(amount, 0.0))
+	queue_redraw()
+
+
 func shown_hp() -> int:
 	return maxi(0, int(ceil(hp)))
 

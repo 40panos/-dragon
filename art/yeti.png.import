@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cf5agpht5jt51"
-path="res://.godot/imported/drake_idle_1.png-5c7762c67eaf24a8d469ac055500bc34.ctex"
+uid="uid://hns2mk08j4mr"
+path="res://.godot/imported/yeti.png-ccbfb88edaf4bf5f5607322762ac8cbb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/drake_idle_1.png"
-dest_files=["res://.godot/imported/drake_idle_1.png-5c7762c67eaf24a8d469ac055500bc34.ctex"]
+source_file="res://art/yeti.png"
+dest_files=["res://.godot/imported/yeti.png-ccbfb88edaf4bf5f5607322762ac8cbb.ctex"]
 
 [params]
 

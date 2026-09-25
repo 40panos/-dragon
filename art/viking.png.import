@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ceah0v1xj5ucs"
-path="res://.godot/imported/drake_idle_2.png-46b0d685990e917326391729d5dcfe42.ctex"
+uid="uid://bynppbsxxkw6b"
+path="res://.godot/imported/viking.png-82a224ddb6e3cfd0ed2d5af1dc2a4f31.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/drake_idle_2.png"
-dest_files=["res://.godot/imported/drake_idle_2.png-46b0d685990e917326391729d5dcfe42.ctex"]
+source_file="res://art/viking.png"
+dest_files=["res://.godot/imported/viking.png-82a224ddb6e3cfd0ed2d5af1dc2a4f31.ctex"]
 
 [params]
 

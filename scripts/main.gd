@@ -604,9 +604,38 @@ func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: in
 		b.modulate = area.tint
 	grid.place(b)
 	b.damaged.connect(_on_block_damaged.bind(b))
+	if freeze_rounds > 0:
+		b.self_modulate = FROZEN_TINT     # ό,τι γεννιέται μέσα στο πάγωμα, παγωμένο
 	if bestiary:
 		bestiary.saw(type)
 	return b
+
+
+## Καλείται από το ShatterAbility (deferred): γεννάει έως `count` minions στο
+## κελί όπου ήταν ο εχθρός και στα διπλανά του. Παίρνει τιμές και όχι το ίδιο
+## το block, γιατί ως την ώρα της κλήσης εκείνο έχει ήδη ελευθερωθεί.
+func spawn_near(col: int, row: int, cw: int, ch: int, source_hp: float,
+		minion_id: String, count: int, hp_ratio: float) -> void:
+	var type: EnemyType = enemy_by_id.get(minion_id)
+	if type == null:
+		return
+	var spots: Array[Vector2i] = []
+	for c in cw:
+		for r in ch:
+			spots.append(Vector2i(col + c, row + r))
+	for d in [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		spots.append(Vector2i(col, row) + d)
+	var hp := maxf(1.0, round(source_hp * hp_ratio))
+	var made := 0
+	for s in spots:
+		if made >= count:
+			break
+		if s.x < 0 or s.x >= COLS or s.y < 0 or s.y >= death_row:
+			continue
+		if not grid.is_free(s.x, s.y):
+			continue
+		_make_block(s.x, s.y, type, hp, 1, 1, false)
+		made += 1
 
 
 ## Καλείται από το SummonerAbility.
@@ -685,6 +714,8 @@ func _on_block_damaged(destroyed: bool, _amount: float, block) -> void:
 	kills += 1
 	special_charge += 1.0          # το special γεμίζει με σκοτωμούς, όχι με ζημιά
 	grid.erase(block)
+	if block.ability:
+		block.ability.on_death(block, self)
 	if block == boss:
 		boss = null
 		_clear_area()
@@ -1098,6 +1129,10 @@ func _end_turn() -> void:
 	# κατέβασμα: από κάτω προς τα πάνω, ώστε να ελευθερώνεται χώρος μπροστά
 	var ordered := grid.blocks()
 	ordered.sort_custom(func(a, b): return (a.row + a.ch) > (b.row + b.ch))
+	# πρώτα κοιτάνε όλοι γύρω τους, με το ταμπλό ακόμα ακίνητο (π.χ. η αγέλη)
+	for b in ordered:
+		if b.ability:
+			b.ability.before_advance(b, self)
 	for b in ordered:
 		var want := 1
 		if b.ability:

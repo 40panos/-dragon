@@ -64,7 +64,7 @@ func _initialize() -> void:
 		m.grid.erase(b)
 		b.queue_free()
 	await process_frame
-	var boss_type = m.enemy_by_id.get("warlock_boss")
+	var boss_type = m.enemy_by_id.get("yeti")
 	var big = m._make_block(2, 0, boss_type, 50.0, 3, 2, true)
 	ok("boss πιάνει 6 κελιά", m.grid.at(2, 0) == big and m.grid.at(4, 1) == big)
 	ok("δεν χωράει άλλος μέσα του", not m.grid.fits(3, 1, 1, 1))
@@ -145,7 +145,8 @@ func _initialize() -> void:
 
 	# πολλές κλήσεις, από warlock και από boss: καμία κάτω από τη σειρά 7
 	var summoners := [wl]
-	var lord = m._make_block(2, 0, m.enemy_by_id["warlock_boss"], 100.0, 3, 2, true)
+	# ένας warlock σε μέγεθος boss: ο καλεστής σε αποτύπωμα 3x2
+	var lord = m._make_block(2, 0, m.enemy_by_id["warlock"], 100.0, 3, 2, true)
 	summoners.append(lord)
 	for s in summoners:
 		(s.ability as SummonerAbility).every = 1
@@ -339,13 +340,13 @@ func _initialize() -> void:
 
 	print("--- book ---")
 	var bk = m.bestiary
-	ok("ο goblin ανήκει στην πρώτη περιοχή, ο Warlock Lord στη δεύτερη",
-		bk.area_of("goblin") == 0 and bk.area_of("warlock_boss") == 1)
+	ok("ο goblin ανήκει στην πρώτη περιοχή, ο Yeti στη δεύτερη",
+		bk.area_of("goblin") == 0 and bk.area_of("yeti") == 1)
 	var bk_ids0: Array = bk.entries(0).map(func(e): return e.id)
 	var bk_ids1: Array = bk.entries(1).map(func(e): return e.id)
 	ok("κάθε εχθρός μπαίνει σε μία μόνο σελίδα",
 		"goblin" in bk_ids0 and "goblin_king" in bk_ids0 and not "goblin" in bk_ids1
-		and bk_ids1 == ["warlock_boss"], "(%s | %s)" % [bk_ids0, bk_ids1])
+		and "frost_imp" in bk_ids1 and "yeti" in bk_ids1, "(%s | %s)" % [bk_ids0, bk_ids1])
 	var bk_all_described := true
 	for bk_i in m.areas.size():
 		for bk_e in bk.entries(bk_i):
@@ -596,17 +597,15 @@ func _initialize() -> void:
 		"(%d)" % knight_type.frames_idle.size())
 	ok("ο warlock πήρε 8 καρέ idle", warlock_type.frames_idle.size() == 8,
 		"(%d)" % warlock_type.frames_idle.size())
-	# ο boss είναι ο ίδιος χαρακτήρας με τον warlock, μεγεθυσμένος
-	var boss_wl: EnemyType = m.enemy_by_id["warlock_boss"]
-	ok("και ο boss κινείται στην ηρεμία", boss_wl.frames_idle.size() == 8,
-		"(%d)" % boss_wl.frames_idle.size())
-	# κανένας εχθρός δεν πρέπει πια να μένει με στατικό πορτρέτο
+	# κανένας εχθρός του Goblin Land δεν μένει με στατικό πορτρέτο. Οι εχθροί
+	# του Frost Marches είναι ακόμα στατικοί, ως τα animations τους.
 	var still := []
-	for id in m.enemy_by_id:
-		if m.enemy_by_id[id].frames_idle.is_empty():
-			still.append(id)
-	ok("κανένας εχθρός δεν έμεινε χωρίς idle", still.is_empty(), str(still))
-	for id in ["knight", "warlock", "warlock_boss"]:
+	var gl: AreaDef = m.areas[0]
+	for et0 in gl.enemies + gl.minions + [gl.boss]:
+		if et0.frames_idle.is_empty():
+			still.append(et0.id)
+	ok("κανένας εχθρός του Goblin Land χωρίς idle", still.is_empty(), str(still))
+	for id in ["knight", "warlock"]:
 		var et: EnemyType = m.enemy_by_id[id]
 		var sz := {}
 		for tex in et.frames_idle + et.frames_hit:
@@ -623,8 +622,8 @@ func _initialize() -> void:
 	var king_type: EnemyType = m.enemy_by_id["goblin_king"]
 	ok("ο boss της Goblin Land είναι ο βασιλιάς",
 		m.areas[0].boss.id == "goblin_king", m.areas[0].boss.id)
-	ok("το Frost Marches κράτησε τον δικό του boss",
-		m.areas[1].boss.id == "warlock_boss", m.areas[1].boss.id)
+	ok("ο boss του Frost Marches είναι ο Yeti",
+		m.areas[1].boss.id == "yeti", m.areas[1].boss.id)
 	ok("6 καρέ idle", king_type.frames_idle.size() == 6,
 		"(%d)" % king_type.frames_idle.size())
 	ok("6 καρέ hit", king_type.frames_hit.size() == 6,
@@ -780,6 +779,77 @@ func _initialize() -> void:
 			m.grid.erase(left_over)
 			left_over.queue_free()
 	await process_frame
+
+	print("--- frost marches ---")
+	m.grid = BattleGrid.new(m.COLS)
+	m.boss = null
+	m.freeze_rounds = 0
+	var fm: AreaDef = m.areas[1]
+	var fm_ids: Array = fm.enemies.map(func(e): return e.id)
+	ok("οι εχθροί του Frost Marches", fm_ids == ["frost_imp", "snow_wolf", "viking", "crystal_golem"],
+		str(fm_ids))
+	ok("το shardling μένει έξω από τη νέα σειρά",
+		fm.minions.size() == 1 and fm.minions[0].id == "shardling")
+	# αγέλη: δύο λύκοι δίπλα-δίπλα κατεβαίνουν 2, ο μοναχικός 1
+	var wolf_t: EnemyType = m.enemy_by_id["snow_wolf"]
+	var w1 = m._make_block(2, 3, wolf_t, 5.0, 1, 1, false)
+	var w2 = m._make_block(3, 3, wolf_t, 5.0, 1, 1, false)
+	var w3 = m._make_block(6, 3, wolf_t, 5.0, 1, 1, false)
+	for wb in [w1, w2, w3]:
+		wb.ability.before_advance(wb, m)
+	ok("λύκος με λύκο δίπλα: 2 σειρές",
+		w1.ability.advance_rows(w1, 1) == 2 and w2.ability.advance_rows(w2, 1) == 2)
+	ok("μοναχικός λύκος: 1 σειρά", w3.ability.advance_rows(w3, 1) == 1)
+	for wb in [w1, w2, w3]:
+		m.grid.erase(wb)
+		wb.queue_free()
+	await process_frame
+	# θρυμματισμός: ο golem σπάει σε δύο θραύσματα, στο κελί του και δίπλα
+	var golem = m._make_block(3, 4, m.enemy_by_id["crystal_golem"], 3.0, 1, 1, false)
+	golem.take_damage(99.0)
+	await process_frame
+	await process_frame
+	var shards: Array = m.grid.blocks().filter(func(x): return is_instance_valid(x) and x.kind == "shardling")
+	ok("ο golem έσπασε σε 2 θραύσματα", shards.size() == 2, "(%d)" % shards.size())
+	ok("...γύρω από το κελί του", shards.all(func(x): return absi(x.col - 3) + absi(x.row - 4) <= 1))
+	for sb in shards:
+		m.grid.erase(sb)
+		sb.queue_free()
+	await process_frame
+	# αναγέννηση: ο Yeti γιατρεύεται μόνο αν πέρασε γύρος χωρίς χτύπημα
+	var yeti = m._make_block(2, 0, m.enemy_by_id["yeti"], 100.0, 3, 2, true)
+	yeti.hp = 50.0
+	yeti.ability.on_round_end(yeti, m)
+	ok("ο Yeti γιατρεύτηκε μετά από ήσυχο γύρο", yeti.hp > 50.0, "(%.1f)" % yeti.hp)
+	var yeti_hp: float = yeti.hp
+	yeti.take_damage(1.0)
+	yeti.ability.on_round_end(yeti, m)
+	ok("...αλλά όχι αν χτυπήθηκε", yeti.hp == yeti_hp - 1.0, "(%.1f)" % yeti.hp)
+	ok("η γιατρειά δεν περνάει τη μέγιστη ζωή", (func():
+		yeti.heal(9999.0)
+		return yeti.hp == yeti.max_hp).call())
+	for left_over in m.grid.blocks():
+		if is_instance_valid(left_over):
+			m.grid.erase(left_over)
+			left_over.queue_free()
+	m.grid = BattleGrid.new(m.COLS)
+	m.boss = null
+	await process_frame
+	# ο νέος frost
+	var fr: DragonType
+	for x in m.dragons:
+		if x.id == "frost":
+			fr = x
+	ok("ο frost ρίχνει FREEZE", fr.special == "freeze")
+	ok("ο frost ρίχνει παγοκρυστάλλους", fr.ball_sprite != null and fr.ball_aoe_sprite != null)
+	ok("ο frost δεν βάφεται πια γαλάζιος", fr.tint == Color.WHITE)
+	var fr_aw: DragonType = fr.awakened
+	ok("έχει εξελιγμένη μορφή, διπλάσια", fr_aw != null and fr_aw.draw_width == fr.draw_width * 2.0)
+	var fr_sz := {}
+	for tex in fr_aw.frames_idle + fr_aw.frames_ready + fr_aw.frames_fire:
+		fr_sz[tex.get_size()] = true
+	ok("η εξελιγμένη σε ίδιο καμβά σε όλες τις καταστάσεις", fr_sz.size() == 1, str(fr_sz.keys()))
+	ok("κλειστό στόμα στην ηρεμία, ανοιχτό στη βολή", fr_aw.frames_idle[0] != fr_aw.frames_fire[0])
 
 	print("--- αποθήκευση ---")
 	var d = SaveManager.defaults()
