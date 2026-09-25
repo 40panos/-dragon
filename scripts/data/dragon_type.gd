@@ -129,11 +129,11 @@ func special_name() -> String:
 ## Σύντομες περιγραφές για την κάρτα επιλογής δράκου.
 func special_desc() -> String:
 	match special:
-		"swarm": return "έξτρα βολή"
-		_: return "x3 ζημιά μία βολή"
+		"swarm": return "extra volley"
+		_: return "x3 damage, one volley"
 
 
 func passive_desc() -> String:
 	match passive:
-		"ball_every5": return "+1 μπάλα / 5 γύρους"
-		_: return "κάθε 5η μπάλα x2"
+		"ball_every5": return "+1 ball / 5 rounds"
+		_: return "every 5th ball x2"

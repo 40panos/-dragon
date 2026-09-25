@@ -378,7 +378,7 @@ func _start() -> void:
 	aoe_mode = false
 	launch_x = W * 0.5
 	phase = "aim"
-	_announce("%s — ROUND %d" % [current_area().display_name if current_area() else "", level])
+	_announce("%s - ROUND %d" % [current_area().display_name if current_area() else "", level])
 	_add_row()
 
 
@@ -546,7 +546,7 @@ func _spawn_boss() -> void:
 				b.queue_free()
 	var hp := maxf(10.0, round(level * area.boss_hp_mult))
 	boss = _make_block(col, 0, area.boss, hp, cw, ch, true)
-	_announce("BOSS — %s" % area.boss.display_name)
+	_announce("BOSS - %s" % area.boss.display_name)
 
 
 func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: int, as_boss: bool):
@@ -663,9 +663,9 @@ func _clear_area() -> void:
 			run_dragons.append(d.id)
 			new_dragon = true
 			unlocked_now = true
-			_announce("ΝΕΟΣ ΔΡΑΚΟΣ: %s" % d.display_name)
+			_announce("NEW DRAGON: %s" % d.display_name)
 	if not unlocked_now:
-		_announce("Η περιοχή καθαρίστηκε!")
+		_announce("AREA CLEARED!")
 
 
 # ---------------------------------------------------------------- χειρισμός
@@ -1046,9 +1046,18 @@ func _draw_field() -> void:
 		# ένα κελί και στις δύο διαστάσεις. Τεντωμένο στο ui_top έβγαινε
 		# 85.7 x 94.8: οι ραφές ξέφευγαν από το πλέγμα κατά 9px τη σειρά και
 		# η διαφορά μάζευε προς τα κάτω. Ό,τι περισσεύει το κρύβει το HUD.
+		#
+		# Το φόντο ΕΠΑΝΑΛΑΜΒΑΝΕΤΑΙ προς τα κάτω μέχρι να φτάσει το HUD. Τα
+		# κινητά είναι πιο στενόμακρα από το 720x1280 και το stretch "expand"
+		# μακραίνει την οθόνη, οπότε ένα αντίγραφο σταματούσε πριν από το
+		# κάστρο και άφηνε μαύρη λωρίδα. Κάθε αντίγραφο είναι ακέραιος αριθμός
+		# κελιών, άρα η επανάληψη πέφτει πάνω στο πλέγμα χωρίς ραφή.
 		var bg_rows := float(bg.get_height()) * COLS / float(bg.get_width())
-		draw_texture_rect(bg, Rect2(pf_left, PF_TOP, PF_W, cell * bg_rows),
-			false, area.tint)
+		var bg_h := cell * bg_rows
+		var y0 := PF_TOP
+		while y0 < ui_top:
+			draw_texture_rect(bg, Rect2(pf_left, y0, PF_W, bg_h), false, area.tint)
+			y0 += bg_h
 	else:
 		var steps := 14
 		for i in steps:

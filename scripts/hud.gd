@@ -181,7 +181,7 @@ func _draw() -> void:
 		draw_string(font, Vector2(0, H * 0.44), "GAME OVER",
 			HORIZONTAL_ALIGNMENT_CENTER, W, 64, Color("ff9b3d"))
 		draw_string(font, Vector2(0, H * 0.44 + 58.0),
-			"SCORE %d  •  ROUND %d  •  BEST %d" % [m.score, m.level, int(m.save.get("best_score", 0))],
+			"SCORE %d  /  ROUND %d  /  BEST %d" % [m.score, m.level, int(m.save.get("best_score", 0))],
 			HORIZONTAL_ALIGNMENT_CENTER, W, 28, Color("9b93ad"))
 		draw_string(font, Vector2(0, H * 0.44 + 126.0), "TAP TO RESTART",
 			HORIZONTAL_ALIGNMENT_CENTER, W, 26, Color(1, 1, 1, 0.5))
@@ -224,7 +224,7 @@ func _draw_picker(font: Font) -> void:
 	var panel: Rect2 = m.picker_panel_rect()
 	draw_rect(panel, Color("2a2740"))
 	draw_rect(panel.grow(-3.0), Color("15162b"))
-	draw_string(font, Vector2(panel.position.x, panel.position.y + 48.0), "ΔΙΑΛΕΞΕ ΔΡΑΚΟ",
+	draw_string(font, Vector2(panel.position.x, panel.position.y + 48.0), "CHOOSE DRAGON",
 		HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 32, Color("ffe1ad"))
 
 	for i in m.dragons.size():
@@ -245,21 +245,21 @@ func _draw_picker(font: Font) -> void:
 			Color(1.0, 0.95, 0.81, 1.0 if unlocked else 0.5))
 
 		if unlocked:
-			draw_string(font, Vector2(x, y + 28.0), "%s · %d kills" % [d.special_name(), int(d.special_cost)],
+			draw_string(font, Vector2(x, y + 28.0), "%s - %d kills" % [d.special_name(), int(d.special_cost)],
 				HORIZONTAL_ALIGNMENT_CENTER, w, 16, Color("6fc3ff"))
 			draw_string(font, Vector2(x, y + 50.0), d.special_desc(),
 				HORIZONTAL_ALIGNMENT_CENTER, w, 15, Color("c9c2d6"))
 			draw_string(font, Vector2(x, y + 72.0), d.passive_desc(),
 				HORIZONTAL_ALIGNMENT_CENTER, w, 15, Color("9b93ad"))
 		else:
-			draw_string(font, Vector2(x, y + 32.0), "ΚΛΕΙΔΩΜΕΝΟΣ",
+			draw_string(font, Vector2(x, y + 32.0), "LOCKED",
 				HORIZONTAL_ALIGNMENT_CENTER, w, 17, Color("ff9b3d"))
-			draw_string(font, Vector2(x, y + 56.0), "νίκησε τον boss:",
+			draw_string(font, Vector2(x, y + 56.0), "beat the boss of:",
 				HORIZONTAL_ALIGNMENT_CENTER, w, 15, Color("9b93ad"))
 			draw_string(font, Vector2(x, y + 76.0), _unlock_area_name(d),
 				HORIZONTAL_ALIGNMENT_CENTER, w, 15, Color("c9c2d6"))
 
-	draw_string(font, Vector2(panel.position.x, panel.end.y - 18.0), "πάτα έξω για κλείσιμο",
+	draw_string(font, Vector2(panel.position.x, panel.end.y - 18.0), "tap outside to close",
 		HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 18, Color(1, 1, 1, 0.4))
 
 
@@ -267,4 +267,4 @@ func _unlock_area_name(d: DragonType) -> String:
 	var idx := d.unlock_after_area - 1
 	if idx >= 0 and idx < m.areas.size():
 		return m.areas[idx].display_name
-	return "περιοχή %d" % d.unlock_after_area
+	return "area %d" % d.unlock_after_area
