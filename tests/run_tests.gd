@@ -721,6 +721,66 @@ func _initialize() -> void:
 			left_over.queue_free()
 	await process_frame
 
+	print("--- freeze ---")
+	m.phase = "aim"
+	m.aiming = false
+	m.freeze_rounds = 0
+	# καθαρό ταμπλό: το προηγούμενο καθάρισμα αφήνει μέσα όσους έχουν ήδη
+	# ελευθερωθεί, και το _end_turn θα σκόνταφτε πάνω τους
+	m.grid = BattleGrid.new(m.COLS)
+	m.boss = null
+	m._add_row()
+	var fz_dg: DragonType = m.dragon
+	var fz_special: String = fz_dg.special
+	fz_dg.special = "freeze"
+	m.special_charge = fz_dg.special_cost
+	m._use_special()
+	ok("το FREEZE παγώνει για 2 γύρους και ξυπνάει τη μορφή",
+		m.freeze_rounds == m.FREEZE_ROUNDS and (m.awake_active or fz_dg.awakened == null))
+	var fz_rows := {}
+	for fz_b in m.grid.blocks().filter(func(x): return is_instance_valid(x)):
+		fz_rows[fz_b] = fz_b.row
+	var fz_count: int = m.grid.blocks().filter(func(x): return is_instance_valid(x)).size()
+	var fz_level: int = m.level
+	var fz_tinted := true
+	for fz_b in m.grid.blocks().filter(func(x): return is_instance_valid(x)):
+		if fz_b.self_modulate == Color.WHITE:
+			fz_tinted = false
+	ok("οι παγωμένοι εχθροί βάφονται", fz_count > 0 and fz_tinted, "(%d)" % fz_count)
+	m._end_turn()
+	var fz_still: bool = m.grid.blocks().filter(func(x): return is_instance_valid(x)).size() == fz_count
+	for fz_b in m.grid.blocks().filter(func(x): return is_instance_valid(x)):
+		if fz_rows.get(fz_b, -1) != fz_b.row:
+			fz_still = false
+	ok("1ος παγωμένος γύρος: κανείς δεν κουνιέται, καμία νέα σειρά", fz_still)
+	ok("...ο γύρος μετράει κανονικά", m.level == fz_level + 1)
+	ok("...και η μορφή κρατάει", m.freeze_rounds == 1
+		and (m.awake_active or fz_dg.awakened == null))
+	m._end_turn()
+	fz_still = m.grid.blocks().filter(func(x): return is_instance_valid(x)).size() == fz_count
+	for fz_b in m.grid.blocks().filter(func(x): return is_instance_valid(x)):
+		if fz_rows.get(fz_b, -1) != fz_b.row:
+			fz_still = false
+	var fz_thawed := true
+	for fz_b in m.grid.blocks().filter(func(x): return is_instance_valid(x)):
+		if fz_b.self_modulate != Color.WHITE:
+			fz_thawed = false
+	ok("2ος παγωμένος γύρος: πάλι ακίνητοι", fz_still)
+	ok("στο τέλος του λιώνει και η μορφή τελειώνει",
+		m.freeze_rounds == 0 and not m.awake_active and fz_thawed)
+	m._end_turn()
+	var fz_moved: bool = m.grid.blocks().filter(func(x): return is_instance_valid(x)).size() != fz_count
+	for fz_b in m.grid.blocks().filter(func(x): return is_instance_valid(x)):
+		if fz_rows.has(fz_b) and fz_rows[fz_b] != fz_b.row:
+			fz_moved = true
+	ok("μετά το ξεπάγωμα οι εχθροί ξανακατεβαίνουν", fz_moved)
+	fz_dg.special = fz_special
+	for left_over in m.grid.blocks():
+		if is_instance_valid(left_over):
+			m.grid.erase(left_over)
+			left_over.queue_free()
+	await process_frame
+
 	print("--- αποθήκευση ---")
 	var d = SaveManager.defaults()
 	d["best_score"] = 4242

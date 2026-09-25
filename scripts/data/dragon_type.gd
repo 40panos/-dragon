@@ -107,7 +107,8 @@ func sprite_for(phase: String, aiming: bool) -> Texture2D:
 
 ## inferno = η επόμενη βολή κάνει τριπλή ζημιά
 ## swarm   = ρίχνει αμέσως μια ολόκληρη έξτρα βολή
-@export_enum("inferno", "swarm") var special := "inferno"
+## freeze  = παγώνει όλους τους εχθρούς για FREEZE_ROUNDS γύρους (βλ. main)
+@export_enum("inferno", "swarm", "freeze") var special := "inferno"
 
 ## Πόσοι σκοτωμοί χρειάζονται για να γεμίσει το special.
 @export var special_cost := 15.0
@@ -123,6 +124,7 @@ func sprite_for(phase: String, aiming: bool) -> Texture2D:
 func special_name() -> String:
 	match special:
 		"swarm": return "SWARM"
+		"freeze": return "FREEZE"
 		_: return "INFERNO"
 
 
@@ -130,6 +132,7 @@ func special_name() -> String:
 func special_desc() -> String:
 	match special:
 		"swarm": return "extra volley"
+		"freeze": return "enemies freeze, 2 rounds"
 		_: return "x3 damage, one volley"
 
 

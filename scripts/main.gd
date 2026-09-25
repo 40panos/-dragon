@@ -13,6 +13,11 @@ const PF_TOP := 190.0
 const DEATH_GAP := 218.0
 const UI_BAND := 142.0
 const TRIPLE_TURNS := 3
+## Πόσους γύρους κρατάει το FREEZE. Σε αυτούς οι εχθροί δεν κατεβαίνουν, οι
+## ικανότητές τους σωπαίνουν και δεν μπαίνει νέα σειρά· ο δράκος μένει στην
+## εξελιγμένη μορφή του ως το τέλος του τελευταίου.
+const FREEZE_ROUNDS := 2
+const FROZEN_TINT := Color(0.62, 0.86, 1.35)   # πάνω στον τόνο της περιοχής, στο self_modulate
 const PTS_HIT := 5
 const PTS_KILL := 25
 
@@ -78,6 +83,7 @@ var fire_timer := 0.0
 var shot_time := 0.0
 var live_balls := 0
 var triple_turns := 0
+var freeze_rounds := 0      # γύροι παγώματος που απομένουν (FREEZE)
 var balls_fired := 0
 var t := 0.0
 var banner := ""
@@ -401,6 +407,7 @@ func _start() -> void:
 	to_fire = 0
 	next_x = -1.0
 	triple_turns = 0
+	freeze_rounds = 0
 	balls_fired = 0
 	special_charge = 0.0
 	inferno_active = false
@@ -918,6 +925,11 @@ func _use_special() -> void:
 				_fire()
 				to_fire += ball_count
 			_announce("SWARM!")
+		"freeze":
+			freeze_rounds = FREEZE_ROUNDS
+			_paint_frozen()
+			add_shake(4.0)
+			_announce("FREEZE!")
 		_:
 			inferno_active = true
 			_announce("INFERNO!")
@@ -1044,11 +1056,17 @@ func _on_ball_died(x: float) -> void:
 
 func _end_turn() -> void:
 	Engine.time_scale = 1.0
-	if awake_active:
+	# γύρος παγώματος: μετράει κανονικά, αλλά ο κόσμος δεν κουνιέται
+	var frozen_turn := freeze_rounds > 0
+	if frozen_turn:
+		freeze_rounds -= 1
+	# η εξελιγμένη μορφή κρατάει όσο κρατάει το πάγωμα, όχι μόνο μία βολή
+	var keep_form := frozen_turn and freeze_rounds > 0
+	if awake_active and not keep_form:
 		_awaken_flash()      # η ίδια φλόγα καλύπτει και την επιστροφή
-	var was_awake := awake_active
+	var was_awake := awake_active and not keep_form
 	inferno_active = false
-	awake_active = false
+	awake_active = awake_active and keep_form
 	if was_awake:
 		_refresh_glow()        # γύρισε η βασική μορφή, γυρίζει και η λάμψη της
 	ball_count += gained
@@ -1067,6 +1085,12 @@ func _end_turn() -> void:
 	if new_area != area_index:
 		area_index = new_area
 		_announce(current_area().display_name if current_area() else "")
+
+	if frozen_turn:
+		if freeze_rounds == 0:
+			_paint_frozen()        # λιώνει: οι εχθροί ξαναπαίρνουν το χρώμα τους
+		phase = "aim"
+		return
 
 	var tween := create_tween()
 	tween.set_parallel(true)
@@ -1106,6 +1130,15 @@ func _end_turn() -> void:
 
 	_add_row()
 	phase = "aim"
+
+
+## Βάφει τους εχθρούς παγωμένους όσο κρατάει το FREEZE και τους ξεβάφει όταν
+## λιώσει. Στο self_modulate, όχι στο modulate: εκεί ζουν ο τόνος της περιοχής
+## και το κόκκινο της Rage, που αλλιώς θα χάνονταν στο ξεπάγωμα.
+func _paint_frozen() -> void:
+	for b in grid.blocks():
+		if is_instance_valid(b):
+			b.self_modulate = FROZEN_TINT if freeze_rounds > 0 else Color.WHITE
 
 
 func _game_over() -> void:

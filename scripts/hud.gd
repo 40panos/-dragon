@@ -246,6 +246,9 @@ func _draw_top() -> void:
 		# το power-up καλύπτει προσωρινά την ένδειξη του boss
 		msg = "TRIPLE SHOT %d" % m.triple_turns
 		col = Color("6fc3ff")
+	if m.freeze_rounds > 0:
+		msg = "FROZEN %d" % m.freeze_rounds
+		col = Color("bfeaff")
 	_text(Vector2(cx - 100.0, py + 70.0), 200.0, msg, 20, col, true)
 
 
