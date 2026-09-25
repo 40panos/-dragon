@@ -1,0 +1,80 @@
+# Χτίζει το παιχνίδι για browser σε κάθε push και το ανεβάζει στο GitHub
+# Pages, ώστε να παίζεται από το κινητό με ένα refresh.
+#
+#   https://40panos.github.io/-dragon/
+#
+# Δεν χρειάζεται κανένα κλειδί: το ανέβασμα γίνεται με το GITHUB_TOKEN που
+# δίνει το ίδιο το GitHub σε κάθε run. Αν αποτύχει έστω ένα test, δεν γίνεται
+# deploy — στο κινητό μένει η προηγούμενη έκδοση που δούλευε.
+
+name: Web build
+
+on:
+  push:
+    branches: [main, art/dragon-animation]
+  workflow_dispatch:
+
+# ένα deploy τη φορά· αν έρθει νέο push, το παλιό run ακυρώνεται
+concurrency:
+  group: web-deploy
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.3"
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - uses: actions/checkout@v4
+
+      # Η εικόνα βάζει τα templates στο /root, αλλά μέσα σε GitHub Actions το
+      # HOME είναι αλλού — χωρίς τη μεταφορά το export δεν τα βρίσκει.
+      - name: Export templates στη σωστή θέση
+        run: |
+          mkdir -v -p ~/.local/share/godot/export_templates/
+          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable \
+             ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      # το .godot/ δεν είναι στο git, οπότε όλα τα γραφικά γίνονται import εδώ
+      - name: Import
+        run: godot --headless --path . --import
+
+      - name: Tests
+        run: godot --headless --path . --script tests/run_tests.gd
+
+      - name: Export για Web
+        run: |
+          mkdir -v -p build/web
+          godot --headless --path . --export-release "Web" build/web/index.html
+          # χωρίς αυτό το Pages περνάει τα αρχεία από Jekyll
+          touch build/web/.nojekyll
+          ls -la build/web
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: build/web
+          include-hidden-files: true
+
+  deploy:
+    needs: export
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: build/web
+
+      # Γράφει το build στον κλάδο gh-pages, απ' όπου το σερβίρει το Pages.
+      # Δουλεύει από οποιονδήποτε κλάδο — γι' αυτό προτιμήθηκε από το deploy
+      # μέσω environment, που επιτρέπει μόνο τον προεπιλεγμένο κλάδο.
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/web
+          force_orphan: true
