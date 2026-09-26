@@ -391,9 +391,11 @@ func glow_now() -> Array[Texture2D]:
 ## ζούσαν πριν τη μεταμόρφωση θα συνέχιζαν να ανάβουν με την παλιά.
 func _refresh_glow() -> void:
 	var g := glow_now()
+	var c := _accent(1.0)
 	for b in get_tree().get_nodes_in_group("block"):
 		if is_instance_valid(b):
 			b.glow_frames = g
+			b.burst_color = c
 
 
 # ---------------------------------------------------------------- στήσιμο
@@ -633,6 +635,7 @@ func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: in
 		type.frames_idle, type.fps_idle, type.frames_hit, type.fps_hit,
 		type.sprite_scale)
 	b.glow_frames = glow_now()
+	b.burst_color = _accent(1.0)
 	b.position = block_center(col, row, cw, ch)
 	var area := current_area()
 	if area:

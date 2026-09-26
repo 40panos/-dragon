@@ -16,6 +16,9 @@ const EDGE_COLOR := Color(1, 1, 1, 0.13)
 const EDGE_SHADOW := Color(0, 0, 0, 0.16)
 const GLOW_RINGS := 4          # ομόκεντροι δακτύλιοι λάμψης όταν φάει χτύπημα
 const GLOW_ALPHA := 0.9        # ένταση του πιο μέσα δακτυλίου, στο φουλ της λάμψης
+const BURST_TIME := 0.32       # διάρκεια της έκρηξης πίσω από boss/minions
+const BURST_PX := 4.0          # «pixel» της έκρηξης: 2 art pixels, πάνω στο πλέγμα
+const BURST_RAYS := 10
 
 # Φλογερό περίγραμμα: το σχέδιο είναι ένα τετράγωνο δαχτυλίδι 48x48 με άδεια
 # μέση (tools/build_glow.gd). Μπαίνει σαν πλαίσιο εννιά κομματιών — γωνίες
@@ -50,6 +53,10 @@ var sprite_scale := 1.0
 # η λάμψη είναι το χτύπημα του παίκτη, οπότε ο δράκος της φωτιάς αφήνει φλόγες
 # και ο επόμενος θα αφήνει κάτι δικό του. Άδειο = οι παλιοί λευκοί δακτύλιοι.
 var glow_frames: Array[Texture2D] = []
+## Χρώμα της έκρηξης πίσω από boss και minions (βλ. _draw_burst). Το δίνει το
+## main από τον ενεργό δράκο, όπως και τα glow_frames.
+var burst_color := Color("ff9e2c")
+var burst_t := 1.0                 # χρόνος από το τελευταίο χτύπημα, σε κλάσματα του BURST_TIME
 var glow_t := 0.0
 
 # ήρεμη στάση (idle loop) — προαιρετική, αλλιώς μένει στο στατικό sprite
@@ -128,6 +135,7 @@ func take_damage(amount: float) -> float:
 	if ability:
 		through = ability.absorb(self, amount)
 	flash = 1.0
+	burst_t = 0.0
 	glow_t = 0.0        # η φλόγα ξεκινάει από την αρχή σε κάθε χτύπημα
 	if not frames_hit.is_empty():
 		hit_t = 0.0
@@ -197,6 +205,9 @@ func _process(delta: float) -> void:
 		flash = maxf(0.0, flash - delta * 6.0)
 		glow_t += delta
 		queue_redraw()
+	if burst_t < 1.0:
+		burst_t = minf(1.0, burst_t + delta / BURST_TIME)
+		queue_redraw()
 	if hit_playing:
 		hit_t += delta
 		if hit_t >= float(frames_hit.size()) / fps_hit:
@@ -263,6 +274,9 @@ func _draw_edge() -> void:
 	if not is_moving():
 		draw_rect(rect.grow(1.0), EDGE_SHADOW, false, 1.0)
 		draw_rect(rect, EDGE_COLOR, false, 1.0)
+	# boss και minions: αντί για δαχτυλίδι στο κουτί, έκρηξη πίσω τους (_draw_burst)
+	if uses_burst():
+		return
 	if flash <= 0.02:
 		return
 	# λάμψη ζημιάς: το φλογερό δαχτυλίδι του δράκου, αν υπάρχει
@@ -274,6 +288,54 @@ func _draw_edge() -> void:
 	for i in GLOW_RINGS:
 		draw_rect(rect.grow(float(i)), Color(1, 1, 1, flash * GLOW_ALPHA / float(i + 1)),
 			false, 1.0)
+
+
+## Boss (πολλά κελιά) και minions (μικρότερο πορτρέτο) δεν ταιριάζουν με το
+## δαχτυλίδι γύρω από το κουτί: στον boss βγαίνει ένα τεράστιο ορθογώνιο, στο
+## minion μένει άδειος χώρος ανάμεσα στο πλάσμα και το περίγραμμα.
+func uses_burst() -> bool:
+	return is_boss or sprite_scale < 0.99
+
+
+## Η λάμψη ζημιάς για boss και minions: έκρηξη που σκάει ΠΙΣΩ από το πλάσμα —
+## ακτίνες από τετράγωνα που τρέχουν προς τα έξω κι ένας δίσκος που φουσκώνει
+## και σβήνει, στο χρώμα του δράκου. Όλα πάνω στο πλέγμα των BURST_PX, ώστε να
+## διαβάζεται σαν pixel art και όχι σαν θολή λάμψη.
+func _draw_burst(psize: Vector2) -> void:
+	if burst_t >= 1.0:
+		return
+	var k := burst_t                                   # 0 -> 1
+	var fade := 1.0 - k * k                            # κρατάει, και σβήνει στο τέλος
+	# μετριέται από το ΜΙΣΟ του μικρότερου άξονα: έτσι η έκρηξη βγαίνει έξω
+	# από το σώμα σε όλες τις πλευρές, αλλιώς στον boss κρυβόταν ολόκληρη
+	var reach := minf(psize.x, psize.y) * 0.5
+	var hot := burst_color.lerp(Color.WHITE, 0.35)
+	var snap := func(v: Vector2) -> Vector2:
+		return (v / BURST_PX).floor() * BURST_PX
+	# δαχτυλίδι: ξεκινάει στην άκρη του πλάσματος και ανοίγει προς τα έξω
+	var r_out := reach * (0.95 + 0.75 * sqrt(k))
+	var r_in := r_out - reach * (0.55 - 0.35 * k)
+	var n := int(ceil(r_out / BURST_PX))
+	for gy in range(-n, n + 1):
+		for gx in range(-n, n + 1):
+			var q := Vector2(gx, gy) * BURST_PX
+			var d := q.length()
+			if d > r_out or d < r_in:
+				continue
+			var edge := clampf((d - r_in) / maxf(r_out - r_in, 1.0), 0.0, 1.0)
+			draw_rect(Rect2(q, Vector2(BURST_PX, BURST_PX)),
+				Color(hot if edge > 0.55 else burst_color, fade * (0.35 + 0.5 * edge)))
+	# ακτίνες: κομμάτια που εκτοξεύονται πέρα από το δαχτυλίδι
+	for i in BURST_RAYS:
+		var ang := TAU * float(i) / BURST_RAYS + (0.31 if i % 2 else 0.0)
+		var dir := Vector2(cos(ang), sin(ang))
+		var head := reach * (1.0 + (1.1 if i % 2 == 0 else 0.8) * sqrt(k))
+		for st in 4:
+			var at := head - float(st) * BURST_PX * 1.5
+			var q: Vector2 = snap.call(dir * at)
+			var sz := BURST_PX * (2.0 if st == 0 else 1.0)
+			draw_rect(Rect2(q - Vector2(sz, sz) * 0.5, Vector2(sz, sz)),
+				Color(hot if st == 0 else burst_color, fade * (1.0 - float(st) * 0.22)))
 
 
 ## Πλαίσιο εννιά κομματιών: οι τέσσερις γωνίες μπαίνουν ατόφιες και οι πλευρές
@@ -335,6 +397,8 @@ func _draw() -> void:
 		# το sprite_scale μικραίνει μόνο το πορτρέτο, κεντραρισμένο μέσα στο
 		# κελί — το κουτί, το περίγραμμα και οι ενδείξεις μένουν στη θέση τους
 		var psize := (box - Vector2(6, 6)) * sprite_scale
+		if uses_burst():
+			_draw_burst(psize)
 		draw_texture_rect(portrait, Rect2(-psize * 0.5, psize), false)
 	else:
 		var map: Array = ART.get(kind, ART["goblin"])

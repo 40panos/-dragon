@@ -880,6 +880,23 @@ func _initialize() -> void:
 		m.tex_frame_left.resource_path.ends_with("frame_left.png"))
 	ok("...και δεν χιονίζει", m.weather._active == "" and m.weather._flakes.is_empty())
 
+	print("--- λάμψη χτυπήματος ---")
+	var hb_gob = m._make_block(0, 5, m.enemy_by_id["goblin"], 9.0, 1, 1, false)
+	var hb_bat = m._make_block(2, 5, m.enemy_by_id["bat"], 9.0, 1, 1, false)
+	var hb_boss = m._make_block(2, 0, m.enemy_by_id["goblin_king"], 90.0, 3, 2, true)
+	ok("boss και minions σκάνε έκρηξη, οι απλοί κρατάνε το δαχτυλίδι",
+		hb_boss.uses_burst() and hb_bat.uses_burst() and not hb_gob.uses_burst())
+	hb_bat.take_damage(1.0)
+	ok("το χτύπημα ξεκινάει την έκρηξη", hb_bat.burst_t == 0.0)
+	hb_bat._process(1.0)
+	ok("...και τελειώνει μόνη της", hb_bat.burst_t == 1.0)
+	ok("η έκρηξη παίρνει το χρώμα του δράκου", hb_bat.burst_color == m._accent(1.0))
+	for hb in [hb_gob, hb_bat, hb_boss]:
+		m.grid.erase(hb)
+		hb.queue_free()
+	m.boss = null
+	await process_frame
+
 	print("--- αποθήκευση ---")
 	var d = SaveManager.defaults()
 	d["best_score"] = 4242
