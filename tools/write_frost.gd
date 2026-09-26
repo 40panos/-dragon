@@ -5,12 +5,14 @@ extends SceneTree
 ##
 ## Ο δράκος του πάγου: σκούρο κεφάλι με στέμμα από κρυστάλλους αντί για
 ## κέρατα, και παγοκρύσταλλοι αντί για μπάλες φωτιάς. Το special του είναι το
-## FREEZE· όσο κρατάει, βγαίνει η εξελιγμένη μορφή — ανοιχτό σαγόνι στη βολή,
-## κλειστό στην ηρεμία, με παγωμένες ρούνες πάνω στα λέπια.
+## FREEZE· όσο κρατάει, βγαίνει η εξελιγμένη μορφή: στενό θωρακισμένο πρόσωπο
+## με παγωμένες ρούνες, και κρύσταλλοι που ανοίγουν στα πλάγια σαν φτερά.
 ##
-## Προς το παρόν ΕΝΑ καρέ ανά κατάσταση: τα animations έρχονται μετά την
-## έγκριση των σχεδίων. Οι πίνακες καρέ μένουν πίνακες, ώστε να γεμίσουν
-## αργότερα χωρίς αλλαγή στον κώδικα.
+## Η εξελιγμένη έχει 3 καρέ ανά κατάσταση (ping-pong): στην ηρεμία οι ρούνες
+## πάλλονται, στη σκόπευση ανάβουν σταδιακά, στη βολή σκάει παγωμένη ανάσα.
+## Επειδή το σχέδιο από μόνο του είναι ήσυχο, παίρνει και glyph_aura: ρούνες
+## που αιωρούνται γύρω του και σκάνε στη βολή (scripts/glyph_aura.gd).
+## Η βασική μορφή είναι ακόμα ένα στατικό καρέ.
 
 const RES_PATH := "res://data/dragons/02_frost.tres"
 const FRAME_W := 64
@@ -35,19 +37,32 @@ func _tex(name_: String, want_w: int = 0) -> Texture2D:
 	return t
 
 
+## frost_awake_<κατάσταση>_1..3, όλα σε ίδιο καμβά.
+func _frames(state: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	for i in range(1, 4):
+		out.append(_tex("frost_awake_%s_%d" % [state, i], EVO_W))
+	return out
+
+
 func _make_evolved() -> DragonType:
 	var a := DragonType.new()
-	var closed := _tex("frost_awake_idle", EVO_W)
-	var open := _tex("frost_awake_fire", EVO_W)
+	var idle := _frames("idle")
+	var ready_ := _frames("ready")
+	var fire := _frames("fire")
 	a.id = "frost_evolved"
 	a.display_name = "Frost Awakened"
-	a.sprite = closed
-	a.sprite_idle = closed
-	a.sprite_ready = closed
-	a.sprite_fire = open
-	a.frames_idle = [closed] as Array[Texture2D]
-	a.frames_ready = [closed] as Array[Texture2D]
-	a.frames_fire = [open] as Array[Texture2D]
+	a.sprite = idle[0]
+	a.sprite_idle = idle[0]
+	a.sprite_ready = ready_[0]
+	a.sprite_fire = fire[0]
+	a.frames_idle = idle
+	a.frames_ready = ready_
+	a.frames_fire = fire
+	a.fps_idle = 3.0
+	a.fps_ready = 6.0
+	a.fps_fire = 12.0
+	a.glyph_aura = true
 	a.draw_width = float(EVO_W * EVO_SCALE)   # 256 = 2x
 	a.tint = Color(1, 1, 1, 1)
 	a.accent = ACCENT

@@ -56,6 +56,10 @@ extends Resource
 ## Αντί για λάμψη στο στόμα, χύνεται σκοτάδι από τις κόγχες όταν ρίχνει.
 @export var dark_eyes := false
 
+## Αύρα από παγωμένες ρούνες γύρω από το κεφάλι (scripts/glyph_aura.gd):
+## ρούνες που ανεβαίνουν, παγωμένη σκόνη, και έκρηξη ρουνών στη βολή.
+@export var glyph_aura := false
+
 @export var fps_idle := 3.0
 @export var fps_ready := 7.0
 @export var fps_fire := 11.0

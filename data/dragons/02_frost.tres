@@ -1,35 +1,43 @@
-[gd_resource type="Resource" script_class="DragonType" load_steps=8 format=3]
+[gd_resource type="Resource" script_class="DragonType" load_steps=15 format=3]
 
-[ext_resource type="Texture2D" path="res://art/ice_shard_aoe.png" id="1_430bo"]
-[ext_resource type="Texture2D" path="res://art/ice_shard.png" id="2_xeccx"]
-[ext_resource type="Texture2D" path="res://art/frost_awake_fire.png" id="3_s2n1u"]
-[ext_resource type="Texture2D" path="res://art/frost_awake_idle.png" id="4_5euni"]
-[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="5_jq00j"]
-[ext_resource type="Texture2D" path="res://art/frost.png" id="6_nkd7w"]
+[ext_resource type="Texture2D" path="res://art/ice_shard_aoe.png" id="1_15e84"]
+[ext_resource type="Texture2D" path="res://art/ice_shard.png" id="2_w2d17"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_fire_1.png" id="3_nc6kh"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_fire_2.png" id="4_a4yhl"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_fire_3.png" id="5_xljtc"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_idle_1.png" id="6_bup76"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_idle_2.png" id="7_4pcej"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_idle_3.png" id="8_q310x"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_ready_1.png" id="9_wekfu"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_ready_2.png" id="10_hqrru"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_ready_3.png" id="11_taj0i"]
+[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="12_le2ok"]
+[ext_resource type="Texture2D" path="res://art/frost.png" id="13_tjba4"]
 
-[sub_resource type="Resource" id="Resource_r3pyb"]
-script = ExtResource("5_jq00j")
+[sub_resource type="Resource" id="Resource_vrcx5"]
+script = ExtResource("12_le2ok")
 id = "frost_evolved"
 display_name = "Frost Awakened"
-sprite = ExtResource("4_5euni")
-sprite_idle = ExtResource("4_5euni")
-sprite_ready = ExtResource("4_5euni")
-sprite_fire = ExtResource("3_s2n1u")
-frames_idle = Array[Texture2D]([ExtResource("4_5euni")])
-frames_ready = Array[Texture2D]([ExtResource("4_5euni")])
-frames_fire = Array[Texture2D]([ExtResource("3_s2n1u")])
+sprite = ExtResource("6_bup76")
+sprite_idle = ExtResource("6_bup76")
+sprite_ready = ExtResource("9_wekfu")
+sprite_fire = ExtResource("3_nc6kh")
+frames_idle = Array[Texture2D]([ExtResource("6_bup76"), ExtResource("7_4pcej"), ExtResource("8_q310x")])
+frames_ready = Array[Texture2D]([ExtResource("9_wekfu"), ExtResource("10_hqrru"), ExtResource("11_taj0i")])
+frames_fire = Array[Texture2D]([ExtResource("3_nc6kh"), ExtResource("4_a4yhl"), ExtResource("5_xljtc")])
 glow_frames = Array[Texture2D]([])
-ball_sprite = ExtResource("2_xeccx")
-ball_aoe_sprite = ExtResource("1_430bo")
+ball_sprite = ExtResource("2_w2d17")
+ball_aoe_sprite = ExtResource("1_15e84")
 accent = Color(0.560784, 0.890196, 1, 1)
 ball_spin = 0.0
 ball_heading = -0.785398
 awaken_tint = Color(1, 1, 1, 1)
 awaken_style = "flame"
 dark_eyes = false
+glyph_aura = true
 fps_idle = 3.0
-fps_ready = 7.0
-fps_fire = 11.0
+fps_ready = 6.0
+fps_fire = 12.0
 draw_width = 256.0
 tint = Color(1, 1, 1, 1)
 special = "freeze"
@@ -38,31 +46,32 @@ passive = "every5_double"
 unlock_after_area = 0
 
 [resource]
-script = ExtResource("5_jq00j")
+script = ExtResource("12_le2ok")
 id = "frost"
 display_name = "Frost"
-sprite = ExtResource("6_nkd7w")
-sprite_idle = ExtResource("6_nkd7w")
-sprite_ready = ExtResource("6_nkd7w")
-sprite_fire = ExtResource("6_nkd7w")
-frames_idle = Array[Texture2D]([ExtResource("6_nkd7w")])
-frames_ready = Array[Texture2D]([ExtResource("6_nkd7w")])
-frames_fire = Array[Texture2D]([ExtResource("6_nkd7w")])
+sprite = ExtResource("13_tjba4")
+sprite_idle = ExtResource("13_tjba4")
+sprite_ready = ExtResource("13_tjba4")
+sprite_fire = ExtResource("13_tjba4")
+frames_idle = Array[Texture2D]([ExtResource("13_tjba4")])
+frames_ready = Array[Texture2D]([ExtResource("13_tjba4")])
+frames_fire = Array[Texture2D]([ExtResource("13_tjba4")])
 glow_frames = Array[Texture2D]([])
-ball_sprite = ExtResource("2_xeccx")
-ball_aoe_sprite = ExtResource("1_430bo")
+ball_sprite = ExtResource("2_w2d17")
+ball_aoe_sprite = ExtResource("1_15e84")
 accent = Color(0.560784, 0.890196, 1, 1)
 ball_spin = 0.0
 ball_heading = -0.785398
 awaken_tint = Color(1, 1, 1, 1)
 awaken_style = "flame"
 dark_eyes = false
+glyph_aura = false
 fps_idle = 3.0
 fps_ready = 7.0
 fps_fire = 11.0
 draw_width = 128.0
 tint = Color(1, 1, 1, 1)
-awakened = SubResource("Resource_r3pyb")
+awakened = SubResource("Resource_vrcx5")
 special = "freeze"
 special_cost = 18.0
 passive = "ball_every5"

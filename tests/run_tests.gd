@@ -852,7 +852,9 @@ func _initialize() -> void:
 	for tex in fr_aw.frames_idle + fr_aw.frames_ready + fr_aw.frames_fire:
 		fr_sz[tex.get_size()] = true
 	ok("η εξελιγμένη σε ίδιο καμβά σε όλες τις καταστάσεις", fr_sz.size() == 1, str(fr_sz.keys()))
-	ok("κλειστό στόμα στην ηρεμία, ανοιχτό στη βολή", fr_aw.frames_idle[0] != fr_aw.frames_fire[0])
+	ok("η εξελιγμένη κινείται: 3 καρέ σε κάθε κατάσταση",
+		fr_aw.frames_idle.size() == 3 and fr_aw.frames_ready.size() == 3 and fr_aw.frames_fire.size() == 3)
+	ok("...και έχει αύρα από ρούνες, η βασική όχι", fr_aw.glyph_aura and not fr.glyph_aura)
 	# ο κρύσταλλος γυρνάει με την πορεία: η μύτη του (heading) κοιτάει εκεί που πάει
 	ok("ο παγοκρύσταλλος έχει μύτη πάνω-δεξιά", is_equal_approx(fr.ball_heading, -PI / 4.0))
 	var fb_ball = m.BallScene.instantiate()

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bx1fgfvlmwnd0"
-path="res://.godot/imported/frost_awake_idle.png-fa6b38d2bdb4f1ebf5f582c7a8af39b9.ctex"
+uid="uid://cmvlicr0hvg26"
+path="res://.godot/imported/frost_awake_fire_3.png-2b64ef13a7e4876d61b2fc1881233206.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/frost_awake_idle.png"
-dest_files=["res://.godot/imported/frost_awake_idle.png-fa6b38d2bdb4f1ebf5f582c7a8af39b9.ctex"]
+source_file="res://art/frost_awake_fire_3.png"
+dest_files=["res://.godot/imported/frost_awake_fire_3.png-2b64ef13a7e4876d61b2fc1881233206.ctex"]
 
 [params]
 

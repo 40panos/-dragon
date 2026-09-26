@@ -139,6 +139,7 @@ var tex_hud_panel: Texture2D
 var font: Font
 var bestiary       # το Book και οι ειδοποιήσεις νέων εχθρών (scripts/bestiary.gd)
 var weather        # χιόνι κ.λπ. πάνω από το ταμπλό (scripts/weather.gd)
+var glyph_aura     # ρούνες γύρω από δράκους με glyph_aura (scripts/glyph_aura.gd)
 
 
 func _ready() -> void:
@@ -181,6 +182,12 @@ func _make_fx() -> void:
 	weather.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(weather)
 	weather.m = self
+	glyph_aura = Node2D.new()
+	glyph_aura.set_script(load("res://scripts/glyph_aura.gd"))
+	glyph_aura.z_index = 45
+	glyph_aura.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(glyph_aura)
+	glyph_aura.m = self
 	fx = Node2D.new()
 	fx.set_script(load("res://scripts/fx.gd"))
 	fx.z_index = 50
@@ -999,6 +1006,11 @@ func _use_special() -> void:
 		_awaken_flash()
 		_refresh_glow()
 	special_charge = 0.0
+
+
+## Για ό,τι κινείται μόνο του (π.χ. η αύρα): σταματάει στην παύση και στο Book.
+func frozen_world_paused() -> bool:
+	return frozen()
 
 
 ## Παγωμένο παιχνίδι: παύση, ή ανοιχτό Book / κάρτα εχθρού.
