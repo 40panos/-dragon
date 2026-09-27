@@ -18,6 +18,9 @@ extends Resource
 ## Καιρός πάνω από το ταμπλό (scripts/weather.gd): "" κανένας, "snow" χιόνι.
 @export var weather := ""
 
+## Μουσική που παίζει σε λούπα όσο είσαι σε αυτή την περιοχή. Κενό = σιωπή.
+@export var music: AudioStream
+
 ## Οι τύποι εχθρών που εμφανίζονται εδώ.
 @export var enemies: Array[EnemyType] = []
 

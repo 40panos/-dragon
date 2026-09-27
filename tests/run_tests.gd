@@ -897,6 +897,36 @@ func _initialize() -> void:
 	m.boss = null
 	await process_frame
 
+	print("--- μουσική ---")
+	m.area_index = 0
+	m._apply_theme()
+	var goblin_song = m.areas[0].music
+	ok("το Goblin Land έχει soundtrack", goblin_song != null and m.music.stream == goblin_song)
+	ok("...που παίζει σε λούπα", goblin_song != null and goblin_song.loop)
+	m.area_index = 1
+	m._apply_theme()
+	ok("περιοχή χωρίς μουσική = σιωπή", m.music.stream == null)
+	m.area_index = 0
+	m._apply_theme()
+	var vbar: Rect2 = m.volume_bar_rect()
+	m.volume_open = true
+	m._volume_press(Vector2(vbar.position.x + vbar.size.x * 0.25, vbar.get_center().y))
+	ok("πάτημα στη μπάρα αλλάζει την ένταση", absf(m.music_volume() - 0.25) < 0.01,
+		"(%.2f)" % m.music_volume())
+	ok("...και ο player την ακολουθεί", absf(db_to_linear(m.music.volume_db) - 0.25) < 0.01)
+	m.volume_drag = false
+	m._volume_press(m.volume_mute_rect().get_center())
+	ok("το mute του πάνελ σωπαίνει τη μουσική", m.music_muted() and m.music.stream_paused)
+	m._set_volume_at(vbar.end.x)
+	ok("σύρσιμο της έντασης βγάζει από το mute", not m.music_muted() and not m.music.stream_paused)
+	m._set_volume_at(vbar.position.x - 50.0)
+	ok("ένταση στο μηδέν = σιωπή", m.music_silent() and m.music.stream_paused)
+	m._volume_press(Vector2(5.0, m.H - 5.0))
+	ok("πάτημα έξω από το πάνελ το κλείνει", not m.volume_open)
+	m.save["music_volume"] = 0.8
+	m.save["music_muted"] = false
+	m._apply_music_volume()
+
 	print("--- αποθήκευση ---")
 	var d = SaveManager.defaults()
 	d["best_score"] = 4242

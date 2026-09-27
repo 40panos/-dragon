@@ -140,6 +140,9 @@ var font: Font
 var bestiary       # το Book και οι ειδοποιήσεις νέων εχθρών (scripts/bestiary.gd)
 var weather        # χιόνι κ.λπ. πάνω από το ταμπλό (scripts/weather.gd)
 var glyph_aura     # ρούνες γύρω από δράκους με glyph_aura (scripts/glyph_aura.gd)
+var music: AudioStreamPlayer   # το soundtrack της περιοχής (AreaDef.music)
+var volume_open := false       # ανοιχτό το πάνελ έντασης κάτω από τη νότα
+var volume_drag := false       # σέρνεται η μπάρα έντασης
 
 
 func _ready() -> void:
@@ -165,8 +168,9 @@ func _ready() -> void:
 	tex_hud_panel = _load_tex("hud_panel")
 
 	_load_content()
-	_apply_theme()
 	save = SaveManager.load_data()
+	_make_music()
+	_apply_theme()
 	_build_walls()
 	_make_fx()
 	_make_hud()
@@ -242,6 +246,89 @@ func _apply_theme() -> void:
 	tex_banner = pick.call("deco_banner")
 	tex_hud_wall = pick.call("hud_wall")
 	tex_hud_top = pick.call("hud_top")
+	_play_area_music()
+
+
+# ---------------------------------------------------------------- μουσική
+
+## Ο player παίζει και στην παύση: η σίγαση γίνεται μόνο από το κουμπί mute.
+func _make_music() -> void:
+	music = AudioStreamPlayer.new()
+	music.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(music)
+
+
+## Βάζει το κομμάτι της τρέχουσας περιοχής. Αν είναι ήδη αυτό που παίζει, δεν
+## το ξεκινάει από την αρχή — αλλιώς κάθε restart θα έκοβε τη μουσική.
+func _play_area_music() -> void:
+	if music == null:
+		return
+	var area := current_area()
+	var stream: AudioStream = area.music if area else null
+	if stream is AudioStreamMP3:
+		stream.loop = true
+	elif stream is AudioStreamOggVorbis:
+		stream.loop = true
+	if stream == null:
+		music.stop()
+		music.stream = null
+		return
+	if music.stream != stream:
+		music.stream = stream
+		music.stop()
+	_apply_music_volume()
+	if not music.playing:
+		music.play()
+
+
+func music_muted() -> bool:
+	return bool(save.get("music_muted", false))
+
+
+## Ένταση μουσικής, 0..1.
+func music_volume() -> float:
+	return clampf(float(save.get("music_volume", 0.8)), 0.0, 1.0)
+
+
+## Σιωπηλή: είτε σε mute είτε με την ένταση στο μηδέν.
+func music_silent() -> bool:
+	return music_muted() or music_volume() <= 0.0
+
+
+func _apply_music_volume() -> void:
+	if music == null:
+		return
+	music.volume_db = linear_to_db(maxf(music_volume(), 0.0001))
+	music.stream_paused = music_silent()
+
+
+func _toggle_music() -> void:
+	save["music_muted"] = not music_muted()
+	SaveManager.save_data(save)
+	_apply_music_volume()
+
+
+## Η ένταση από τη θέση x πάνω στη μπάρα. Δεν αποθηκεύει: αυτό γίνεται όταν
+## σηκωθεί το δάχτυλο, όχι σε κάθε κίνηση του συρσίματος.
+func _set_volume_at(x: float) -> void:
+	var bar := volume_bar_rect()
+	save["music_volume"] = clampf((x - bar.position.x) / bar.size.x, 0.0, 1.0)
+	# όποιος σέρνει την ένταση θέλει να ακούσει μουσική
+	if music_muted() and music_volume() > 0.0:
+		save["music_muted"] = false
+	_apply_music_volume()
+
+
+## Πάτημα όσο είναι ανοιχτό το πάνελ έντασης. Η νότα και οτιδήποτε έξω από το
+## πάνελ το κλείνουν.
+func _volume_press(p: Vector2) -> void:
+	if volume_mute_rect().has_point(p):
+		_toggle_music()
+	elif volume_bar_rect().grow(18.0).has_point(p):
+		volume_drag = true
+		_set_volume_at(p.x)
+	elif not volume_panel_rect().has_point(p):
+		volume_open = false
 
 
 func _load_tex(name_: String) -> Texture2D:
@@ -806,6 +893,31 @@ func menu_rect() -> Rect2:
 	return Rect2(frame_left() + 20.0, 18.0, HUD_BTN, HUD_BTN)
 
 
+## Μουσική: αμέσως αριστερά από την παύση. Ανοίγει το πάνελ έντασης.
+func mute_rect() -> Rect2:
+	var pr := pause_rect()
+	return Rect2(pr.position.x - 10.0 - HUD_BTN, pr.position.y, HUD_BTN, HUD_BTN)
+
+
+## Το πάνελ έντασης κρέμεται κάτω από τη νότα, στοιχισμένο με την παύση δεξιά.
+func volume_panel_rect() -> Rect2:
+	var w := 330.0
+	return Rect2(pause_rect().end.x - w, mute_rect().end.y + 10.0, w, 92.0)
+
+
+## Mute μέσα στο πάνελ, αριστερά.
+func volume_mute_rect() -> Rect2:
+	var r := volume_panel_rect()
+	return Rect2(r.position + Vector2(12.0, 12.0), Vector2(68.0, 68.0))
+
+
+## Η μπάρα έντασης, δεξιά από το mute.
+func volume_bar_rect() -> Rect2:
+	var r := volume_panel_rect()
+	var x := volume_mute_rect().end.x + 26.0
+	return Rect2(x, r.get_center().y - 2.0, r.end.x - 30.0 - x, 20.0)
+
+
 ## Τα δύο πάνελ της κάτω μπάρας, αριστερό και δεξί (το δεξί είναι καθρέφτισμα).
 func hud_panel_rect(right: bool) -> Rect2:
 	var y := H - HUD_PANEL.y - 18.0
@@ -908,6 +1020,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed 				and event.button_index == MOUSE_BUTTON_LEFT:
 			bestiary.press(get_global_mouse_position())
 		return
+	# όσο είναι ανοιχτό το πάνελ έντασης, πιάνει όλα τα πατήματα
+	if volume_open:
+		var vp := get_global_mouse_position()
+		if event is InputEventMouseMotion:
+			if volume_drag:
+				_set_volume_at(vp.x)
+		elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_volume_press(vp)
+			elif volume_drag:
+				volume_drag = false
+				SaveManager.save_data(save)
+		return
 	if event is InputEventMouseMotion:
 		if phase == "aim" and aiming:
 			_set_aim(get_global_mouse_position())
@@ -926,6 +1051,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if mb.pressed and pause_rect().has_point(p):
 		_toggle_pause()
+		return
+	# δουλεύει και μέσα στην παύση
+	if mb.pressed and mute_rect().has_point(p):
+		volume_open = true
+		aiming = false
 		return
 	# δεν υπάρχει ακόμα οθόνη μενού· το κουμπί ανοίγει την παύση, που είναι
 	# το μέρος όπου θα ζήσει όταν φτιαχτεί

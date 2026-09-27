@@ -122,6 +122,10 @@ func _draw() -> void:
 		draw_string(font, Vector2(0, H * 0.44 + 126.0), "TAP TO RESTART",
 			HORIZONTAL_ALIGNMENT_CENTER, W, 26, Color(1, 1, 1, 0.5))
 
+	# τελευταίο, ώστε να μένει πάνω και από την παύση
+	if m.volume_open:
+		_draw_volume()
+
 
 ## Εικόνα δράκου μέσα σε κουτί, με σωστή αναλογία.
 func _draw_portrait(d: DragonType, box: Rect2, alpha: float) -> void:
@@ -214,6 +218,7 @@ func _draw_top() -> void:
 	var pc := pr.get_center()
 	draw_rect(Rect2(pc.x - 10.0, pc.y - 11.0, 7.0, 22.0), BONE)
 	draw_rect(Rect2(pc.x + 3.0, pc.y - 11.0, 7.0, 22.0), BONE)
+	_draw_mute()
 
 	# δύο κρεμαστές πινακίδες: περιοχή και γύρος
 	var pw := PLATE.get_width() * 2.0
@@ -251,6 +256,50 @@ func _draw_top() -> void:
 		msg = "FROZEN %d" % m.freeze_rounds
 		col = Color("bfeaff")
 	_text(Vector2(cx - 100.0, py + 70.0), 200.0, msg, 20, col, true)
+
+
+## Το κουμπί της μουσικής πάνω δεξιά.
+func _draw_mute() -> void:
+	_draw_note(m.mute_rect(), m.music_silent())
+
+
+## Νότα μουσικής σε κουμπί· όταν είναι σε σίγαση, σβησμένη και με κόκκινη μπάρα.
+func _draw_note(r: Rect2, muted: bool) -> void:
+	draw_texture_rect(BTN, r, false)
+	var c := r.get_center()
+	var col := DIM if muted else BONE
+	draw_rect(Rect2(c.x - 12.0, c.y - 16.0, 22.0, 5.0), col)     # δοκάρι
+	draw_rect(Rect2(c.x - 12.0, c.y - 16.0, 4.0, 24.0), col)     # στέλεχος αριστερά
+	draw_rect(Rect2(c.x + 6.0, c.y - 16.0, 4.0, 20.0), col)      # στέλεχος δεξιά
+	draw_circle(Vector2(c.x - 14.0, c.y + 9.0), 6.0, col)        # κεφαλές
+	draw_circle(Vector2(c.x + 4.0, c.y + 5.0), 6.0, col)
+	if muted:
+		draw_line(c + Vector2(-20, -20), c + Vector2(20, 20), INK, 9.0)
+		draw_line(c + Vector2(-20, -20), c + Vector2(20, 20), Color("d4453a"), 5.0)
+
+
+## Πάνελ έντασης: mute αριστερά, μπάρα με λαβή δεξιά, ποσοστό από πάνω.
+func _draw_volume() -> void:
+	var panel: Rect2 = m.volume_panel_rect()
+	draw_rect(panel.grow(3.0), INK)
+	draw_rect(panel, Color("2a2740"))
+	draw_rect(panel.grow(-3.0), Color("15162b"))
+	_draw_note(m.volume_mute_rect(), m.music_muted())
+
+	var bar: Rect2 = m.volume_bar_rect()
+	var v: float = m.music_volume()
+	var on: bool = not m.music_muted()
+	draw_rect(bar.grow(2.0), Color("0e0c10"))
+	draw_rect(bar, Color("262030"))
+	var fill := GOLD if on else DIM
+	draw_rect(Rect2(bar.position, Vector2(bar.size.x * v, bar.size.y)), fill.darkened(0.25))
+	draw_rect(Rect2(bar.position, Vector2(bar.size.x * v, 4.0)), fill)
+	var kx := bar.position.x + bar.size.x * v
+	var knob := Rect2(kx - 9.0, bar.position.y - 10.0, 18.0, bar.size.y + 20.0)
+	draw_rect(knob.grow(2.0), INK)
+	draw_rect(knob, BONE if on else DIM)
+	_text(Vector2(bar.position.x, bar.position.y - 12.0), bar.size.x,
+		"MUSIC %d%%" % roundi(v * 100.0) if on else "MUSIC OFF", 18, BONE if on else DIM)
 
 
 # ---------------------------------------------------------------- κάτω μπάρα

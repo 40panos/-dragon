@@ -18,6 +18,8 @@ static func defaults() -> Dictionary:
 		"selected_dragon": "ember",
 		# όσοι τύποι εχθρών έχουν φανεί — το Book δείχνει μόνο αυτούς
 		"seen_enemies": [],
+		"music_muted": false,
+		"music_volume": 0.8,
 	}
 
 

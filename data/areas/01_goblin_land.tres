@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="AreaDef" load_steps=135 format=3]
+[gd_resource type="Resource" script_class="AreaDef" load_steps=136 format=3]
 
 [ext_resource type="Texture2D" path="res://art/background.png" id="1_q6tll"]
+[ext_resource type="AudioStream" uid="uid://bsi2e2xhapk3h" path="res://audio/music_goblin_land.mp3" id="92_music"]
 [ext_resource type="Script" path="res://scripts/abilities/enemy_ability.gd" id="2_pvyx4"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="2_q7sd1"]
 [ext_resource type="Texture2D" path="res://art/warlock_hit_1.png" id="3_0udx7"]
@@ -297,6 +298,7 @@ background = ExtResource("1_q6tll")
 tint = Color(1, 1, 1, 1)
 theme = ""
 weather = ""
+music = ExtResource("92_music")
 enemies = Array[ExtResource("3_8loov")]([SubResource("Resource_k23ck"), SubResource("Resource_ock6s"), SubResource("Resource_00qy8"), SubResource("Resource_kigvc"), SubResource("Resource_yx2hu")])
 minions = Array[ExtResource("3_8loov")]([SubResource("Resource_wkcin")])
 boss = SubResource("Resource_uwjuu")
