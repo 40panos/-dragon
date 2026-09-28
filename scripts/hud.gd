@@ -127,6 +127,8 @@ func _draw() -> void:
 	# τελευταίο, ώστε να μένει πάνω και από την παύση
 	if m.volume_open:
 		_draw_volume()
+	if m.debug_open:
+		_draw_debug_menu()
 
 
 ## Εικόνα δράκου μέσα σε κουτί, με σωστή αναλογία.
@@ -221,6 +223,10 @@ func _draw_top() -> void:
 	draw_rect(Rect2(pc.x - 10.0, pc.y - 11.0, 7.0, 22.0), BONE)
 	draw_rect(Rect2(pc.x + 3.0, pc.y - 11.0, 7.0, 22.0), BONE)
 	_draw_mute()
+	if m.debug_menu:
+		var dr: Rect2 = m.debug_rect()
+		draw_texture_rect(BTN, dr, false)
+		_text(Vector2(dr.position.x, dr.get_center().y + 7.0), dr.size.x, "TEST", 18, Color("9fe38a"))
 
 	# δύο κρεμαστές πινακίδες: περιοχή και γύρος
 	var pw := PLATE.get_width() * 2.0
@@ -292,6 +298,37 @@ func _draw_note(r: Rect2, muted: bool) -> void:
 	if muted:
 		draw_line(c + Vector2(-20, -20), c + Vector2(20, 20), INK, 9.0)
 		draw_line(c + Vector2(-20, -20), c + Vector2(20, 20), Color("d4453a"), 5.0)
+
+
+## Test menu: στήλη ανά περιοχή (START / MINI-BOSS / BOSS) και από κάτω τα
+## βοηθήματα. Ίδιο ύφος με την επιλογή δράκου.
+func _draw_debug_menu() -> void:
+	draw_rect(Rect2(Vector2.ZERO, Vector2(m.W, m.H)), Color(0.04, 0.03, 0.06, 0.6))
+	var panel: Rect2 = m.debug_panel_rect()
+	draw_rect(panel.grow(3.0), INK)
+	draw_rect(panel, Color("2a2740"))
+	draw_rect(panel.grow(-3.0), Color("15162b"))
+	_text(Vector2(panel.position.x, panel.position.y + 42.0), panel.size.x, "TEST MENU", 26, Color("9fe38a"))
+	# τίτλοι στηλών: οι περιοχές
+	for i in mini(m.areas.size(), m.DBG_COLS):
+		var br: Rect2 = m.debug_button_rect(i)
+		_text(Vector2(br.position.x, br.position.y - 10.0), br.size.x,
+			m.areas[i].display_name.to_upper(), 16, DIM)
+	var btns: Array = m.debug_buttons()
+	for i in btns.size():
+		var r: Rect2 = m.debug_button_rect(i)
+		var util := i >= mini(m.areas.size(), m.DBG_COLS) * 3
+		draw_rect(r.grow(2.0), INK)
+		draw_rect(r, Color("3a2f24") if util else Color("262440"))
+		draw_rect(Rect2(r.position, Vector2(r.size.x, 4.0)), Color(1, 1, 1, 0.08))
+		var col := GOLD if util else BONE
+		if btns[i][0] == "BOSS":
+			col = Color("ff9b7a")
+		draw_string(m.font, Vector2(r.position.x, r.get_center().y + 7.0), btns[i][0],
+			HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 18, col)
+	var info := "ROUND %d  /  BALLS x%d" % [m.level, m.ball_count]
+	draw_string(m.font, Vector2(panel.position.x, panel.end.y - 12.0), info,
+		HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 16, DIM)
 
 
 ## Πάνελ έντασης: mute αριστερά, μπάρα με λαβή δεξιά, ποσοστό από πάνω.

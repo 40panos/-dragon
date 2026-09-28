@@ -1140,6 +1140,45 @@ func _initialize() -> void:
 	m.save["music_muted"] = false
 	m._apply_music_volume()
 
+	print("--- test menu ---")
+	var tb: Array[Rect2] = [m.debug_rect(), m.mute_rect(), m.pause_rect(), m.menu_rect(),
+		m.bestiary.book_button_rect()]
+	var tb_overlap := false
+	for i in tb.size():
+		for j in range(i + 1, tb.size()):
+			if tb[i].intersects(tb[j]):
+				tb_overlap = true
+	ok("το κουμπί TEST δεν πέφτει πάνω σε άλλο κουμπί", not tb_overlap and m.debug_rect().end.y < m.PF_TOP)
+	m.phase = "aim"
+	ok("το test menu είναι ενεργό για δοκιμές", m.debug_menu)
+	m.debug_open = true
+	var tm_btns: Array = m.debug_buttons()
+	var tm_last: Rect2 = m.debug_button_rect(tm_btns.size() - 1)
+	ok("όλα τα κουμπιά χωράνε στο πάνελ", m.debug_panel_rect().encloses(tm_last)
+		and m.debug_panel_rect().end.y < m.ui_top)
+	var balls0: int = m.ball_count
+	m._debug_do("balls", 10)
+	ok("+10 BALLS", m.ball_count == balls0 + 10)
+	m._debug_press(m.debug_button_rect(2).get_center())      # GRAVEYARD - START
+	ok("άλμα στην αρχή του Graveyard", m.area_index == 2 and m.area_round() == 1
+		and m.visual_area_index == 2 and not m.debug_open and m.phase == "aim",
+		"(περιοχή %d, γύρος %d)" % [m.area_index, m.area_round()])
+	m._debug_do("jump", [0, "mini"])
+	ok("άλμα στον mini-boss του Goblin Land", m.area_index == 0 and m.boss != null
+		and m.boss.kind == "goblin_king")
+	m._debug_do("jump", [0, "boss"])
+	ok("άλμα στον μεγάλο boss: ξεκινάει η είσοδός του", m.phase == "boss_intro")
+	m.finish_boss_intro()
+	ok("...και ο πύργος είναι στο ταμπλό", m.boss != null and m.boss.is_final)
+	var bhp: float = m.boss.hp
+	m._debug_do("hurt_boss", 0.5)
+	ok("BOSS -50%", absf(m.boss.hp - bhp * 0.5) < 1.0)
+	m.debug_open = true
+	m._debug_press(Vector2(4, m.H - 4))
+	ok("πάτημα έξω κλείνει το μενού", not m.debug_open)
+	m._debug_do("jump", [0, "start"])
+	await process_frame
+
 	print("--- αποθήκευση ---")
 	var d = SaveManager.defaults()
 	d["best_score"] = 4242

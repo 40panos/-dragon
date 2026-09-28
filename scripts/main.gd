@@ -52,6 +52,11 @@ const SPLASH_RATIO := 0.33    # ζημιά σε λειτουργία AoE, στο
 ## ελέγχουν την πραγματική λογική ξεκλειδώματος.
 var unlock_all_dragons := true
 
+## ΔΟΚΙΜΕΣ: κουμπί TEST δίπλα στη μουσική, με μενού για άλμα σε πίστα/boss,
+## έξτρα μπάλες κ.λπ. Γύρνα το σε false πριν το δώσεις σε άλλους.
+var debug_menu := true
+var debug_open := false
+
 const BlockScene := preload("res://scenes/block.tscn")
 const BallScene := preload("res://scenes/ball.tscn")
 const OrbScene := preload("res://scenes/orb.tscn")
@@ -968,6 +973,142 @@ func mute_rect() -> Rect2:
 	return Rect2(pr.position.x - 10.0 - HUD_BTN, pr.position.y, HUD_BTN, HUD_BTN)
 
 
+## Κουμπί TEST: αμέσως αριστερά από τη μουσική (μόνο όταν debug_menu).
+func debug_rect() -> Rect2:
+	var mr := mute_rect()
+	return Rect2(mr.position.x - 10.0 - HUD_BTN, mr.position.y, HUD_BTN, HUD_BTN)
+
+
+# ---------------------------------------------------------------- test menu
+# Πλέγμα: μία στήλη ανά περιοχή (START / MINI / BOSS) και από κάτω τα
+# βοηθήματα (μπάλες, special, καθάρισμα). Όλα για δοκιμές στο κινητό, όπου
+# δεν υπάρχει κονσόλα.
+
+const DBG_COLS := 3
+const DBG_BTN := Vector2(168.0, 50.0)
+const DBG_GAP := 12.0
+const DBG_PAD := 20.0
+const DBG_TITLE := 58.0
+const DBG_HEAD := 30.0         # τίτλοι στηλών (ονόματα περιοχών)
+
+
+## Τα κουμπιά του μενού: [ετικέτα, ενέργεια, όρισμα].
+func debug_buttons() -> Array:
+	var out := []
+	for w in ["start", "mini", "boss"]:
+		for i in mini(areas.size(), DBG_COLS):
+			var label := "START"
+			if w == "mini":
+				label = "MINI-BOSS" if areas[i].final_boss else "ROUND %d" % MINIBOSS_ROUND
+			elif w == "boss":
+				label = "BOSS"
+			out.append([label, "jump", [i, w]])
+	out.append(["+10 BALLS", "balls", 10])
+	out.append(["+50 BALLS", "balls", 50])
+	out.append(["SPECIAL", "special", 0])
+	out.append(["KILL ALL", "clear", 0])
+	out.append(["BOSS -50%", "hurt_boss", 0.5])
+	out.append(["CLOSE", "close", 0])
+	return out
+
+
+func debug_panel_rect() -> Rect2:
+	var rows := ceili(float(debug_buttons().size()) / DBG_COLS)
+	var w := DBG_COLS * DBG_BTN.x + (DBG_COLS - 1) * DBG_GAP + DBG_PAD * 2.0
+	# + το κενό πριν από τα βοηθήματα και η γραμμή πληροφοριών στο κάτω μέρος
+	var h := DBG_TITLE + DBG_HEAD + rows * (DBG_BTN.y + DBG_GAP) + DBG_GAP * 3.0 + DBG_PAD + 22.0
+	return Rect2((W - w) * 0.5, PF_TOP - 40.0, w, h)
+
+
+func debug_button_rect(i: int) -> Rect2:
+	var p := debug_panel_rect()
+	var c := i % DBG_COLS
+	var r := i / DBG_COLS
+	# κενό ανάμεσα στις πίστες και στα βοηθήματα
+	var extra := DBG_GAP * 2.0 if r >= 3 else 0.0
+	return Rect2(p.position.x + DBG_PAD + c * (DBG_BTN.x + DBG_GAP),
+		p.position.y + DBG_TITLE + DBG_HEAD + r * (DBG_BTN.y + DBG_GAP) + extra, DBG_BTN.x, DBG_BTN.y)
+
+
+func _debug_press(p: Vector2) -> void:
+	if not debug_panel_rect().grow(DBG_GAP * 3.0).has_point(p):
+		debug_open = false
+		return
+	var btns := debug_buttons()
+	for i in btns.size():
+		if debug_button_rect(i).has_point(p):
+			_debug_do(btns[i][1], btns[i][2])
+			return
+
+
+func _debug_do(action: String, arg) -> void:
+	match action:
+		"jump":
+			debug_jump(arg[0], arg[1])
+			debug_open = false
+		"balls":
+			ball_count += int(arg)
+			_announce("+%d BALLS (x%d)" % [int(arg), ball_count])
+		"special":
+			if dragon:
+				special_charge = dragon.special_cost
+				_announce("SPECIAL READY")
+		"clear":
+			for b in grid.blocks():
+				if b != boss:
+					grid.erase(b)
+					add_sparks(b.position, 6, Color("d9d2c0"), 160.0, 4.0)
+					b.vanish()
+			update_boss_shield()
+			_announce("BOARD CLEARED")
+		"hurt_boss":
+			if boss_alive():
+				_hurt(boss, boss.hp * float(arg))
+		"close":
+			debug_open = false
+
+
+## Άλμα σε περιοχή: "start" (γύρος 1), "mini" (γύρος MINIBOSS_ROUND), "boss"
+## (τελευταίος γύρος — έρχεται ο boss, με την είσοδό του αν είναι μεγάλος).
+## Σταματάει ό,τι τρέχει: μπάλες, ρίψεις, cinematic.
+func debug_jump(area_i: int, which: String) -> void:
+	for b in get_tree().get_nodes_in_group("ball"):
+		b.queue_free()
+	live_balls = 0
+	to_fire = 0
+	Engine.time_scale = 1.0
+	lobs.clear()
+	reserved.clear()
+	fx_anims.clear()
+	transition_t = -1.0
+	boss_intro_t = -1.0
+	freeze_rounds = 0
+	inferno_active = false
+	awake_active = false
+	paused = false
+	get_tree().paused = false
+	for b in grid.blocks():
+		grid.erase(b)
+		b.vanish()
+	for o in get_tree().get_nodes_in_group("orb"):
+		o.queue_free()
+	boss = null
+	area_index = clampi(area_i, 0, areas.size() - 1)
+	var r := 1
+	if which == "mini":
+		r = MINIBOSS_ROUND
+	elif which == "boss":
+		r = ROUNDS_PER_AREA
+	level = area_index * ROUNDS_PER_AREA + r
+	_apply_theme()
+	phase = "aim"
+	aiming = false
+	_add_row()
+	if phase == "aim":
+		var area := current_area()
+		_announce("%s - ROUND %d" % [area.display_name if area else "", area_round()])
+
+
 ## Το πάνελ έντασης κρέμεται κάτω από τη νότα, στοιχισμένο με την παύση δεξιά.
 func volume_panel_rect() -> Rect2:
 	var w := 330.0
@@ -1089,6 +1230,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed 				and event.button_index == MOUSE_BUTTON_LEFT:
 			bestiary.press(get_global_mouse_position())
 		return
+	# όσο είναι ανοιχτό το test menu, πιάνει όλα τα πατήματα
+	if debug_open:
+		if event is InputEventMouseButton and event.pressed \
+				and event.button_index == MOUSE_BUTTON_LEFT:
+			_debug_press(get_global_mouse_position())
+		return
 	# όσο είναι ανοιχτό το πάνελ έντασης, πιάνει όλα τα πατήματα
 	if volume_open:
 		var vp := get_global_mouse_position()
@@ -1124,6 +1271,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	# δουλεύει και μέσα στην παύση
 	if mb.pressed and mute_rect().has_point(p):
 		volume_open = true
+		aiming = false
+		return
+	if mb.pressed and debug_menu and debug_rect().has_point(p):
+		debug_open = true
 		aiming = false
 		return
 	# δεν υπάρχει ακόμα οθόνη μενού· το κουμπί ανοίγει την παύση, που είναι
