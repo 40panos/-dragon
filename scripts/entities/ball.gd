@@ -1,3 +1,4 @@
+class_name Ball
 extends CharacterBody2D
 ## Σφαίρα φωτιάς. Η ανάκλαση γίνεται με move_and_collide + bounce(normal).
 ##
@@ -65,11 +66,33 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 
+## Μαλακή κουκκίδα για την ουρά, φτιαγμένη μία φορά για όλες τις μπάλες. Το
+## draw_circle έφτιαχνε πολύγωνο από την αρχή σε κάθε κλήση, και με εκατοντάδες
+## μπάλες x 6 κύκλους η σχεδίαση έτρωγε όλο το καρέ. Η υφή μπαίνει σε batch.
+static var _dot: Texture2D
+
+
+static func dot_tex() -> Texture2D:
+	if _dot == null:
+		var n := 16
+		var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+		var c := Vector2(n, n) * 0.5
+		for y in n:
+			for x in n:
+				var d := (Vector2(x + 0.5, y + 0.5) - c).length() / (n * 0.5)
+				img.set_pixel(x, y, Color(1, 1, 1, 1.0 if d <= 0.92 else clampf((1.0 - d) / 0.08, 0.0, 1.0)))
+		_dot = ImageTexture.create_from_image(img)
+	return _dot
+
+
 func _draw() -> void:
+	var dot := dot_tex()
 	for i in trail.size():
 		var p := to_local(trail[i])
 		var f := float(i + 1) / float(trail.size())
-		draw_circle(p, 5.0 * f * draw_scale, Color(trail_color, 0.22 * f))
+		var r := 5.0 * f * draw_scale
+		draw_texture_rect(dot, Rect2(p - Vector2(r, r), Vector2(r, r) * 2.0), false,
+			Color(trail_color, 0.22 * f))
 
 	if sprite:
 		var w := 30.0 * draw_scale
