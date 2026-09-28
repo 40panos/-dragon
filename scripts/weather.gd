@@ -16,11 +16,11 @@ const GRID := 2.0
 ## και σβήνουν — όχι σταθερό πέπλο, που θα έκρυβε τους εχθρούς. Τα σχέδιά
 ## τους φτιάχνονται μία φορά σε art pixels (x2 στην οθόνη), με διαφάνεια σε
 ## σκαλοπάτια αντί για ομαλή, ώστε να διαβάζονται σαν pixel art.
-const FOG_PATCHES := 7
+const FOG_PATCHES := 12
 const FOG_SHAPES := 4
 const FOG_W := 72              # art pixels
 const FOG_H := 22
-const FOG_ALPHA := 0.36        # πόσο πυκνό στο φουλ του
+const FOG_ALPHA := 0.46        # πόσο πυκνό στο φουλ του
 const FOG_COLOR := Color(0.72, 0.78, 0.76)
 
 var m
@@ -97,13 +97,19 @@ func _new_fog(anywhere: bool) -> Dictionary:
 	var bottom: float = m.floor_y
 	var v := randf_range(10.0, 24.0) * (1.0 if randf() < 0.5 else -1.0)
 	var life := randf_range(7.0, 13.0)
+	var scale := 3.0 if randf() < 0.6 else 4.0
+	var w := FOG_W * scale
+	# γεννιέται μέσα στο ταμπλό (μπορεί να ξεχειλίζει λίγο), όχι πάνω στο
+	# πλαίσιο — εκεί χανόταν και η ομίχλη έμοιαζε αραιή
+	var x0: float = m.pf_left - w * 0.25
+	var x1: float = maxf(x0, m.pf_right - w * 0.75)
 	return {
-		"p": Vector2(randf_range(m.pf_left - 80.0, m.pf_right - 60.0), randf_range(top, bottom - 40.0)),
+		"p": Vector2(randf_range(x0, x1), randf_range(top, bottom - 40.0)),
 		"v": v,
 		"shape": randi() % FOG_SHAPES,
-		"scale": 2.0 if randf() < 0.6 else 3.0,
+		"scale": scale,
 		"life": life,
-		"wait": randf_range(0.5, 5.0),
+		"wait": randf_range(0.3, 2.5),
 		"t": randf_range(0.0, life) if anywhere else 0.0,
 		"flip": randf() < 0.5,
 	}

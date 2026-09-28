@@ -1,43 +1,43 @@
 [gd_resource type="Resource" script_class="DragonType" load_steps=25 format=3]
 
-[ext_resource type="Texture2D" path="res://art/ice_shard_aoe.png" id="1_u266s"]
-[ext_resource type="Texture2D" path="res://art/ice_shard.png" id="2_6jaso"]
-[ext_resource type="Texture2D" path="res://art/frost_awake_fire_1.png" id="3_m6cp3"]
-[ext_resource type="Texture2D" path="res://art/frost_awake_fire_2.png" id="4_ylsyq"]
-[ext_resource type="Texture2D" path="res://art/frost_awake_fire_3.png" id="5_urf0u"]
-[ext_resource type="Texture2D" path="res://art/frost_awake_idle_1.png" id="6_o1xqr"]
-[ext_resource type="Texture2D" path="res://art/frost_awake_idle_2.png" id="7_sq8o2"]
-[ext_resource type="Texture2D" path="res://art/frost_awake_idle_3.png" id="8_7yn1w"]
-[ext_resource type="Texture2D" path="res://art/frost_awake_ready_1.png" id="9_5fkln"]
-[ext_resource type="Texture2D" path="res://art/frost_awake_ready_2.png" id="10_lncgj"]
-[ext_resource type="Texture2D" path="res://art/frost_awake_ready_3.png" id="11_3gvi5"]
-[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="12_ytrdx"]
-[ext_resource type="Texture2D" path="res://art/frost_fire_1.png" id="13_rrfdx"]
-[ext_resource type="Texture2D" path="res://art/frost_fire_2.png" id="14_ehbv6"]
-[ext_resource type="Texture2D" path="res://art/frost_fire_3.png" id="15_dass8"]
-[ext_resource type="Texture2D" path="res://art/frost_idle_1.png" id="16_ip8qm"]
-[ext_resource type="Texture2D" path="res://art/frost_idle_2.png" id="17_36x51"]
-[ext_resource type="Texture2D" path="res://art/frost_idle_3.png" id="18_07h6q"]
-[ext_resource type="Texture2D" path="res://art/frost_idle_4.png" id="19_0uur2"]
-[ext_resource type="Texture2D" path="res://art/frost_ready_1.png" id="20_2o58f"]
-[ext_resource type="Texture2D" path="res://art/frost_ready_2.png" id="21_s7pka"]
-[ext_resource type="Texture2D" path="res://art/frost_ready_3.png" id="22_3m4sp"]
-[ext_resource type="Texture2D" path="res://art/frost.png" id="23_u6uyb"]
+[ext_resource type="Texture2D" path="res://art/ice_shard_aoe.png" id="1_8j8g0"]
+[ext_resource type="Texture2D" path="res://art/ice_shard.png" id="2_mcwy6"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_fire_1.png" id="3_gswei"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_fire_2.png" id="4_2inq7"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_fire_3.png" id="5_efqm2"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_idle_1.png" id="6_6odu4"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_idle_2.png" id="7_7pw0m"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_idle_3.png" id="8_0helr"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_ready_1.png" id="9_cpycg"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_ready_2.png" id="10_a2h32"]
+[ext_resource type="Texture2D" path="res://art/frost_awake_ready_3.png" id="11_eoota"]
+[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="12_et1ud"]
+[ext_resource type="Texture2D" path="res://art/frost_fire_1.png" id="13_016pp"]
+[ext_resource type="Texture2D" path="res://art/frost_fire_2.png" id="14_uedu1"]
+[ext_resource type="Texture2D" path="res://art/frost_fire_3.png" id="15_itb4c"]
+[ext_resource type="Texture2D" path="res://art/frost_idle_1.png" id="16_rphah"]
+[ext_resource type="Texture2D" path="res://art/frost_idle_2.png" id="17_8kg5d"]
+[ext_resource type="Texture2D" path="res://art/frost_idle_3.png" id="18_dhega"]
+[ext_resource type="Texture2D" path="res://art/frost_idle_4.png" id="19_tlvp2"]
+[ext_resource type="Texture2D" path="res://art/frost_ready_1.png" id="20_seoct"]
+[ext_resource type="Texture2D" path="res://art/frost_ready_2.png" id="21_02rlt"]
+[ext_resource type="Texture2D" path="res://art/frost_ready_3.png" id="22_l5up2"]
+[ext_resource type="Texture2D" path="res://art/frost.png" id="23_c0yfe"]
 
-[sub_resource type="Resource" id="Resource_mlqwr"]
-script = ExtResource("12_ytrdx")
+[sub_resource type="Resource" id="Resource_svmad"]
+script = ExtResource("12_et1ud")
 id = "frost_evolved"
 display_name = "Frost Awakened"
-sprite = ExtResource("6_o1xqr")
-sprite_idle = ExtResource("6_o1xqr")
-sprite_ready = ExtResource("9_5fkln")
-sprite_fire = ExtResource("3_m6cp3")
-frames_idle = Array[Texture2D]([ExtResource("6_o1xqr"), ExtResource("7_sq8o2"), ExtResource("8_7yn1w")])
-frames_ready = Array[Texture2D]([ExtResource("9_5fkln"), ExtResource("10_lncgj"), ExtResource("11_3gvi5")])
-frames_fire = Array[Texture2D]([ExtResource("3_m6cp3"), ExtResource("4_ylsyq"), ExtResource("5_urf0u")])
+sprite = ExtResource("6_6odu4")
+sprite_idle = ExtResource("6_6odu4")
+sprite_ready = ExtResource("9_cpycg")
+sprite_fire = ExtResource("3_gswei")
+frames_idle = Array[Texture2D]([ExtResource("6_6odu4"), ExtResource("7_7pw0m"), ExtResource("8_0helr")])
+frames_ready = Array[Texture2D]([ExtResource("9_cpycg"), ExtResource("10_a2h32"), ExtResource("11_eoota")])
+frames_fire = Array[Texture2D]([ExtResource("3_gswei"), ExtResource("4_2inq7"), ExtResource("5_efqm2")])
 glow_frames = Array[Texture2D]([])
-ball_sprite = ExtResource("2_6jaso")
-ball_aoe_sprite = ExtResource("1_u266s")
+ball_sprite = ExtResource("2_mcwy6")
+ball_aoe_sprite = ExtResource("1_8j8g0")
 accent = Color(0.560784, 0.890196, 1, 1)
 ball_spin = 0.0
 ball_heading = -0.785398
@@ -56,19 +56,19 @@ passive = "every5_double"
 unlock_after_area = 0
 
 [resource]
-script = ExtResource("12_ytrdx")
+script = ExtResource("12_et1ud")
 id = "frost"
 display_name = "Frost"
-sprite = ExtResource("23_u6uyb")
-sprite_idle = ExtResource("16_ip8qm")
-sprite_ready = ExtResource("20_2o58f")
-sprite_fire = ExtResource("13_rrfdx")
-frames_idle = Array[Texture2D]([ExtResource("16_ip8qm"), ExtResource("17_36x51"), ExtResource("18_07h6q"), ExtResource("19_0uur2")])
-frames_ready = Array[Texture2D]([ExtResource("20_2o58f"), ExtResource("21_s7pka"), ExtResource("22_3m4sp")])
-frames_fire = Array[Texture2D]([ExtResource("13_rrfdx"), ExtResource("14_ehbv6"), ExtResource("15_dass8")])
+sprite = ExtResource("23_c0yfe")
+sprite_idle = ExtResource("16_rphah")
+sprite_ready = ExtResource("20_seoct")
+sprite_fire = ExtResource("13_016pp")
+frames_idle = Array[Texture2D]([ExtResource("16_rphah"), ExtResource("17_8kg5d"), ExtResource("18_dhega"), ExtResource("19_tlvp2")])
+frames_ready = Array[Texture2D]([ExtResource("20_seoct"), ExtResource("21_02rlt"), ExtResource("22_l5up2")])
+frames_fire = Array[Texture2D]([ExtResource("13_016pp"), ExtResource("14_uedu1"), ExtResource("15_itb4c")])
 glow_frames = Array[Texture2D]([])
-ball_sprite = ExtResource("2_6jaso")
-ball_aoe_sprite = ExtResource("1_u266s")
+ball_sprite = ExtResource("2_mcwy6")
+ball_aoe_sprite = ExtResource("1_8j8g0")
 accent = Color(0.560784, 0.890196, 1, 1)
 ball_spin = 0.0
 ball_heading = -0.785398
@@ -81,7 +81,7 @@ fps_ready = 7.0
 fps_fire = 12.0
 draw_width = 128.0
 tint = Color(1, 1, 1, 1)
-awakened = SubResource("Resource_mlqwr")
+awakened = SubResource("Resource_svmad")
 special = "freeze"
 special_cost = 18.0
 passive = "ball_every5"

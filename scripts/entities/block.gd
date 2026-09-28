@@ -226,7 +226,7 @@ func _process(delta: float) -> void:
 	if not hit_playing and not act_playing and frames_idle.size() > 1:
 		idle_t += delta
 		queue_redraw()
-	if frozen:
+	if frozen and frozen_t < FLAKE_LIFE:
 		frozen_t += delta
 		queue_redraw()
 
@@ -241,7 +241,9 @@ func set_frozen(on: bool) -> void:
 # ---------------------------------------------------------------- νιφάδα
 
 const FLAKE_N := 13              # καμβάς της νιφάδας σε art pixels
-const FLAKE_FADE := 0.35         # σβήσιμο-άναμμα όταν παγώνει
+const FLAKE_FADE := 0.25         # άναμμα όταν παγώνει
+const FLAKE_LIFE := 1.8          # πόσο μένει η νιφάδα· μετά μένει μόνο το γαλάζιο χρώμα
+const FLAKE_OUT := 0.45          # σβήσιμο στο τέλος της ζωής της
 static var _flake: Texture2D
 static var _flake_tips: Array[Vector2i] = []
 
@@ -288,17 +290,18 @@ static func flake_tex() -> Texture2D:
 	return _flake
 
 
-## Η νιφάδα πάνω δεξιά στο κελί. Μέγεθος σε ακέραια πολλαπλάσια του art pixel
-## ανάλογα με το κουτί (ο boss παίρνει μεγαλύτερη), απαλό αιώρημα ενός pixel
-## και μια λάμψη που τρέχει από ακτίνα σε ακτίνα.
+## Η νιφάδα στο κέντρο του εχθρού, πάνω από το σώμα του, τη στιγμή που
+## παγώνει· σβήνει μετά από FLAKE_LIFE. Μέγεθος σε ακέραια πολλαπλάσια του
+## art pixel ανάλογα με το κουτί (ο boss παίρνει μεγαλύτερη), και μια λάμψη
+## που τρέχει από ακτίνα σε ακτίνα.
 func _draw_snowflake() -> void:
+	if frozen_t >= FLAKE_LIFE:
+		return
 	var tex := flake_tex()
 	var k := maxf(2.0, floorf(minf(box.x, box.y) / 26.0))
 	var size := FLAKE_N * k
-	var bob := k if fmod(frozen_t, 1.6) < 0.8 else 0.0
-	var pos := Vector2(box.x * 0.5 - size + k * 2.0, -box.y * 0.5 - k * 2.0 + bob)
-	pos = pos.floor()
-	var a := clampf(frozen_t / FLAKE_FADE, 0.0, 1.0)
+	var pos := (Vector2(-size, -size) * 0.5).floor()
+	var a := clampf(minf(frozen_t / FLAKE_FADE, (FLAKE_LIFE - frozen_t) / FLAKE_OUT), 0.0, 1.0)
 	draw_texture_rect(tex, Rect2(pos, Vector2(size, size)), false, Color(1, 1, 1, a))
 	if _flake_tips.is_empty():
 		return

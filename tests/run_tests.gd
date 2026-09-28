@@ -934,6 +934,9 @@ func _initialize() -> void:
 	ok("το FREEZE βάζει νιφάδα σε κάθε εχθρό", fz.frozen)
 	var fz2 = m._make_block(2, 6, m.enemy_by_id["goblin"], 9.0, 1, 1, false)
 	ok("...και σε όποιον γεννιέται μέσα στο πάγωμα", fz2.frozen)
+	fz._process(fz.FLAKE_LIFE + 0.1)
+	ok("η νιφάδα σβήνει μετά από λίγο, ο εχθρός μένει παγωμένος",
+		fz.frozen and fz.frozen_t >= fz.FLAKE_LIFE and fz.FLAKE_LIFE >= 1.5 and fz.FLAKE_LIFE <= 2.0)
 	m.freeze_rounds = 0
 	m._paint_frozen()
 	ok("όταν λιώσει, η νιφάδα φεύγει", not fz.frozen and not fz2.frozen)
