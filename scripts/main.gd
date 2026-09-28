@@ -78,6 +78,12 @@ var launch_x := 0.0
 var next_x := -1.0
 var aim_dir := Vector2.UP
 var aiming := false
+## Το δάχτυλο κατέβηκε κάτω από το δάπεδο, πάνω στον δράκο: αν αφεθεί εκεί,
+## η βολή ακυρώνεται. Χωρίς αυτό δεν υπήρχε τρόπος να μετανιώσεις ένα σημάδι.
+var aim_cancel := false
+var transition_t := -1.0       # χρόνος μέσα στο cinematic αλλαγής περιοχής· <0 = κανένα
+var _trans_swapped := false
+var visual_area_index := 0     # η περιοχή που δείχνουν σκηνικό και καιρός (βλ. visual_area)
 var to_fire := 0
 var fire_timer := 0.0
 var shot_time := 0.0
@@ -140,7 +146,7 @@ var font: Font
 var bestiary       # το Book και οι ειδοποιήσεις νέων εχθρών (scripts/bestiary.gd)
 var weather        # χιόνι κ.λπ. πάνω από το ταμπλό (scripts/weather.gd)
 var glyph_aura     # ρούνες γύρω από δράκους με glyph_aura (scripts/glyph_aura.gd)
-var music: AudioStreamPlayer   # το soundtrack της περιοχής (AreaDef.music)
+var music: MusicPlayer         # το soundtrack της περιοχής (AreaDef.music), scripts/music.gd
 var volume_open := false       # ανοιχτό το πάνελ έντασης κάτω από τη νότα
 var volume_drag := false       # σέρνεται η μπάρα έντασης
 
@@ -215,6 +221,16 @@ func _make_hud() -> void:
 	bestiary.process_mode = Node.PROCESS_MODE_ALWAYS
 	bestiary.m = self
 	layer.add_child(bestiary)
+	# το μαύρο του cinematic, πάνω από όλα (scripts/fade.gd)
+	var top := CanvasLayer.new()
+	top.layer = 20
+	add_child(top)
+	var fade := Node2D.new()
+	fade.set_script(load("res://scripts/fade.gd"))
+	fade.process_mode = Node.PROCESS_MODE_ALWAYS
+	fade.visible = false
+	top.add_child(fade)
+	fade.m = self
 
 
 # ---------------------------------------------------------------- περιεχόμενο
@@ -223,6 +239,7 @@ func _make_hud() -> void:
 ## στοιχείο προτιμά το <όνομα>_<theme>.png και, αν λείπει, πέφτει στο βασικό.
 ## Καλείται στην αρχή του run και όποτε αλλάζει περιοχή — όχι σε κάθε καρέ.
 func _apply_theme() -> void:
+	visual_area_index = area_index
 	var area := current_area()
 	var theme: String = area.theme if area else ""
 	var pick := func(name_: String) -> Texture2D:
@@ -253,8 +270,7 @@ func _apply_theme() -> void:
 
 ## Ο player παίζει και στην παύση: η σίγαση γίνεται μόνο από το κουμπί mute.
 func _make_music() -> void:
-	music = AudioStreamPlayer.new()
-	music.process_mode = Node.PROCESS_MODE_ALWAYS
+	music = MusicPlayer.new()
 	add_child(music)
 
 
@@ -264,21 +280,8 @@ func _play_area_music() -> void:
 	if music == null:
 		return
 	var area := current_area()
-	var stream: AudioStream = area.music if area else null
-	if stream is AudioStreamMP3:
-		stream.loop = true
-	elif stream is AudioStreamOggVorbis:
-		stream.loop = true
-	if stream == null:
-		music.stop()
-		music.stream = null
-		return
-	if music.stream != stream:
-		music.stream = stream
-		music.stop()
 	_apply_music_volume()
-	if not music.playing:
-		music.play()
+	music.play_stream(area.music if area else null)
 
 
 func music_muted() -> bool:
@@ -298,8 +301,8 @@ func music_silent() -> bool:
 func _apply_music_volume() -> void:
 	if music == null:
 		return
-	music.volume_db = linear_to_db(maxf(music_volume(), 0.0001))
-	music.stream_paused = music_silent()
+	music.set_volume(music_volume())
+	music.set_paused(music_silent())
 
 
 func _toggle_music() -> void:
@@ -520,6 +523,8 @@ func _start() -> void:
 
 	# κάθε run ξεκινάει από την αρχή
 	area_index = 0
+	visual_area_index = 0
+	transition_t = -1.0
 	level = 1
 	_apply_theme()
 
@@ -731,6 +736,7 @@ func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: in
 	b.damaged.connect(_on_block_damaged.bind(b))
 	if freeze_rounds > 0:
 		b.self_modulate = FROZEN_TINT     # ό,τι γεννιέται μέσα στο πάγωμα, παγωμένο
+		b.set_frozen(true)
 	if bestiary:
 		bestiary.saw(type)
 	return b
@@ -1096,7 +1102,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				_set_aim(get_global_mouse_position())
 			elif aiming:
 				aiming = false
-				_fire()
+				if aim_cancel:
+					aim_cancel = false
+				else:
+					_fire()
 		"shoot":
 			if mb.pressed:
 				Engine.time_scale = 1.0 if Engine.time_scale > 1.0 else 3.0
@@ -1127,6 +1136,10 @@ func _use_special() -> void:
 		"freeze":
 			freeze_rounds = FREEZE_ROUNDS
 			_paint_frozen()
+			# παγωμένη σκόνη πάνω σε κάθε εχθρό τη στιγμή που πιάνει ο πάγος
+			for fb in grid.blocks():
+				if is_instance_valid(fb):
+					add_sparks(fb.position, 6, Color("dff4ff"), 150.0, 4.0)
 			add_shake(4.0)
 			_announce("FREEZE!")
 		_:
@@ -1158,7 +1171,13 @@ func _toggle_pause() -> void:
 	get_tree().paused = paused
 
 
+## Πόσο κάτω από τη γραμμή του δαπέδου πρέπει να κατέβει το δάχτυλο για να
+## ακυρωθεί η βολή — πάνω στο κεφάλι του δράκου.
+const AIM_CANCEL_DROP := 30.0
+
+
 func _set_aim(p: Vector2) -> void:
+	aim_cancel = p.y > floor_y + AIM_CANCEL_DROP
 	var d := p - Vector2(launch_x, floor_y - 18.0)
 	if d.y > -20.0:
 		d.y = -20.0
@@ -1191,6 +1210,8 @@ func _process(delta: float) -> void:
 			banner = ""
 	if not frozen():
 		_update_life(delta)
+		if in_transition():
+			_update_transition(delta)
 	queue_redraw()
 	if frozen() or phase != "shoot":
 		return
@@ -1290,9 +1311,11 @@ func _end_turn() -> void:
 
 	var new_area := clampi(int((level - 1) / ROUNDS_PER_AREA), 0, maxi(areas.size() - 1, 0))
 	if new_area != area_index:
+		# η λογική αλλάζει περιοχή αμέσως· τα γραφικά και το ταμπλό στο μαύρο
+		# του cinematic (_area_swap), ώστε να μη φανεί η αλλαγή
 		area_index = new_area
-		_apply_theme()
-		_announce(current_area().display_name if current_area() else "")
+		_begin_area_transition()
+		return
 
 	if frozen_turn:
 		if freeze_rounds == 0:
@@ -1347,10 +1370,84 @@ func _end_turn() -> void:
 ## Βάφει τους εχθρούς παγωμένους όσο κρατάει το FREEZE και τους ξεβάφει όταν
 ## λιώσει. Στο self_modulate, όχι στο modulate: εκεί ζουν ο τόνος της περιοχής
 ## και το κόκκινο της Rage, που αλλιώς θα χάνονταν στο ξεπάγωμα.
+# ---------------------------------------------------------------- αλλαγή περιοχής
+# Μικρό cinematic: σβήνει σε μαύρο, στο μαύρο καθαρίζει το ταμπλό και αλλάζει
+# σκηνικό, μουσική και καιρό, δείχνει το όνομα της νέας περιοχής και ξανανοίγει.
+
+const TRANS_OUT := 0.7
+const TRANS_HOLD := 0.7
+const TRANS_IN := 0.7
+
+
+func in_transition() -> bool:
+	return transition_t >= 0.0
+
+
+## Η περιοχή που ΦΑΙΝΕΤΑΙ: μένει η παλιά ως τη μέση του cinematic.
+func visual_area() -> AreaDef:
+	if areas.is_empty():
+		return null
+	return areas[clampi(visual_area_index, 0, areas.size() - 1)]
+
+
+## Πόσο μαύρη είναι η οθόνη, 0..1.
+func transition_alpha() -> float:
+	if transition_t < 0.0:
+		return 0.0
+	if transition_t < TRANS_OUT:
+		return transition_t / TRANS_OUT
+	if transition_t < TRANS_OUT + TRANS_HOLD:
+		return 1.0
+	return clampf(1.0 - (transition_t - TRANS_OUT - TRANS_HOLD) / TRANS_IN, 0.0, 1.0)
+
+
+func _begin_area_transition() -> void:
+	transition_t = 0.0
+	_trans_swapped = false
+	phase = "transition"
+	aiming = false
+	aim_cancel = false
+	banner = ""          # η ανακοίνωση της παλιάς περιοχής δεν μπαίνει στο μαύρο
+
+
+func _update_transition(delta: float) -> void:
+	transition_t += delta
+	if not _trans_swapped and transition_t >= TRANS_OUT:
+		_area_swap()
+	if transition_t >= TRANS_OUT + TRANS_HOLD + TRANS_IN:
+		transition_t = -1.0
+		phase = "aim"
+		var area := current_area()
+		_announce("%s - ROUND %d" % [area.display_name if area else "", area_round()])
+
+
+## Ολοκληρώνει αμέσως το cinematic (tests, ή όποιος δεν θέλει να περιμένει).
+func finish_transition() -> void:
+	if in_transition():
+		_update_transition(TRANS_OUT + TRANS_HOLD + TRANS_IN)
+
+
+## Στο μαύρο: άδειο ταμπλό, νέο σκηνικό, πρώτη σειρά της νέας περιοχής.
+func _area_swap() -> void:
+	_trans_swapped = true
+	for b in get_tree().get_nodes_in_group("block"):
+		if is_instance_valid(b):
+			grid.erase(b)
+			b.queue_free()
+	for o in get_tree().get_nodes_in_group("orb"):
+		o.queue_free()
+	boss = null
+	freeze_rounds = 0
+	visual_area_index = area_index
+	_apply_theme()
+	_add_row()
+
+
 func _paint_frozen() -> void:
 	for b in grid.blocks():
 		if is_instance_valid(b):
 			b.self_modulate = FROZEN_TINT if freeze_rounds > 0 else Color.WHITE
+			b.set_frozen(freeze_rounds > 0)
 
 
 func _game_over() -> void:
@@ -1748,7 +1845,7 @@ func _draw_dragon() -> void:
 
 
 func _draw_aim() -> void:
-	if phase != "aim" or not aiming:
+	if phase != "aim" or not aiming or aim_cancel:
 		return
 	# ξεκινάει από εκεί που γεννιούνται πραγματικά οι μπάλες, όχι από το
 	# σχεδιασμένο στόμα — τα δύο απέχουν ελάχιστα, αλλά η γραμμή πρέπει να

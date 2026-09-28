@@ -390,6 +390,24 @@ func _initialize() -> void:
 	await process_frame
 	ok("ο γύρος προχώρησε", m.level == before_level + 1, "(%d)" % m.level)
 	ok("μετά τον boss πάμε στην επόμενη περιοχή", m.area_index == 1, "(%d)" % m.area_index)
+	ok("η αλλαγή περιοχής ξεκινάει cinematic", m.in_transition() and m.phase == "transition")
+	ok("...και ως το μαύρο φαίνεται ακόμα η παλιά περιοχή", m.visual_area_index == 0)
+	m._update_transition(m.TRANS_OUT)
+	ok("...στο μαύρο η οθόνη είναι σκεπασμένη", is_equal_approx(m.transition_alpha(), 1.0))
+	var tr_ids := []
+	for e in m.areas[1].enemies:
+		tr_ids.append(e.id)
+	var tr_old := 0
+	for b in m.grid.blocks():
+		if not tr_ids.has(b.kind):
+			tr_old += 1
+	ok("...εκεί καθαρίζει το ταμπλό και μπαίνει σειρά της νέας περιοχής",
+		m.visual_area_index == 1 and m.grid.blocks().size() > 0 and tr_old == 0,
+		"(%d παλιοί)" % tr_old)
+	m.finish_transition()
+	ok("...και στο τέλος ξαναπαίζεις", not m.in_transition() and m.phase == "aim"
+		and m.transition_alpha() == 0.0)
+	await process_frame
 	var misplaced := 0
 	for b in m.grid.blocks():
 		var want = m.block_center(b.col, b.row, b.cw, b.ch)
@@ -880,6 +898,51 @@ func _initialize() -> void:
 		m.tex_frame_left.resource_path.ends_with("frame_left.png"))
 	ok("...και δεν χιονίζει", m.weather._active == "" and m.weather._flakes.is_empty())
 
+	print("--- graveyard ---")
+	ok("υπάρχει 3η περιοχή, το Graveyard", m.areas.size() >= 3 and m.areas[2].id == "graveyard")
+	var gy = m.areas[2]
+	var gy_ids := []
+	for e in gy.enemies:
+		gy_ids.append(e.id)
+	ok("...με σκελετούς, ghoul, ghost", gy_ids.has("skeleton") and gy_ids.has("ghoul")
+		and gy_ids.has("ghost") and gy_ids.has("skeleton_warrior"), str(gy_ids))
+	ok("...boss ο Grim Reaper που καλεί νυχτερίδες", gy.boss.id == "reaper"
+		and _find_summoner(gy.boss.ability) != null
+		and _find_summoner(gy.boss.ability).minion_id == "grave_bat"
+		and m.enemy_by_id.has("grave_bat"))
+	var gy_no_anim := []
+	for e in gy.enemies + gy.minions + [gy.boss]:
+		if e.frames_idle.is_empty():
+			gy_no_anim.append(e.id)
+	ok("...κάθε εχθρός του έχει idle animation", gy_no_anim.is_empty(), str(gy_no_anim))
+	m.area_index = 2
+	m._apply_theme()
+	m.weather._process(0.1)
+	ok("στο Graveyard έχει ομίχλη αντί για χιόνι", m.weather._active == "fog"
+		and m.weather._fog.size() > 0 and m.weather._flakes.is_empty())
+	ok("...και σκοτεινό σκηνικό", m.tex_frame_left.resource_path.ends_with("frame_left_grave.png"))
+	m.area_index = 0
+	m._apply_theme()
+	m.weather._process(0.1)
+	ok("γυρνώντας πίσω η ομίχλη φεύγει", m.weather._active == "" and m.weather._fog.is_empty())
+
+	print("--- νιφάδα του freeze ---")
+	var fz = m._make_block(1, 6, m.enemy_by_id["goblin"], 9.0, 1, 1, false)
+	ok("χωρίς πάγωμα δεν έχει νιφάδα", not fz.frozen)
+	m.freeze_rounds = 2
+	m._paint_frozen()
+	ok("το FREEZE βάζει νιφάδα σε κάθε εχθρό", fz.frozen)
+	var fz2 = m._make_block(2, 6, m.enemy_by_id["goblin"], 9.0, 1, 1, false)
+	ok("...και σε όποιον γεννιέται μέσα στο πάγωμα", fz2.frozen)
+	m.freeze_rounds = 0
+	m._paint_frozen()
+	ok("όταν λιώσει, η νιφάδα φεύγει", not fz.frozen and not fz2.frozen)
+	ok("η νιφάδα είναι pixel art 13x13", fz.flake_tex().get_size() == Vector2(13, 13))
+	for fzb in [fz, fz2]:
+		m.grid.erase(fzb)
+		fzb.queue_free()
+	await process_frame
+
 	print("--- λάμψη χτυπήματος ---")
 	var hb_gob = m._make_block(0, 5, m.enemy_by_id["goblin"], 9.0, 1, 1, false)
 	var hb_bat = m._make_block(2, 5, m.enemy_by_id["bat"], 9.0, 1, 1, false)
@@ -897,12 +960,34 @@ func _initialize() -> void:
 	m.boss = null
 	await process_frame
 
+	print("--- ακύρωση στόχευσης ---")
+	m.phase = "aim"
+	m.aiming = true
+	m._set_aim(Vector2(m.W * 0.5, m.floor_y - 300.0))
+	ok("σημάδι προς τα πάνω δεν ακυρώνει", not m.aim_cancel)
+	m._set_aim(Vector2(m.W * 0.5, m.floor_y + 80.0))
+	ok("τέρμα κάτω, πάνω στον δράκο, οπλίζει την ακύρωση", m.aim_cancel)
+	var ac_up := InputEventMouseButton.new()
+	ac_up.button_index = MOUSE_BUTTON_LEFT
+	ac_up.pressed = false
+	m._unhandled_input(ac_up)
+	ok("...και το άφημα εκεί δεν ρίχνει", m.phase == "aim" and not m.aiming and not m.aim_cancel)
+
 	print("--- μουσική ---")
 	m.area_index = 0
 	m._apply_theme()
 	var goblin_song = m.areas[0].music
 	ok("το Goblin Land έχει soundtrack", goblin_song != null and m.music.stream == goblin_song)
-	ok("...που παίζει σε λούπα", goblin_song != null and goblin_song.loop)
+	var song_len: float = goblin_song.get_length()
+	m.music.tick(0.0, song_len - 10.0, true)
+	ok("...που δεν μπαίνει σε crossfade πριν την ώρα του", not m.music.is_crossfading())
+	m.music.tick(0.0, song_len - MusicPlayer.XFADE + 0.1, true)
+	ok("...και λίγο πριν το τέλος ξεκινάει crossfade με την αρχή", m.music.is_crossfading())
+	m.music.tick(MusicPlayer.XFADE * 0.5, 0.0, true)
+	ok("...που στη μέση δεν βουλιάζει", m.music.current_volume() > m.music.volume * 0.6)
+	m.music.tick(MusicPlayer.XFADE, 0.0, true)
+	ok("...και τελειώνει ομαλά", not m.music.is_crossfading()
+		and absf(m.music.current_volume() - m.music.volume) < 0.01)
 	m.area_index = 1
 	m._apply_theme()
 	ok("περιοχή χωρίς μουσική = σιωπή", m.music.stream == null)
@@ -913,14 +998,14 @@ func _initialize() -> void:
 	m._volume_press(Vector2(vbar.position.x + vbar.size.x * 0.25, vbar.get_center().y))
 	ok("πάτημα στη μπάρα αλλάζει την ένταση", absf(m.music_volume() - 0.25) < 0.01,
 		"(%.2f)" % m.music_volume())
-	ok("...και ο player την ακολουθεί", absf(db_to_linear(m.music.volume_db) - 0.25) < 0.01)
+	ok("...και ο player την ακολουθεί", absf(m.music.current_volume() - 0.25) < 0.01)
 	m.volume_drag = false
 	m._volume_press(m.volume_mute_rect().get_center())
-	ok("το mute του πάνελ σωπαίνει τη μουσική", m.music_muted() and m.music.stream_paused)
+	ok("το mute του πάνελ σωπαίνει τη μουσική", m.music_muted() and m.music.paused)
 	m._set_volume_at(vbar.end.x)
-	ok("σύρσιμο της έντασης βγάζει από το mute", not m.music_muted() and not m.music.stream_paused)
+	ok("σύρσιμο της έντασης βγάζει από το mute", not m.music_muted() and not m.music.paused)
 	m._set_volume_at(vbar.position.x - 50.0)
-	ok("ένταση στο μηδέν = σιωπή", m.music_silent() and m.music.stream_paused)
+	ok("ένταση στο μηδέν = σιωπή", m.music_silent() and m.music.paused)
 	m._volume_press(Vector2(5.0, m.H - 5.0))
 	ok("πάτημα έξω από το πάνελ το κλείνει", not m.volume_open)
 	m.save["music_volume"] = 0.8

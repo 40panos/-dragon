@@ -94,6 +94,8 @@ func _draw() -> void:
 	if m.phase == "aim" and not m.aiming:
 		draw_string(font, Vector2(0, m.floor_y - 190.0), "DRAG TO AIM",
 			HORIZONTAL_ALIGNMENT_CENTER, W, 22, Color(1, 1, 1, 0.30))
+	elif m.phase == "aim" and m.aiming and m.aim_cancel:
+		_text(Vector2(0, m.floor_y - 190.0), W, "RELEASE TO CANCEL", 22, Color("ff9b7a"), true)
 
 	# ---------------- ανακοινώσεις
 	if m.banner != "":
@@ -223,7 +225,7 @@ func _draw_top() -> void:
 	# δύο κρεμαστές πινακίδες: περιοχή και γύρος
 	var pw := PLATE.get_width() * 2.0
 	var py := top - PLATE.get_height() * 2.0 - 10.0
-	var area = m.current_area()
+	var area = m.visual_area()
 	var labels := [
 		area.display_name.to_upper() if area else "",
 		"ROUND %d / %d" % [m.area_round(), m.ROUNDS_PER_AREA],

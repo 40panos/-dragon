@@ -45,6 +45,18 @@ func _frames(state: String) -> Array[Texture2D]:
 	return out
 
 
+## frost_<κατάσταση>_1..N της βασικής μορφής, σε ίδιο καμβά με το frost.png.
+func _base_frames(state: String, base: Texture2D) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	var i := 1
+	while ResourceLoader.exists("res://art/frost_%s_%d.png" % [state, i]):
+		out.append(_tex("frost_%s_%d" % [state, i], FRAME_W))
+		i += 1
+	if out.is_empty():
+		out.append(base)
+	return out
+
+
 func _make_evolved() -> DragonType:
 	var a := DragonType.new()
 	var idle := _frames("idle")
@@ -80,12 +92,19 @@ func _initialize() -> void:
 	d.id = "frost"
 	d.display_name = "Frost"
 	d.sprite = base
-	d.sprite_idle = base
-	d.sprite_ready = base
-	d.sprite_fire = base
-	d.frames_idle = [base] as Array[Texture2D]
-	d.frames_ready = [base] as Array[Texture2D]
-	d.frames_fire = [base] as Array[Texture2D]
+	# καρέ από το tools/build_frost_anim.gd· αν λείπουν, μένει το στατικό
+	var idle := _base_frames("idle", base)
+	var ready_ := _base_frames("ready", base)
+	var fire := _base_frames("fire", base)
+	d.sprite_idle = idle[0]
+	d.sprite_ready = ready_[0]
+	d.sprite_fire = fire[0]
+	d.frames_idle = idle
+	d.frames_ready = ready_
+	d.frames_fire = fire
+	d.fps_idle = 4.0
+	d.fps_ready = 7.0
+	d.fps_fire = 12.0
 	d.ball_sprite = _tex("ice_shard")
 	d.ball_aoe_sprite = _tex("ice_shard_aoe")
 	d.ball_heading = SHARD_HEADING

@@ -39,3 +39,8 @@ extends Resource
 ## και στο web δεν υπάρχουν γραμματοσειρές συστήματος να τα καλύψουν.
 ## Γράφεται από το tools/write_enemy_lore.gd.
 @export_multiline var description := ""
+
+## Κέντρο του προσώπου σε art pixels, για το μετάλλιο του Book. Αρνητικό =
+## αυτόματα (κέντρο του καμβά). Χρειάζεται όταν το κεφάλι δεν είναι στη μέση,
+## π.χ. ο Grim Reaper κρατάει το δρεπάνι στη μία πλευρά.
+@export var face_center := Vector2(-1, -1)

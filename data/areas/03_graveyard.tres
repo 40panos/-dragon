@@ -1,0 +1,247 @@
+[gd_resource type="Resource" script_class="AreaDef" load_steps=103 format=3]
+
+[ext_resource type="Texture2D" path="res://art/background_grave.png" id="1_oh7gp"]
+[ext_resource type="Script" path="res://scripts/abilities/enemy_ability.gd" id="2_xerqk"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_hide.gd" id="3_deowx"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="4_5lab4"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_composite.gd" id="5_xvvwm"]
+[ext_resource type="Texture2D" path="res://art/reaper_hit_1.png" id="6_cis3x"]
+[ext_resource type="Texture2D" path="res://art/reaper_hit_2.png" id="7_vu23v"]
+[ext_resource type="Texture2D" path="res://art/reaper_hit_3.png" id="8_tdl5f"]
+[ext_resource type="Texture2D" path="res://art/reaper_hit_4.png" id="9_y4ntb"]
+[ext_resource type="Texture2D" path="res://art/reaper_hit_5.png" id="10_ta26f"]
+[ext_resource type="Texture2D" path="res://art/reaper_hit_6.png" id="11_43wgn"]
+[ext_resource type="Texture2D" path="res://art/reaper_idle_1.png" id="12_k20iq"]
+[ext_resource type="Texture2D" path="res://art/reaper_idle_2.png" id="13_whga5"]
+[ext_resource type="Texture2D" path="res://art/reaper_idle_3.png" id="14_q7p1y"]
+[ext_resource type="Texture2D" path="res://art/reaper_idle_4.png" id="15_1dbxp"]
+[ext_resource type="Texture2D" path="res://art/reaper_idle_5.png" id="16_2xwkp"]
+[ext_resource type="Texture2D" path="res://art/reaper_idle_6.png" id="17_h3jyu"]
+[ext_resource type="Script" path="res://scripts/data/enemy_type.gd" id="18_0o3i2"]
+[ext_resource type="Texture2D" path="res://art/skeleton_hit_1.png" id="19_h5kqp"]
+[ext_resource type="Texture2D" path="res://art/skeleton_hit_2.png" id="20_8bcmx"]
+[ext_resource type="Texture2D" path="res://art/skeleton_hit_3.png" id="21_aegb4"]
+[ext_resource type="Texture2D" path="res://art/skeleton_hit_4.png" id="22_2pebr"]
+[ext_resource type="Texture2D" path="res://art/skeleton_hit_5.png" id="23_ifl50"]
+[ext_resource type="Texture2D" path="res://art/skeleton_hit_6.png" id="24_jqkiv"]
+[ext_resource type="Texture2D" path="res://art/skeleton_idle_1.png" id="25_seslm"]
+[ext_resource type="Texture2D" path="res://art/skeleton_idle_2.png" id="26_pw6o6"]
+[ext_resource type="Texture2D" path="res://art/skeleton_idle_3.png" id="27_uw1jl"]
+[ext_resource type="Texture2D" path="res://art/skeleton_idle_4.png" id="28_h27c5"]
+[ext_resource type="Texture2D" path="res://art/skeleton_idle_5.png" id="29_hv6xu"]
+[ext_resource type="Texture2D" path="res://art/skeleton_idle_6.png" id="30_y6lup"]
+[ext_resource type="Texture2D" path="res://art/skeleton_idle_7.png" id="31_kopev"]
+[ext_resource type="Texture2D" path="res://art/skeleton_idle_8.png" id="32_5ie0r"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_regen.gd" id="33_damrb"]
+[ext_resource type="Texture2D" path="res://art/ghoul_hit_1.png" id="34_hi8jk"]
+[ext_resource type="Texture2D" path="res://art/ghoul_hit_2.png" id="35_rjw1q"]
+[ext_resource type="Texture2D" path="res://art/ghoul_hit_3.png" id="36_m0sgv"]
+[ext_resource type="Texture2D" path="res://art/ghoul_hit_4.png" id="37_7j1nw"]
+[ext_resource type="Texture2D" path="res://art/ghoul_hit_5.png" id="38_js6a2"]
+[ext_resource type="Texture2D" path="res://art/ghoul_hit_6.png" id="39_4nwbn"]
+[ext_resource type="Texture2D" path="res://art/ghoul_idle_1.png" id="40_kpwal"]
+[ext_resource type="Texture2D" path="res://art/ghoul_idle_2.png" id="41_bafhl"]
+[ext_resource type="Texture2D" path="res://art/ghoul_idle_3.png" id="42_f7r4r"]
+[ext_resource type="Texture2D" path="res://art/ghoul_idle_4.png" id="43_1n7tj"]
+[ext_resource type="Texture2D" path="res://art/ghoul_idle_5.png" id="44_dv4nj"]
+[ext_resource type="Texture2D" path="res://art/ghoul_idle_6.png" id="45_iuyav"]
+[ext_resource type="Texture2D" path="res://art/ghoul_idle_7.png" id="46_o0mcc"]
+[ext_resource type="Texture2D" path="res://art/ghoul_idle_8.png" id="47_0wjvq"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_shield.gd" id="48_1pkgi"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_hit_1.png" id="49_rooq5"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_hit_2.png" id="50_2ufb5"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_hit_3.png" id="51_rgnfg"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_hit_4.png" id="52_n5b5s"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_hit_5.png" id="53_4ig41"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_hit_6.png" id="54_og0f1"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_idle_1.png" id="55_346j2"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_idle_2.png" id="56_pyakr"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_idle_3.png" id="57_p8q2v"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_idle_4.png" id="58_mru7i"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_idle_5.png" id="59_w5ub5"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_idle_6.png" id="60_ym3md"]
+[ext_resource type="Texture2D" path="res://art/skeleton_warrior_idle_7.png" id="61_r60nv"]
+[ext_resource type="Texture2D" path="res://art/ghost_hit_1.png" id="62_4qvwm"]
+[ext_resource type="Texture2D" path="res://art/ghost_hit_2.png" id="63_1jpls"]
+[ext_resource type="Texture2D" path="res://art/ghost_hit_3.png" id="64_2spa2"]
+[ext_resource type="Texture2D" path="res://art/ghost_hit_4.png" id="65_nedbh"]
+[ext_resource type="Texture2D" path="res://art/ghost_hit_5.png" id="66_ioa4t"]
+[ext_resource type="Texture2D" path="res://art/ghost_hit_6.png" id="67_whll4"]
+[ext_resource type="Texture2D" path="res://art/ghost_idle_1.png" id="68_vwt5x"]
+[ext_resource type="Texture2D" path="res://art/ghost_idle_2.png" id="69_n2vri"]
+[ext_resource type="Texture2D" path="res://art/ghost_idle_3.png" id="70_n1f0t"]
+[ext_resource type="Texture2D" path="res://art/ghost_idle_4.png" id="71_pjfkp"]
+[ext_resource type="Texture2D" path="res://art/ghost_idle_5.png" id="72_hc5mv"]
+[ext_resource type="Texture2D" path="res://art/ghost_idle_6.png" id="73_dnx5d"]
+[ext_resource type="Texture2D" path="res://art/ghost_idle_7.png" id="74_mo1hq"]
+[ext_resource type="Texture2D" path="res://art/ghost_idle_8.png" id="75_fqwbi"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_hit_1.png" id="76_qlfdo"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_hit_2.png" id="77_cqwfk"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_hit_3.png" id="78_ejtfl"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_hit_4.png" id="79_qfmft"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_hit_5.png" id="80_lmw2o"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_hit_6.png" id="81_afmht"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_idle_1.png" id="82_43kt6"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_idle_2.png" id="83_pq4tc"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_idle_3.png" id="84_1gxio"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_idle_4.png" id="85_4pnvp"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_idle_5.png" id="86_h24gc"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_idle_6.png" id="87_b21lp"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_idle_7.png" id="88_setqh"]
+[ext_resource type="Texture2D" path="res://art/grave_bat_idle_8.png" id="89_ut85q"]
+[ext_resource type="Script" path="res://scripts/data/area_def.gd" id="90_u8kwp"]
+
+[sub_resource type="Resource" id="Resource_0an2w"]
+script = ExtResource("3_deowx")
+reduce = 0.4
+min_through = 0.2
+
+[sub_resource type="Resource" id="Resource_dhabu"]
+script = ExtResource("4_5lab4")
+every = 2
+hp_ratio = 0.3
+min_row = 2
+max_row = 7
+minion_id = "grave_bat"
+keep_clear = 2
+count = 2
+act_frames = Array[Texture2D]([])
+act_fps = 10.0
+
+[sub_resource type="Resource" id="Resource_68oxl"]
+script = ExtResource("5_xvvwm")
+parts = Array[ExtResource("2_xerqk")]([SubResource("Resource_0an2w"), SubResource("Resource_dhabu")])
+
+[sub_resource type="Resource" id="Resource_hsbh8"]
+script = ExtResource("18_0o3i2")
+id = "reaper"
+display_name = "Grim Reaper"
+sprite = ExtResource("12_k20iq")
+frames_idle = Array[Texture2D]([ExtResource("12_k20iq"), ExtResource("13_whga5"), ExtResource("14_q7p1y"), ExtResource("15_1dbxp"), ExtResource("16_2xwkp"), ExtResource("17_h3jyu")])
+fps_idle = 7.0
+frames_hit = Array[Texture2D]([ExtResource("6_cis3x"), ExtResource("7_vu23v"), ExtResource("8_tdl5f"), ExtResource("9_y4ntb"), ExtResource("10_ta26f"), ExtResource("11_43wgn")])
+fps_hit = 12.0
+sprite_scale = 1.0
+hp_mult = 1.0
+tier = 5
+min_round = 1
+weight = 1.0
+ability = SubResource("Resource_68oxl")
+description = "Keeper of the Graveyard. Blows slide off its shroud, and bats pour from its robe."
+face_center = Vector2(43, 15)
+
+[sub_resource type="Resource" id="Resource_8y3gh"]
+script = ExtResource("18_0o3i2")
+id = "skeleton"
+display_name = "Skeleton"
+sprite = ExtResource("25_seslm")
+frames_idle = Array[Texture2D]([ExtResource("25_seslm"), ExtResource("26_pw6o6"), ExtResource("27_uw1jl"), ExtResource("28_h27c5"), ExtResource("29_hv6xu"), ExtResource("30_y6lup"), ExtResource("31_kopev"), ExtResource("32_5ie0r")])
+fps_idle = 7.0
+frames_hit = Array[Texture2D]([ExtResource("19_h5kqp"), ExtResource("20_8bcmx"), ExtResource("21_aegb4"), ExtResource("22_2pebr"), ExtResource("23_ifl50"), ExtResource("24_jqkiv")])
+fps_hit = 12.0
+sprite_scale = 1.0
+hp_mult = 0.7
+tier = 0
+min_round = 1
+weight = 40.0
+description = "Old bones that forgot how to stay buried. Weak alone, but the graves never run out."
+face_center = Vector2(-1, -1)
+
+[sub_resource type="Resource" id="Resource_daabe"]
+script = ExtResource("33_damrb")
+ratio = 0.2
+
+[sub_resource type="Resource" id="Resource_0htsj"]
+script = ExtResource("18_0o3i2")
+id = "ghoul"
+display_name = "Ghoul"
+sprite = ExtResource("40_kpwal")
+frames_idle = Array[Texture2D]([ExtResource("40_kpwal"), ExtResource("41_bafhl"), ExtResource("42_f7r4r"), ExtResource("43_1n7tj"), ExtResource("44_dv4nj"), ExtResource("45_iuyav"), ExtResource("46_o0mcc"), ExtResource("47_0wjvq")])
+fps_idle = 7.0
+frames_hit = Array[Texture2D]([ExtResource("34_hi8jk"), ExtResource("35_rjw1q"), ExtResource("36_m0sgv"), ExtResource("37_7j1nw"), ExtResource("38_js6a2"), ExtResource("39_4nwbn")])
+fps_hit = 12.0
+sprite_scale = 1.0
+hp_mult = 1.4
+tier = 3
+min_round = 4
+weight = 20.0
+ability = SubResource("Resource_daabe")
+description = "Feeds on the dead, and on its own wounds. Leave it alone for one turn and it heals."
+face_center = Vector2(-1, -1)
+
+[sub_resource type="Resource" id="Resource_20aiy"]
+script = ExtResource("48_1pkgi")
+ratio = 1.0
+
+[sub_resource type="Resource" id="Resource_etp78"]
+script = ExtResource("18_0o3i2")
+id = "skeleton_warrior"
+display_name = "Skeleton Warrior"
+sprite = ExtResource("55_346j2")
+frames_idle = Array[Texture2D]([ExtResource("55_346j2"), ExtResource("56_pyakr"), ExtResource("57_p8q2v"), ExtResource("58_mru7i"), ExtResource("59_w5ub5"), ExtResource("60_ym3md"), ExtResource("61_r60nv")])
+fps_idle = 7.0
+frames_hit = Array[Texture2D]([ExtResource("49_rooq5"), ExtResource("50_2ufb5"), ExtResource("51_rgnfg"), ExtResource("52_n5b5s"), ExtResource("53_4ig41"), ExtResource("54_og0f1")])
+fps_hit = 12.0
+sprite_scale = 1.0
+hp_mult = 1.1
+tier = 2
+min_round = 7
+weight = 14.0
+ability = SubResource("Resource_20aiy")
+description = "Still guarding a king long gone. Break the shield first, the bones come after."
+face_center = Vector2(-1, -1)
+
+[sub_resource type="Resource" id="Resource_4xhg6"]
+script = ExtResource("3_deowx")
+reduce = 0.4
+min_through = 0.2
+
+[sub_resource type="Resource" id="Resource_j2gh3"]
+script = ExtResource("18_0o3i2")
+id = "ghost"
+display_name = "Ghost"
+sprite = ExtResource("68_vwt5x")
+frames_idle = Array[Texture2D]([ExtResource("68_vwt5x"), ExtResource("69_n2vri"), ExtResource("70_n1f0t"), ExtResource("71_pjfkp"), ExtResource("72_hc5mv"), ExtResource("73_dnx5d"), ExtResource("74_mo1hq"), ExtResource("75_fqwbi")])
+fps_idle = 7.0
+frames_hit = Array[Texture2D]([ExtResource("62_4qvwm"), ExtResource("63_1jpls"), ExtResource("64_2spa2"), ExtResource("65_nedbh"), ExtResource("66_ioa4t"), ExtResource("67_whll4")])
+fps_hit = 12.0
+sprite_scale = 1.0
+hp_mult = 0.9
+tier = 1
+min_round = 9
+weight = 12.0
+ability = SubResource("Resource_4xhg6")
+description = "Half here, half not. Weak hits pass right through it; strike hard."
+face_center = Vector2(-1, -1)
+
+[sub_resource type="Resource" id="Resource_uphye"]
+script = ExtResource("18_0o3i2")
+id = "grave_bat"
+display_name = "Grave Bat"
+sprite = ExtResource("82_43kt6")
+frames_idle = Array[Texture2D]([ExtResource("82_43kt6"), ExtResource("83_pq4tc"), ExtResource("84_1gxio"), ExtResource("85_4pnvp"), ExtResource("86_h24gc"), ExtResource("87_b21lp"), ExtResource("88_setqh"), ExtResource("89_ut85q")])
+fps_idle = 7.0
+frames_hit = Array[Texture2D]([ExtResource("76_qlfdo"), ExtResource("77_cqwfk"), ExtResource("78_ejtfl"), ExtResource("79_qfmft"), ExtResource("80_lmw2o"), ExtResource("81_afmht")])
+fps_hit = 12.0
+sprite_scale = 0.78
+hp_mult = 1.0
+tier = 0
+min_round = 1
+weight = 1.0
+description = "Nests in the reaper's robe. Weak alone, but they fill the gaps fast."
+face_center = Vector2(-1, -1)
+
+[resource]
+script = ExtResource("90_u8kwp")
+id = "graveyard"
+display_name = "Graveyard"
+background = ExtResource("1_oh7gp")
+tint = Color(1, 1, 1, 1)
+theme = "grave"
+weather = "fog"
+enemies = Array[ExtResource("18_0o3i2")]([SubResource("Resource_8y3gh"), SubResource("Resource_0htsj"), SubResource("Resource_etp78"), SubResource("Resource_j2gh3")])
+minions = Array[ExtResource("18_0o3i2")]([SubResource("Resource_uphye")])
+boss = SubResource("Resource_hsbh8")
+boss_cols = 3
+boss_rows = 2
+boss_hp_mult = 18.0

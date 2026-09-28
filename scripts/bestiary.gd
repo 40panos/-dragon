@@ -281,7 +281,11 @@ func _draw_face(e: EnemyType, center: Vector2, silhouette := false) -> void:
 		return
 	var ts := tex.get_size()
 	var src := Rect2(Vector2.ZERO, ts)
-	if ts.x > 32.0:
+	if e.face_center.x >= 0.0:
+		# ρητό κέντρο προσώπου (EnemyType.face_center), κρατημένο μέσα στον καμβά
+		var fc := e.face_center - Vector2(13, 13)
+		src = Rect2(clampf(floorf(fc.x), 0.0, ts.x - 26.0), clampf(floorf(fc.y), 0.0, ts.y - 26.0), 26, 26)
+	elif ts.x > 32.0:
 		src = Rect2(floorf((ts.x - 26.0) * 0.5), maxf(0.0, floorf((ts.y - 26.0) * 0.5) - 8.0), 26, 26)
 	var s := src.size * 2.0
 	var tint := Color(0, 0, 0, 0.9) if silhouette else Color.WHITE

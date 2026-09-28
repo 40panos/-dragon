@@ -78,6 +78,11 @@ var act_fps := 10.0
 var act_t := 0.0
 var act_playing := false
 
+# Παγωμένος από το FREEZE: νιφάδα πάνω του όσο κρατάει. Το frozen_t μετράει
+# από τη στιγμή που πάγωσε, για το σβήσιμο-άναμμα της νιφάδας.
+var frozen := false
+var frozen_t := 0.0
+
 # χρόνος που απομένει στο κατέβασμα σειράς· όσο τρέχει, ο εχθρός μετράει ως
 # «σε κίνηση» και κρύβει το περίγραμμά του. Μετράει μόνος του αντίστροφα, ώστε
 # να μη χρειάζεται callback από το tween που μπορεί να μην έρθει ποτέ.
@@ -221,6 +226,84 @@ func _process(delta: float) -> void:
 	if not hit_playing and not act_playing and frames_idle.size() > 1:
 		idle_t += delta
 		queue_redraw()
+	if frozen:
+		frozen_t += delta
+		queue_redraw()
+
+
+func set_frozen(on: bool) -> void:
+	if on and not frozen:
+		frozen_t = 0.0
+	frozen = on
+	queue_redraw()
+
+
+# ---------------------------------------------------------------- νιφάδα
+
+const FLAKE_N := 13              # καμβάς της νιφάδας σε art pixels
+const FLAKE_FADE := 0.35         # σβήσιμο-άναμμα όταν παγώνει
+static var _flake: Texture2D
+static var _flake_tips: Array[Vector2i] = []
+
+
+## Νιφάδα σε pixel art, φτιαγμένη μία φορά για όλους: οκτώ ακτίνες
+## (οριζόντια, κάθετη, διαγώνιες), με κλαδάκια σε σχήμα V στις ευθείες,
+## λευκό κέντρο και σκούρο μπλε περίγραμμα ώστε να διαβάζεται σε κάθε φόντο.
+static func flake_tex() -> Texture2D:
+	if _flake:
+		return _flake
+	var n := FLAKE_N
+	var c := n / 2
+	var body := {}
+	var put := func(x: int, y: int, col: Color) -> void:
+		if x >= 1 and y >= 1 and x < n - 1 and y < n - 1:
+			body[Vector2i(x, y)] = col
+	var arm := Color("bfeaff")
+	var core := Color("ffffff")
+	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		for i in range(1, 6):
+			put.call(c + d.x * i, c + d.y * i, arm)
+		# κλαδάκι V κοντά στην άκρη της ακτίνας
+		var side := Vector2i(d.y, d.x)
+		for s in [1, -1]:
+			put.call(c + d.x * 4 + side.x * s, c + d.y * 4 + side.y * s, arm)
+		_flake_tips.append(Vector2i(c + d.x * 5, c + d.y * 5))
+	for d in [Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
+		for i in range(1, 4):
+			put.call(c + d.x * i, c + d.y * i, arm)
+		_flake_tips.append(Vector2i(c + d.x * 3, c + d.y * 3))
+	put.call(c, c, core)
+	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		put.call(c + d.x, c + d.y, core)
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	var outline := Color("163a63")
+	for p in body:
+		for o in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var q: Vector2i = p + o
+			if not body.has(q) and q.x >= 0 and q.y >= 0 and q.x < n and q.y < n:
+				img.set_pixelv(q, outline)
+	for p in body:
+		img.set_pixelv(p, body[p])
+	_flake = ImageTexture.create_from_image(img)
+	return _flake
+
+
+## Η νιφάδα πάνω δεξιά στο κελί. Μέγεθος σε ακέραια πολλαπλάσια του art pixel
+## ανάλογα με το κουτί (ο boss παίρνει μεγαλύτερη), απαλό αιώρημα ενός pixel
+## και μια λάμψη που τρέχει από ακτίνα σε ακτίνα.
+func _draw_snowflake() -> void:
+	var tex := flake_tex()
+	var k := maxf(2.0, floorf(minf(box.x, box.y) / 26.0))
+	var size := FLAKE_N * k
+	var bob := k if fmod(frozen_t, 1.6) < 0.8 else 0.0
+	var pos := Vector2(box.x * 0.5 - size + k * 2.0, -box.y * 0.5 - k * 2.0 + bob)
+	pos = pos.floor()
+	var a := clampf(frozen_t / FLAKE_FADE, 0.0, 1.0)
+	draw_texture_rect(tex, Rect2(pos, Vector2(size, size)), false, Color(1, 1, 1, a))
+	if _flake_tips.is_empty():
+		return
+	var tip: Vector2i = _flake_tips[int(frozen_t * 6.0) % _flake_tips.size()]
+	draw_rect(Rect2(pos + Vector2(tip) * k, Vector2(k, k)), Color(1, 1, 1, a))
 
 
 ## Το καρέ ήρεμης στάσης που πρέπει να φαίνεται τώρα· βρόχος προς τα εμπρός
@@ -434,6 +517,9 @@ func _draw() -> void:
 	var hpos := Vector2(-half.x + 2.0, bar.position.y - hic - 2.0)
 	draw_texture_rect(HEART_TEX, Rect2(hpos, Vector2(hic, hic)), false)
 	_draw_outline_text(hpos + Vector2(hic + 2.0, hic - 1.0), str(shown_hp()), 13, Color("ffffff"))
+
+	if frozen:
+		_draw_snowflake()
 
 	# Τα σύμβολα ικανότητας (## !! *) δεν σχεδιάζονται πια: γέμιζαν το κελί με
 	# σημάδια που δεν διάβαζε κανείς. Το badge() μένει στο EnemyAbility — το

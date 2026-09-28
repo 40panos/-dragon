@@ -2,6 +2,7 @@ extends SceneTree
 ## Χτίζει το φόντο κάθε περιοχής από τα πλακίδιά της:
 ##   art/background.png        ← art/floor_01..19.png   (Goblin Land)
 ##   art/background_frost.png  ← art/ice_01..10.png     (Frost Marches)
+##   art/background_grave.png  ← art/grave_01..09.png   (Graveyard)
 ##
 ##   godot --headless --path . --script tools/build_floor.gd
 ##
@@ -77,6 +78,25 @@ const SETS := [
 		},
 		"accents": [9, 10],   # κόκαλα στο χιόνι, ασπίδα Viking στον πάγο
 		"accent_count": 2,
+	},
+	{
+		# Graveyard: μαύρο χώμα με ξερό χορτάρι. Τα πλακίδια περνάνε από το
+		# tools/build_graveyard.gd, που εξισώνει τον τόνο τους· 02, 04, 05
+		# είναι καθρεφτίσματα των ήσυχων, για ποικιλία.
+		"prefix": "grave",
+		"count": 9,
+		"out": "res://art/background_grave.png",
+		"seed": 20260928,
+		"weights": {
+			1: 12,    # ξερό χορτάρι σε μαύρο χώμα — η βάση
+			2: 12,
+			3: 9,     # χώμα με βότσαλα
+			4: 9,
+			5: 6,
+			6: 2,     # πλάκες μονοπατιού — σπάνιες, τραβάνε το μάτι
+		},
+		"accents": [7, 8, 9],   # τάφος, κόκαλα με κρανίο, πεσμένος σταυρός
+		"accent_count": 3,
 	},
 ]
 
