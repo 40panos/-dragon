@@ -20,7 +20,9 @@ const WEB := Color(0.78, 0.78, 0.84, 0.55)
 ## όνομα -> τι επιπλέον χρειάζεται (flame: πράσινη φλόγα, cloth: μωβ ύφασμα,
 ## webs: ιστοί)
 const ITEMS := {
-	"frame_left": "", "frame_right": "", "frame_top": "",
+	# τα πλαϊνά (frame_left/right_grave) είναι δικός τους τοίχος κατακομβών,
+	# από το tools/build_frame.gd — όχι σκοτεινιασμένο ξύλο
+	"frame_top": "",
 	"hud_wall": "", "hud_top": "",
 	"castle_1": "webs", "castle_2": "webs", "castle_3": "webs",
 	"castle_4": "webs", "castle_5": "webs",
@@ -96,6 +98,28 @@ func _grave(src: Image, mode: String) -> Image:
 	return im
 
 
+## Κρανία σε παλούκια πάνω στο χαμηλό τείχος του κάστρου, ένα δίπλα σε κάθε
+## πύργο (ο δεξής καθρεφτισμένος). Το τείχος ανάμεσα στους πύργους πατάει στο
+## y≈46 του καμβά 360x64· το παλούκι (art/deco_skull_pike.png, 24x32,
+## PixelLab) καρφώνεται λίγο μέσα του, ώστε να μη φαίνεται να αιωρείται.
+const PIKE := "res://art/deco_skull_pike.png"
+const PIKE_X := [84, 252]
+const PIKE_GROUND := 48
+
+
+func _add_pikes(im: Image) -> void:
+	var pike: Image = (load(PIKE) as Texture2D).get_image()
+	pike.convert(Image.FORMAT_RGBA8)
+	var used := pike.get_used_rect()
+	var y := PIKE_GROUND - used.end.y
+	for i in PIKE_X.size():
+		var p := pike
+		if i == 1:
+			p = pike.duplicate()
+			p.flip_x()
+		im.blend_rect(p, Rect2i(Vector2i.ZERO, p.get_size()), Vector2i(PIKE_X[i], y))
+
+
 func _initialize() -> void:
 	for name_ in ITEMS:
 		var path := "res://art/%s.png" % name_
@@ -107,6 +131,8 @@ func _initialize() -> void:
 		var src := tex.get_image()
 		src.convert(Image.FORMAT_RGBA8)
 		var out := _grave(src, ITEMS[name_])
+		if name_.begins_with("castle_"):
+			_add_pikes(out)
 		var dst := "res://art/%s_grave.png" % name_
 		out.save_png(ProjectSettings.globalize_path(dst))
 		print("γράφτηκε ", dst)

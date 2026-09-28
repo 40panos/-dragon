@@ -52,30 +52,45 @@ func _band(tile: Image, cols: int) -> Image:
 	return out
 
 
-func _initialize() -> void:
-	var palisade := _img("wall_palisade")
-	var parapet := _img("wall_parapet")
+## Κάθε περιοχή έχει δικά της πλαϊνά, ώστε να μη μοιάζουν όλες ίδιες με
+## άλλο χρώμα: ξύλο στους goblins, τοίχος πάγου στο Frost Marches, τοίχος
+## κατακομβών με κρανία στο Graveyard. [πλακίδιο, κατάληξη αρχείου, στολίδια]
+## Η κατάληξη ταιριάζει με το AreaDef.theme (βλ. main._apply_theme). Τα
+## tools/build_*_theme.gd ΔΕΝ φτιάχνουν πια πλαϊνά, μόνο το πάνω παραπέτο.
+const SIDES := [
+	["wall_palisade", "", true],
+	["wall_frost", "_frost", false],
+	["wall_grave", "_grave", false],
+]
 
-	# --- πλαϊνά: στοίβα από palisade, με τα στολίδια από πάνω
+
+func _side(tile_name: String, suffix: String, decorate: bool) -> void:
+	var tile := _img(tile_name)
 	var left := Image.create(TILE, SIDE_ROWS * TILE, false, Image.FORMAT_RGBA8)
 	for r in SIDE_ROWS:
-		left.blit_rect(palisade, Rect2i(0, 0, TILE, TILE), Vector2i(0, r * TILE))
-	for d in DECOR:
-		var deco := _img(d[0])
-		var x := int((TILE - deco.get_width()) * 0.5)
-		var y := int(d[1]) * TILE + int(d[2])
-		# blend, όχι blit: τα στολίδια έχουν διάφανο φόντο και πρέπει να
-		# πατήσουν πάνω στο ξύλο, όχι να το τρυπήσουν
-		left.blend_rect(deco, Rect2i(Vector2i.ZERO, deco.get_size()), Vector2i(x, y))
-	_save(left, "frame_left")
+		left.blit_rect(tile, Rect2i(0, 0, TILE, TILE), Vector2i(0, r * TILE))
+	if decorate:
+		for d in DECOR:
+			var deco := _img(d[0])
+			var x := int((TILE - deco.get_width()) * 0.5)
+			var y := int(d[1]) * TILE + int(d[2])
+			# blend, όχι blit: τα στολίδια έχουν διάφανο φόντο και πρέπει να
+			# πατήσουν πάνω στο ξύλο, όχι να το τρυπήσουν
+			left.blend_rect(deco, Rect2i(Vector2i.ZERO, deco.get_size()), Vector2i(x, y))
+	_save(left, "frame_left" + suffix)
 
 	# η δεξιά πλευρά είναι η αριστερή καθρεφτισμένη, ώστε οι δύο μεριές να
 	# κοιτάνε η μία την άλλη αντί να είναι ίδιες μετατοπισμένες
 	var right := Image.create_from_data(left.get_width(), left.get_height(),
 		false, left.get_format(), left.get_data())
 	right.flip_x()
-	_save(right, "frame_right")
+	_save(right, "frame_right" + suffix)
+
+
+func _initialize() -> void:
+	for s in SIDES:
+		_side(s[0], s[1], s[2])
 
 	# --- πάνω: πέτρα. Κάτω δεν υπάρχει πια λωρίδα — η πίστα συνεχίζει ως εκεί.
-	_save(_band(parapet, BAND_COLS), "frame_top")
+	_save(_band(_img("wall_parapet"), BAND_COLS), "frame_top")
 	quit(0)

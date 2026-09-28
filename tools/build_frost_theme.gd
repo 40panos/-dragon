@@ -23,7 +23,9 @@ const ICICLE := [Color("dff0ff"), Color("a9cdea"), Color("7aa6cf")]
 
 ## όνομα -> τι επιπλέον χρειάζεται (flame: μπλε φλόγα, cloth: μπλε ύφασμα)
 const ITEMS := {
-	"frame_left": "", "frame_right": "", "frame_top": "",
+	# τα πλαϊνά (frame_left/right_frost) είναι δικός τους τοίχος πάγου, από
+	# το tools/build_frame.gd — όχι χιονισμένο ξύλο
+	"frame_top": "",
 	"hud_wall": "", "hud_top": "",
 	"castle_1": "icicles", "castle_2": "icicles", "castle_3": "icicles",
 	"castle_4": "icicles", "castle_5": "icicles",
