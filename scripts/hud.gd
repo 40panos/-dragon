@@ -244,11 +244,25 @@ func _draw_top() -> void:
 		var bf: float = clampf(m.boss.hp / maxf(m.boss.max_hp, 1.0), 0.0, 1.0)
 		draw_rect(Rect2(br.position, Vector2(br.size.x * bf, br.size.y)), Color("d4453a"))
 		draw_rect(Rect2(br.position, Vector2(br.size.x * bf, 5.0)), Color("f07a5a"))
-		_text(Vector2(br.position.x, br.end.y + 30.0), br.size.x, "BOSS", 20, Color("ffd7c2"), true)
+		var label := "BOSS"
+		var lcol := Color("ffd7c2")
+		var doom: int = m.boss_doom()
+		if doom >= 0:
+			# ο μεγάλος boss: πόσοι γύροι ως την επόμενη πολιορκία
+			label = "SIEGE IN %d" % doom if doom > 1 else "SIEGE NEXT!"
+			if doom <= 1:
+				lcol = Color("ff7a5a").lerp(Color.WHITE, 0.5 + 0.5 * sin(m.t * 10.0))
+		elif m.boss.is_boss and m.current_area() and m.current_area().final_boss:
+			label = "MINI-BOSS"
+		_text(Vector2(br.position.x, br.end.y + 30.0), br.size.x, label, 20, lcol, true)
 		return
 	_put(SKULL, Vector2(cx - SKULL.get_width(), py - 4.0))
 	var left: int = m.ROUNDS_PER_AREA - m.area_round()
 	var msg := "BOSS NEXT" if left <= 0 else "BOSS IN %d" % left
+	var ar = m.current_area()
+	if ar and ar.final_boss and m.area_round() < m.MINIBOSS_ROUND:
+		var ml: int = m.MINIBOSS_ROUND - m.area_round()
+		msg = "MINI-BOSS IN %d" % ml
 	var col := DIM
 	if m.triple_turns > 0:
 		# το power-up καλύπτει προσωρινά την ένδειξη του boss

@@ -78,6 +78,25 @@ var act_fps := 10.0
 var act_t := 0.0
 var act_playing := false
 
+# ---- αντικείμενα και μεγάλος boss
+var invulnerable := false       # οδόφραγμα: η ζημιά χάνεται, οι μπάλες αναπηδούν
+var show_hp := true             # καρδιά και μπάρα ζωής
+var fuse := -1                  # βαρέλι: γύροι ως την έκρηξη (<0 = δεν έχει)
+var life_turns := -1            # οδόφραγμα: γύροι ως το γκρέμισμα (<0 = μόνιμο)
+var life_max := 0
+var is_final := false           # ο μεγάλος boss της περιοχής
+var shield_on := false          # ο μεγάλος boss προστατεύεται (π.χ. από τύμπανα)
+var shield_hit_t := 1.0         # χρόνος από το τελευταίο χτύπημα στην ασπίδα
+var weak_rect := Rect2()        # αδύναμο σημείο σε τοπικές συντεταγμένες (μέγεθος 0 = κανένα)
+var bump_t := 1.0               # τράνταγμα όταν χτυπιέται κάτι άθραυστο
+
+# ---- εμφάνιση / εξαφάνιση: τίποτα δεν πετάγεται ούτε χάνεται σε ένα καρέ
+const APPEAR_TIME := 0.38
+const VANISH_TIME := 0.45
+var appear_mode := ""           # "" τίποτα, "pop" βγαίνει από βαρέλι, "rise" υψώνεται από το έδαφος
+var appear_t := 1.0
+var vanish_t := -1.0            # >=0: σβήνει και μετά φεύγει
+
 # Παγωμένος από το FREEZE: νιφάδα πάνω του όσο κρατάει. Το frozen_t μετράει
 # από τη στιγμή που πάγωσε, για το σβήσιμο-άναμμα της νιφάδας.
 var frozen := false
@@ -136,6 +155,19 @@ func setup(p_hp: float, p_box: Vector2, p_kind: String, p_sprite: Texture2D,
 
 ## Επιστρέφει πόση ζημιά πέρασε στη ζωή. Η ασπίδα μπορεί να την απορροφήσει.
 func take_damage(amount: float) -> float:
+	if vanish_t >= 0.0:
+		return 0.0
+	# άθραυστο: τρανταγμα και τίποτα άλλο — ούτε ζημιά ούτε πόντοι
+	if invulnerable:
+		bump_t = 0.0
+		queue_redraw()
+		return 0.0
+	# ο μεγάλος boss πίσω από ασπίδα: η ασπίδα αστράφτει, η ζημιά χάνεται
+	if shield_on:
+		shield_hit_t = 0.0
+		bump_t = 0.0
+		queue_redraw()
+		return 0.0
 	var through := amount
 	if ability:
 		through = ability.absorb(self, amount)
@@ -229,6 +261,70 @@ func _process(delta: float) -> void:
 	if frozen and frozen_t < FLAKE_LIFE:
 		frozen_t += delta
 		queue_redraw()
+	if appear_t < 1.0:
+		appear_t = minf(1.0, appear_t + delta / APPEAR_TIME)
+		queue_redraw()
+	if bump_t < 1.0:
+		bump_t = minf(1.0, bump_t + delta * 6.0)
+		queue_redraw()
+	if shield_on or shield_hit_t < 1.0:
+		shield_hit_t = minf(1.0, shield_hit_t + delta * 3.0)
+		queue_redraw()
+	if fuse >= 0 or weak_rect.has_area():
+		queue_redraw()          # φυτίλι που τρεμοπαίζει, στόχαστρο που πάλλεται
+	if vanish_t >= 0.0:
+		vanish_t += delta
+		var k := clampf(vanish_t / VANISH_TIME, 0.0, 1.0)
+		modulate.a = 1.0 - k
+		if k >= 1.0:
+			queue_free()
+		queue_redraw()
+
+
+## Ξεκινάει το animation εμφάνισης. "pop": πετάγεται από το βαρέλι που
+## έσπασε — μικρό, πηδάει, ξεπερνάει λίγο το μέγεθός του και κάθεται. "rise":
+## υψώνεται από το έδαφος, με τη βάση καρφωμένη (οδόφραγμα που στήνεται).
+func appear(mode: String) -> void:
+	appear_mode = mode
+	appear_t = 0.0
+	queue_redraw()
+
+
+## Σβήνει και φεύγει μόνο του. Το κελί ελευθερώνεται αμέσως από όποιον το
+## καλεί· η σύγκρουση κλείνει, ώστε οι μπάλες να περνάνε από το φάντασμα.
+func vanish() -> void:
+	if vanish_t >= 0.0:
+		return
+	vanish_t = 0.0
+	remove_from_group("block")
+	$CollisionShape2D.set_deferred("disabled", true)
+
+
+func is_vanishing() -> bool:
+	return vanish_t >= 0.0
+
+
+## Ο μετασχηματισμός του animation εμφάνισης (και του τραντάγματος), που
+## εφαρμόζεται σε όλο το _draw — πορτρέτο, περίγραμμα, ενδείξεις μαζί.
+func _appear_xform() -> Transform2D:
+	var s := Vector2.ONE
+	var off := Vector2.ZERO
+	if appear_t < 1.0:
+		var k := appear_t
+		if appear_mode == "rise":
+			var e := 1.0 - pow(1.0 - k, 3.0)
+			s = Vector2(1.0 + (1.0 - e) * 0.15, maxf(e, 0.02))
+			off.y = box.y * 0.5 * (1.0 - s.y)       # η βάση μένει στο έδαφος
+		else:
+			# μικρό άλμα με υπερακόντιση: 0.35 -> 1.15 -> 1.0
+			var e := 1.0 - pow(1.0 - k, 2.0)
+			var over := sin(k * PI) * 0.18
+			var sc := lerpf(0.35, 1.0, e) + over
+			s = Vector2(sc, sc)
+			off.y = -sin(k * PI) * box.y * 0.35
+	if bump_t < 1.0:
+		off.x += sin(bump_t * 40.0) * (1.0 - bump_t) * 3.0
+	return Transform2D(0.0, s, 0.0, off)
 
 
 func set_frozen(on: bool) -> void:
@@ -474,8 +570,14 @@ func _draw_ring(tex: Texture2D, r: Rect2, alpha: float) -> void:
 func _draw() -> void:
 	var half := box * 0.5
 	var band := minf(box.y * 0.14, 10.0)      # ύψος μπάρας ζωής — μικρή, ο αριθμός μιλάει
+	var xf := _appear_xform()
+	draw_set_transform(xf.origin, 0.0, xf.get_scale())
 
-	_draw_edge()
+	if shield_on or shield_hit_t < 1.0:
+		_draw_shield()
+	# ούτε περίγραμμα κελιού όσο στήνεται ή σβήνει: θα έδειχνε το κουτί πριν το πλάσμα
+	if appear_t >= 1.0 and vanish_t < 0.0:
+		_draw_edge()
 
 	# πορτρέτο — αντίδραση σε χτύπημα > idle loop > στατικό sprite
 	var portrait := portrait_frame()
@@ -506,6 +608,18 @@ func _draw() -> void:
 		draw_texture_rect(SHIELD_TEX, Rect2(spos, Vector2(sic, sic)), false)
 		_draw_outline_text(spos + Vector2(sic + 2.0, sic - 1.0), str(shield_amt), 13, Color("bfe6ff"))
 
+	if weak_rect.has_area():
+		_draw_weak_point()
+	if fuse >= 0:
+		_draw_fuse()
+	if life_turns >= 0:
+		_draw_life_pips()
+	if not show_hp:
+		if frozen:
+			_draw_snowflake()
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return
+
 	# μικρή μπάρα ζωής, χρωματισμένη ανάλογα με το ποσοστό
 	var t := clampf(hp / maxf(max_hp, 0.001), 0.0, 1.0)
 	var bar := Rect2(-half.x + 3.0, half.y - band - 1.0, box.x - 6.0, band)
@@ -523,10 +637,79 @@ func _draw() -> void:
 
 	if frozen:
 		_draw_snowflake()
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	# Τα σύμβολα ικανότητας (## !! *) δεν σχεδιάζονται πια: γέμιζαν το κελί με
 	# σημάδια που δεν διάβαζε κανείς. Το badge() μένει στο EnemyAbility — το
 	# χρησιμοποιούν τα tests, και είναι εκεί αν ξαναχρειαστεί ένδειξη.
+
+
+## Ασπίδα γύρω από τον μεγάλο boss: δαχτυλίδι από τετράγωνα 4x4 (2 art
+## pixels) που αναπνέει, και αστράφτει άσπρο όταν τη χτυπάει μπάλα.
+const SHIELD_COL := Color("ffcf5a")
+
+
+func _draw_shield() -> void:
+	var t := Time.get_ticks_msec() / 1000.0
+	var flash := 1.0 - shield_hit_t
+	# χτύπος σαν τύμπανο: απότομο άναμμα και σβήσιμο, όχι ομαλό ημίτονο
+	var beat := pow(1.0 - fmod(t * 1.6, 1.0), 3.0)
+	var a := (0.55 + 0.35 * beat) if shield_on else 0.0
+	a = maxf(a, flash)
+	if a <= 0.01:
+		return
+	var r := box * 0.5 + Vector2(12, 12)
+	var col := SHIELD_COL.lerp(Color.WHITE, flash * 0.8)
+	# θόλος: απαλή χρυσή μάζα πίσω από τον πύργο
+	draw_texture_rect(Ball.dot_tex(), Rect2(-r, r * 2.0), false, Color(col, 0.10 + 0.10 * beat + flash * 0.2))
+	# χείλος: τετράγωνα 6x6/4x4 στο πλέγμα των 2 art pixels, που γυρίζουν αργά
+	var n := 96
+	for i in n:
+		var ang := TAU * float(i) / n + t * 0.5
+		var p := Vector2(cos(ang) * r.x, sin(ang) * r.y)
+		p = (p / 4.0).floor() * 4.0
+		var sz := 6.0 if i % 3 != 0 else 4.0
+		draw_rect(Rect2(p - Vector2(sz, sz) * 0.5, Vector2(sz, sz)), Color(col, a))
+
+
+## Στόχαστρο στο αδύναμο σημείο: τέσσερις γωνίες που πάλλονται. Δείχνει στον
+## παίκτη πού αξίζει να σημαδέψει, χωρίς κείμενο.
+func _draw_weak_point() -> void:
+	var t := Time.get_ticks_msec() / 1000.0
+	var g := 4.0 + 3.0 * (0.5 + 0.5 * sin(t * 5.0))
+	var r := weak_rect.grow(g)
+	var L := 12.0
+	var col := Color(1.0, 0.35, 0.25, 0.85)
+	for cx: int in [0, 1]:
+		for cy: int in [0, 1]:
+			var c := Vector2(r.position.x + r.size.x * cx, r.position.y + r.size.y * cy)
+			var sx := 1.0 if cx == 0 else -1.0
+			var sy := 1.0 if cy == 0 else -1.0
+			draw_rect(Rect2(c.x + (0.0 if sx > 0 else -L), c.y + (0.0 if sy > 0 else -4.0), L, 4.0), col)
+			draw_rect(Rect2(c.x + (0.0 if sx > 0 else -4.0), c.y + (0.0 if sy > 0 else -L), 4.0, L), col)
+
+
+## Φυτίλι: αριθμός γύρων ως την έκρηξη, που κοκκινίζει και χτυπάει σαν
+## καρδιά στον τελευταίο γύρο.
+func _draw_fuse() -> void:
+	var t := Time.get_ticks_msec() / 1000.0
+	var last := fuse <= 1
+	var col := Color("ff5a3a") if last else Color("ffb347")
+	var size := 18 if not last else 18 + int(3.0 * (0.5 + 0.5 * sin(t * 12.0)))
+	var pos := Vector2(box.x * 0.5 - 16.0, -box.y * 0.5 + 18.0)
+	_draw_outline_text(pos, str(fuse), size, col)
+
+
+## Οδόφραγμα: κουκκίδες για τους γύρους που του μένουν.
+func _draw_life_pips() -> void:
+	var n := maxi(life_max, life_turns)
+	var w := n * 8.0 - 2.0
+	var x0 := -w * 0.5
+	var y := box.y * 0.5 - 8.0
+	for i in n:
+		var on := i < life_turns
+		draw_rect(Rect2(x0 + i * 8.0 - 1.0, y - 1.0, 8.0, 8.0), Color(0, 0, 0, 0.6))
+		draw_rect(Rect2(x0 + i * 8.0, y, 6.0, 6.0), Color("e8c27a") if on else Color(0.3, 0.25, 0.2, 0.8))
 
 
 func _pix(ch_: String) -> Color:

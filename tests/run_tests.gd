@@ -246,12 +246,13 @@ func _initialize() -> void:
 		b.queue_free()
 	await process_frame
 	m.boss = null
-	m.level = 20
+	m.level = 10
 	m._add_row()
 	await process_frame
-	ok("ο boss εμφανίστηκε στον γύρο 20", m.boss != null)
+	ok("ο mini-boss εμφανίστηκε στον γύρο 10", m.boss != null and not m.boss.is_final)
 	if m.boss:
-		ok("ο boss πιάνει 3x2", m.boss.cw == 3 and m.boss.ch == 2)
+		ok("ο mini-boss είναι ο Goblin King, 3x2", m.boss.kind == "goblin_king"
+			and m.boss.cw == 3 and m.boss.ch == 2)
 		# η ωμή ζωή έπεσε όταν μπήκε το χοντρό τομάρι, γιατί το τομάρι κόβει
 		# ζημιά· αυτό που πρέπει να μείνει ψηλά είναι πόσες μπάλες χρειάζεται
 		var per_ball: float = m.boss.ability.absorb(m.boss, 1.0) if m.boss.ability else 1.0
@@ -281,7 +282,7 @@ func _initialize() -> void:
 		for turn in 3:
 			m._end_turn()
 			await process_frame
-		ok("με ζωντανό boss ο γύρος δεν προχωράει", m.level == 20, "(%d)" % m.level)
+		ok("με ζωντανό boss ο γύρος δεν προχωράει", m.level == 10, "(%d)" % m.level)
 		ok("με ζωντανό boss η περιοχή δεν αλλάζει", m.area_index == 0, "(%d)" % m.area_index)
 		ok("με ζωντανό boss συνεχίζουν οι σειρές", m.phase == "aim" and m.grid.free_cols_in_row(0).size() < m.COLS,
 			"(phase=%s, ελεύθερα στη σειρά 0: %d)" % [m.phase, m.grid.free_cols_in_row(0).size()])
@@ -293,6 +294,128 @@ func _initialize() -> void:
 		ok("ο frost είναι κλειδωμένος πριν τον boss", not m.run_dragons.has("frost"), str(m.run_dragons))
 		m.phase = "aim"
 		ok("δεν διαλέγεις κλειδωμένο δράκο", not m.select_dragon("frost") and m.dragon.id == "ember")
+		m.boss.take_damage(m.boss.max_hp + 10.0)
+		await process_frame
+		ok("ο mini-boss δεν ξεκλειδώνει δράκο", not m.run_dragons.has("frost") and m.boss == null,
+			str(m.run_dragons))
+
+		print("--- μεγάλος boss: Grukk's Siege Tower ---")
+		for b in m.grid.blocks():
+			m.grid.erase(b)
+			b.queue_free()
+		await process_frame
+		var keep_blk = m._make_block(0, 5, m.enemy_by_id["goblin"], 5.0, 1, 1, false)
+		m.level = 20
+		m._add_row()
+		ok("στον γύρο 20 ξεκινάει η είσοδος του boss", m.phase == "boss_intro")
+		ok("...και ο χάρτης καθαρίζει με animation, όχι απότομα",
+			m.grid.blocks().is_empty() and is_instance_valid(keep_blk) and keep_blk.is_vanishing())
+		m._update_boss_intro(m.INTRO_CLEAR + 0.01)
+		ok("ο boss πέφτει από ψηλά", m.boss != null and m.boss.position.y
+			< m.block_center(m.boss.col, m.boss.row, 3, 3).y - 100.0)
+		m.finish_boss_intro()
+		var fb = m.boss
+		ok("ο μεγάλος boss πιάνει 3x3", fb != null and fb.is_final and fb.cw == 3 and fb.ch == 3
+			and fb.kind == "siege_tower")
+		ok("...έχει αδύναμο σημείο πάνω, στον Grukk", fb.weak_rect.has_area()
+			and fb.weak_rect.position.y < -fb.box.y * 0.3)
+		ok("...και ξαναπαίζεις μετά την είσοδο", m.phase == "aim")
+		var fb_ab = fb.ability
+		fb_ab.siege_every = 1000
+		fb_ab.doom = 1000
+		var fb_hp0: float = fb.hp
+		m._end_turn()
+		await process_frame
+		ok("ο πύργος δεν κουνιέται", fb.row == 0, "(σειρά %d)" % fb.row)
+		ok("όσο ζει ο μεγάλος boss δεν πέφτουν κανονικές σειρές", m.grid.free_cols_in_row(0).size()
+			== m.COLS - 3)
+		ok("ρίχνει ό,τι βγάζει — βλήματα στον αέρα, και περιμένεις", not m.lobs.is_empty()
+			and m.phase == "boss_act", "(%d, %s)" % [m.lobs.size(), m.phase])
+		m._update_lobs(5.0)
+		ok("...που προσγειώνονται: goblin και οδοφράγματα", m.count_kind("goblin") >= 1
+			and m.count_kind("barricade") >= 1 and m.phase == "aim",
+			"(goblin %d, barricade %d)" % [m.count_kind("goblin"), m.count_kind("barricade")])
+		var landed = null
+		for b in m.grid.blocks():
+			if b.kind == "goblin":
+				landed = b
+		ok("...και πετάγονται από το βαρέλι με animation", landed != null and landed.appear_t < 1.0
+			and landed.appear_mode == "pop")
+		var bar = null
+		for b in m.grid.blocks():
+			if b.kind == "barricade":
+				bar = b
+		var bar_hp: float = bar.hp if bar else 0.0
+		var score0: int = m.score
+		if bar:
+			bar.take_damage(50.0)
+		ok("το οδόφραγμα δεν σπάει και δεν δίνει πόντους", bar != null and bar.hp == bar_hp
+			and m.score == score0)
+		ok("το οδόφραγμα στήνεται υψώνοντας από το έδαφος", bar != null and bar.appear_mode == "rise")
+		# φάση 2: τύμπανα
+		fb.take_damage(fb.max_hp * 0.45)
+		ok("στο 60% η φάση 2", fb_ab.stage == 2)
+		m._update_lobs(5.0)
+		m._end_turn()
+		m._update_lobs(5.0)
+		await process_frame
+		ok("φάση 2: δύο τυμπανιστές δίπλα στον πύργο", m.count_kind("war_drummer") == 2,
+			"(%d)" % m.count_kind("war_drummer"))
+		ok("...και όσο ζουν ο πύργος έχει ασπίδα", fb.shield_on)
+		var hp_before: float = fb.hp
+		fb.take_damage(10.0)
+		ok("...που τρώει κάθε ζημιά", fb.hp == hp_before)
+		for b in m.grid.blocks():
+			if b.kind == "war_drummer":
+				b.take_damage(b.hp + 1.0)
+		await process_frame
+		ok("χωρίς τυμπανιστές η ασπίδα πέφτει", not fb.shield_on)
+		# φάση 3: μπαρούτι
+		fb.take_damage(fb.hp - fb.max_hp * 0.25)
+		ok("στο 30% η φάση 3", fb_ab.stage == 3)
+		m._update_lobs(5.0)
+		for b in m.grid.blocks():
+			if b.kind == "barricade" or b.kind == "goblin":
+				m.grid.erase(b)
+				b.queue_free()
+		await process_frame
+		m._end_turn()
+		m._update_lobs(5.0)
+		await process_frame
+		var kegs := []
+		for b in m.grid.blocks():
+			if b.kind == "powder_keg":
+				kegs.append(b)
+		ok("φάση 3: βαρέλια μπαρούτι στο ταμπλό, με φυτίλι", kegs.size() >= 1
+			and kegs[0].fuse > 0 and not kegs[0].show_hp, "(%d)" % kegs.size())
+		if not kegs.is_empty():
+			var kg = kegs[0]
+			var victim = null
+			for dc in [-1, 1]:
+				if victim == null and m.grid.is_free(kg.col + dc, kg.row):
+					victim = m._make_block(kg.col + dc, kg.row, m.enemy_by_id["goblin"], 50.0, 1, 1, false)
+			kg.take_damage(1.0)
+			await process_frame
+			await process_frame
+			ok("χτυπημένο βαρέλι σκάει και παίρνει μαζί του τους γύρω",
+				not is_instance_valid(kg) and (victim == null or not is_instance_valid(victim)
+					or victim.is_queued_for_deletion()))
+		# πολιορκία
+		fb_ab.doom = 1
+		var siege_row := -1
+		var sg = m._make_block(1, 4, m.enemy_by_id["goblin"], 50.0, 1, 1, false)
+		siege_row = sg.row
+		m._end_turn()
+		m._update_lobs(5.0)
+		await process_frame
+		ok("η πολιορκία ρίχνει βράχο και κατεβάζει το ταμπλό", is_instance_valid(sg)
+			and sg.row >= siege_row + 2 and fb.row == 0, "(%d -> %d)" % [siege_row, sg.row])
+		ok("...και ο μετρητής ξαναγεμίζει", fb_ab.doom > 1)
+		for b in m.grid.blocks():
+			if b != fb:
+				m.grid.erase(b)
+				b.queue_free()
+		await process_frame
 		m.boss.take_damage(m.boss.max_hp + 10.0)
 		await process_frame
 		ok("ξεκλείδωσε νέος δράκος για αυτό το run", m.run_dragons.has("frost"), str(m.run_dragons))
@@ -616,14 +739,16 @@ func _initialize() -> void:
 	ok("ο warlock πήρε 8 καρέ idle", warlock_type.frames_idle.size() == 8,
 		"(%d)" % warlock_type.frames_idle.size())
 	# κανένας εχθρός, σε καμία περιοχή, δεν μένει με στατικό πορτρέτο
+	# τα αντικείμενα του ταμπλό (οδόφραγμα, βαρέλι) δεν είναι πλάσματα: το
+	# οδόφραγμα δεν σπάει, το βαρέλι σκάει — δεν «αντιδρούν» σε χτύπημα
 	var still := []
 	for id in m.enemy_by_id:
-		if m.enemy_by_id[id].frames_idle.is_empty():
+		if m.enemy_by_id[id].frames_idle.is_empty() and not m.enemy_by_id[id].hidden_in_book:
 			still.append(id)
 	ok("κανένας εχθρός χωρίς idle", still.is_empty(), str(still))
 	var no_hit := []
 	for id in m.enemy_by_id:
-		if m.enemy_by_id[id].frames_hit.is_empty():
+		if m.enemy_by_id[id].frames_hit.is_empty() and not m.enemy_by_id[id].hidden_in_book:
 			no_hit.append(id)
 	ok("κανένας εχθρός χωρίς αντίδραση στο χτύπημα", no_hit.is_empty(), str(no_hit))
 	for id in ["knight", "warlock"]:

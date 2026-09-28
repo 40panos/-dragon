@@ -35,6 +35,19 @@ extends Resource
 @export var boss_rows := 2
 @export var boss_hp_mult := 14.0
 
+## Ο μεγάλος boss της περιοχής (3x3). Όταν υπάρχει, ο `boss` παραπάνω γίνεται
+## mini-boss στον γύρο MINIBOSS_ROUND και ο μεγάλος έρχεται στον τελευταίο:
+## καθαρίζει το ταμπλό, στέκεται ακίνητος και πολεμάει με ό,τι ρίχνει. Χωρίς
+## αυτόν η περιοχή μένει όπως ήταν — boss στον τελευταίο γύρο.
+@export var final_boss: EnemyType
+@export var final_cols := 3
+@export var final_rows := 3
+@export var final_hp_mult := 30.0
+
+## Ό,τι βγάζει ο μεγάλος boss εκτός από τα minions: οδοφράγματα, βαρέλια,
+## τυμπανιστές. Δεν μπαίνουν στη δεξαμενή τυχαίας εμφάνισης.
+@export var specials: Array[EnemyType] = []
+
 
 ## Διαλέγει εχθρό με βάση το `weight`, ανάμεσα σε όσους επιτρέπονται στον
 ## `area_round` γύρο της περιοχής. Το `roll` είναι στο [0, 1).

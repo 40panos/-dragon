@@ -88,8 +88,14 @@ func _area_all(a: AreaDef) -> Array[EnemyType]:
 	pool.sort_custom(func(x, y): return x.min_round < y.min_round)
 	out.append_array(pool)
 	out.append_array(a.minions)
+	# ό,τι βγάζει ο μεγάλος boss — όχι τα αντικείμενα (οδόφραγμα, βαρέλι)
+	for e in a.specials:
+		if not e.hidden_in_book:
+			out.append(e)
 	if a.boss:
 		out.append(a.boss)
+	if a.final_boss:
+		out.append(a.final_boss)
 	return out
 
 
