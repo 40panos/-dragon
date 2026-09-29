@@ -38,10 +38,27 @@ extends Resource
 ## που ταιριάζει σε μπάλα φωτιάς· τα δρεπάνια στριφογυρίζουν.
 @export var ball_spin := 0.0
 
+## Προς τα πού δείχνει η μύτη του σχεδίου του βλήματος, σε ακτίνια: PI για τη
+## φωτιά (κοιτάει αριστερά), -PI/4 για έναν κρύσταλλο σχεδιασμένο πάνω-δεξιά.
+## Το βλήμα γυρνάει ώστε η μύτη να πέφτει στην πορεία του.
+@export var ball_heading := PI
+
 ## Χρωματισμός για τη φλόγα της μεταμόρφωσης. Τα καρέ είναι ήδη ζωγραφισμένα
 ## σε φωτιά, οπότε ο ember μένει στο λευκό — modulate με το ίδιο του το
 ## πορτοκαλί θα τα σκούραινε. Ο death το γυρίζει πράσινο.
 @export var awaken_tint := Color.WHITE
+
+## Πώς παίζει η αύρα της μεταμόρφωσης: "flame" = τα ζωγραφισμένα καρέ φωτιάς,
+## "skull" = μαύρη νεκροκεφαλή που ανοίγει, φτιαγμένη από το ίδιο το κεφάλι
+## του δράκου. Ο death δεν έχει δικά του καρέ φλόγας και δεν του ταιριάζουν.
+@export_enum("flame", "skull") var awaken_style := "flame"
+
+## Αντί για λάμψη στο στόμα, χύνεται σκοτάδι από τις κόγχες όταν ρίχνει.
+@export var dark_eyes := false
+
+## Αύρα από παγωμένες ρούνες γύρω από το κεφάλι (scripts/glyph_aura.gd):
+## ρούνες που ανεβαίνουν, παγωμένη σκόνη, και έκρηξη ρουνών στη βολή.
+@export var glyph_aura := false
 
 @export var fps_idle := 3.0
 @export var fps_ready := 7.0
@@ -99,7 +116,8 @@ func sprite_for(phase: String, aiming: bool) -> Texture2D:
 
 ## inferno = η επόμενη βολή κάνει τριπλή ζημιά
 ## swarm   = ρίχνει αμέσως μια ολόκληρη έξτρα βολή
-@export_enum("inferno", "swarm") var special := "inferno"
+## freeze  = παγώνει όλους τους εχθρούς για FREEZE_ROUNDS γύρους (βλ. main)
+@export_enum("inferno", "swarm", "freeze") var special := "inferno"
 
 ## Πόσοι σκοτωμοί χρειάζονται για να γεμίσει το special.
 @export var special_cost := 15.0
@@ -115,17 +133,19 @@ func sprite_for(phase: String, aiming: bool) -> Texture2D:
 func special_name() -> String:
 	match special:
 		"swarm": return "SWARM"
+		"freeze": return "FREEZE"
 		_: return "INFERNO"
 
 
 ## Σύντομες περιγραφές για την κάρτα επιλογής δράκου.
 func special_desc() -> String:
 	match special:
-		"swarm": return "έξτρα βολή"
-		_: return "x3 ζημιά μία βολή"
+		"swarm": return "extra volley"
+		"freeze": return "enemies freeze, 2 rounds"
+		_: return "x3 damage, one volley"
 
 
 func passive_desc() -> String:
 	match passive:
-		"ball_every5": return "+1 μπάλα / 5 γύρους"
-		_: return "κάθε 5η μπάλα x2"
+		"ball_every5": return "+1 ball / 5 rounds"
+		_: return "every 5th ball x2"

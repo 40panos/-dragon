@@ -23,3 +23,7 @@ func absorb(_block, amount: float) -> float:
 
 func badge() -> String:
 	return "" if shield <= 0.0 else "[]"
+
+
+func describe() -> String:
+	return "Shield: takes every hit until it breaks"

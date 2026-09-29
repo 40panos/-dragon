@@ -28,6 +28,12 @@ const SETS := [
 		"dir": "C:/Users/panos/Documents/bbdragon-art-proposals/death",
 		"prefix": "glowraw",
 	},
+	{
+		# σκοτεινή φλόγα, για τη μορφή του death χωρίς μάσκα
+		"name": "void",
+		"dir": "C:/Users/panos/Documents/bbdragon-art-proposals/death",
+		"prefix": "voidglow",
+	},
 ]
 
 const FRAMES := 3            # όσα καρέ κρατάμε — λίγα φτάνουν, η λάμψη είναι στιγμιαία

@@ -1,8 +1,14 @@
 # Godot 4 — προσωρινά αρχεία μηχανής
 .godot/
 /android/
-export_presets.cfg
 *.translation
+
+# Το export_presets.cfg ΜΠΑΙΝΕΙ στο git: από αυτό χτίζει το GitHub το web
+# build. Δεν κρατάει κωδικούς — από το Godot 4.1 και μετά οι κωδικοί των
+# keystores πάνε στο .godot/export_credentials.cfg, που αγνοείται παραπάνω.
+
+# έξοδος του export
+/build/
 
 # Windows
 Thumbs.db

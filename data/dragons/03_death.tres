@@ -1,45 +1,54 @@
-[gd_resource type="Resource" script_class="DragonType" load_steps=26 format=3]
+[gd_resource type="Resource" script_class="DragonType" load_steps=31 format=3]
 
-[ext_resource type="Texture2D" path="res://art/evo_fire_1.png" id="1_36qty"]
-[ext_resource type="Texture2D" path="res://art/evo_fire_2.png" id="2_fjpbg"]
-[ext_resource type="Texture2D" path="res://art/evo_fire_3.png" id="3_736kr"]
-[ext_resource type="Texture2D" path="res://art/evo_idle_1.png" id="4_wxgth"]
-[ext_resource type="Texture2D" path="res://art/evo_idle_2.png" id="5_4u5vt"]
-[ext_resource type="Texture2D" path="res://art/evo_idle_3.png" id="6_nul3d"]
-[ext_resource type="Texture2D" path="res://art/evo_ready_1.png" id="7_yamal"]
-[ext_resource type="Texture2D" path="res://art/evo_ready_2.png" id="8_kuojb"]
-[ext_resource type="Texture2D" path="res://art/evo_ready_3.png" id="9_bqwr8"]
-[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="10_dr6j4"]
-[ext_resource type="Texture2D" path="res://art/scythe_aoe.png" id="11_t2oye"]
-[ext_resource type="Texture2D" path="res://art/scythe.png" id="12_hh2fd"]
-[ext_resource type="Texture2D" path="res://art/death_fire_1.png" id="13_3uwpi"]
-[ext_resource type="Texture2D" path="res://art/death_fire_2.png" id="14_fn1or"]
-[ext_resource type="Texture2D" path="res://art/death_fire_3.png" id="15_x5itm"]
-[ext_resource type="Texture2D" path="res://art/death_idle_1.png" id="16_kvlle"]
-[ext_resource type="Texture2D" path="res://art/death_idle_2.png" id="17_e48fg"]
-[ext_resource type="Texture2D" path="res://art/death_idle_3.png" id="18_q1ydn"]
-[ext_resource type="Texture2D" path="res://art/death_ready_1.png" id="19_6jjxs"]
-[ext_resource type="Texture2D" path="res://art/death_ready_2.png" id="20_2svhq"]
-[ext_resource type="Texture2D" path="res://art/death_ready_3.png" id="21_1j7u4"]
-[ext_resource type="Texture2D" path="res://art/glow_death_1.png" id="22_101x2"]
-[ext_resource type="Texture2D" path="res://art/glow_death_2.png" id="23_omjkv"]
-[ext_resource type="Texture2D" path="res://art/glow_death_3.png" id="24_f5ut4"]
+[ext_resource type="Texture2D" path="res://art/scythe_aoe_dark.png" id="1_h00cs"]
+[ext_resource type="Texture2D" path="res://art/scythe_dark.png" id="2_6t75y"]
+[ext_resource type="Texture2D" path="res://art/evo2_fire_1.png" id="3_qyn8c"]
+[ext_resource type="Texture2D" path="res://art/evo2_fire_2.png" id="4_80tf3"]
+[ext_resource type="Texture2D" path="res://art/evo2_fire_3.png" id="5_1ho7y"]
+[ext_resource type="Texture2D" path="res://art/evo2_idle_1.png" id="6_05kjv"]
+[ext_resource type="Texture2D" path="res://art/evo2_idle_2.png" id="7_sy2vn"]
+[ext_resource type="Texture2D" path="res://art/evo2_idle_3.png" id="8_t66et"]
+[ext_resource type="Texture2D" path="res://art/evo2_ready_1.png" id="9_smoh1"]
+[ext_resource type="Texture2D" path="res://art/evo2_ready_2.png" id="10_s3674"]
+[ext_resource type="Texture2D" path="res://art/evo2_ready_3.png" id="11_4w7nj"]
+[ext_resource type="Texture2D" path="res://art/glow_void_1.png" id="12_nixcf"]
+[ext_resource type="Texture2D" path="res://art/glow_void_2.png" id="13_l8m1m"]
+[ext_resource type="Texture2D" path="res://art/glow_void_3.png" id="14_51yk7"]
+[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="15_y3t74"]
+[ext_resource type="Texture2D" path="res://art/scythe_aoe.png" id="16_7tt45"]
+[ext_resource type="Texture2D" path="res://art/scythe.png" id="17_06nb4"]
+[ext_resource type="Texture2D" path="res://art/death_fire_1.png" id="18_7cpjt"]
+[ext_resource type="Texture2D" path="res://art/death_fire_2.png" id="19_l1s0r"]
+[ext_resource type="Texture2D" path="res://art/death_fire_3.png" id="20_e4e4x"]
+[ext_resource type="Texture2D" path="res://art/death_idle_1.png" id="21_ao65l"]
+[ext_resource type="Texture2D" path="res://art/death_idle_2.png" id="22_t8y1b"]
+[ext_resource type="Texture2D" path="res://art/death_idle_3.png" id="23_st4cs"]
+[ext_resource type="Texture2D" path="res://art/death_ready_1.png" id="24_1wvb2"]
+[ext_resource type="Texture2D" path="res://art/death_ready_2.png" id="25_6ma0a"]
+[ext_resource type="Texture2D" path="res://art/death_ready_3.png" id="26_e2htc"]
+[ext_resource type="Texture2D" path="res://art/glow_death_1.png" id="27_4bl7y"]
+[ext_resource type="Texture2D" path="res://art/glow_death_2.png" id="28_xalu7"]
+[ext_resource type="Texture2D" path="res://art/glow_death_3.png" id="29_8ipj7"]
 
-[sub_resource type="Resource" id="Resource_v71ey"]
-script = ExtResource("10_dr6j4")
+[sub_resource type="Resource" id="Resource_fcges"]
+script = ExtResource("15_y3t74")
 id = "death_evolved"
-display_name = "Death Evolved"
-sprite = ExtResource("4_wxgth")
-sprite_idle = ExtResource("4_wxgth")
-sprite_ready = ExtResource("7_yamal")
-sprite_fire = ExtResource("1_36qty")
-frames_idle = Array[Texture2D]([ExtResource("4_wxgth"), ExtResource("5_4u5vt"), ExtResource("6_nul3d")])
-frames_ready = Array[Texture2D]([ExtResource("7_yamal"), ExtResource("8_kuojb"), ExtResource("9_bqwr8")])
-frames_fire = Array[Texture2D]([ExtResource("1_36qty"), ExtResource("2_fjpbg"), ExtResource("3_736kr")])
-glow_frames = Array[Texture2D]([])
-accent = Color(0.482353, 0.85098, 0.227451, 1)
-ball_spin = 0.0
+display_name = "Death Unmasked"
+sprite = ExtResource("6_05kjv")
+sprite_idle = ExtResource("6_05kjv")
+sprite_ready = ExtResource("9_smoh1")
+sprite_fire = ExtResource("3_qyn8c")
+frames_idle = Array[Texture2D]([ExtResource("6_05kjv"), ExtResource("7_sy2vn"), ExtResource("8_t66et")])
+frames_ready = Array[Texture2D]([ExtResource("9_smoh1"), ExtResource("10_s3674"), ExtResource("11_4w7nj")])
+frames_fire = Array[Texture2D]([ExtResource("3_qyn8c"), ExtResource("4_80tf3"), ExtResource("5_1ho7y")])
+glow_frames = Array[Texture2D]([ExtResource("12_nixcf"), ExtResource("13_l8m1m"), ExtResource("14_51yk7")])
+ball_sprite = ExtResource("2_6t75y")
+ball_aoe_sprite = ExtResource("1_h00cs")
+accent = Color(0.133333, 0.101961, 0.168627, 1)
+ball_spin = 2.4
 awaken_tint = Color(1, 1, 1, 1)
+awaken_style = "flame"
+dark_eyes = true
 fps_idle = 3.0
 fps_ready = 6.0
 fps_fire = 12.0
@@ -51,28 +60,30 @@ passive = "every5_double"
 unlock_after_area = 0
 
 [resource]
-script = ExtResource("10_dr6j4")
+script = ExtResource("15_y3t74")
 id = "death"
 display_name = "Death"
-sprite = ExtResource("16_kvlle")
-sprite_idle = ExtResource("16_kvlle")
-sprite_ready = ExtResource("19_6jjxs")
-sprite_fire = ExtResource("13_3uwpi")
-frames_idle = Array[Texture2D]([ExtResource("16_kvlle"), ExtResource("17_e48fg"), ExtResource("18_q1ydn")])
-frames_ready = Array[Texture2D]([ExtResource("19_6jjxs"), ExtResource("20_2svhq"), ExtResource("21_1j7u4")])
-frames_fire = Array[Texture2D]([ExtResource("13_3uwpi"), ExtResource("14_fn1or"), ExtResource("15_x5itm")])
-glow_frames = Array[Texture2D]([ExtResource("22_101x2"), ExtResource("23_omjkv"), ExtResource("24_f5ut4")])
-ball_sprite = ExtResource("12_hh2fd")
-ball_aoe_sprite = ExtResource("11_t2oye")
+sprite = ExtResource("21_ao65l")
+sprite_idle = ExtResource("21_ao65l")
+sprite_ready = ExtResource("24_1wvb2")
+sprite_fire = ExtResource("18_7cpjt")
+frames_idle = Array[Texture2D]([ExtResource("21_ao65l"), ExtResource("22_t8y1b"), ExtResource("23_st4cs")])
+frames_ready = Array[Texture2D]([ExtResource("24_1wvb2"), ExtResource("25_6ma0a"), ExtResource("26_e2htc")])
+frames_fire = Array[Texture2D]([ExtResource("18_7cpjt"), ExtResource("19_l1s0r"), ExtResource("20_e4e4x")])
+glow_frames = Array[Texture2D]([ExtResource("27_4bl7y"), ExtResource("28_xalu7"), ExtResource("29_8ipj7")])
+ball_sprite = ExtResource("17_06nb4")
+ball_aoe_sprite = ExtResource("16_7tt45")
 accent = Color(0.482353, 0.85098, 0.227451, 1)
 ball_spin = 2.4
-awaken_tint = Color(0.560784, 0.878431, 0.290196, 1)
+awaken_tint = Color(1, 1, 1, 1)
+awaken_style = "skull"
+dark_eyes = false
 fps_idle = 3.0
 fps_ready = 6.0
 fps_fire = 12.0
 draw_width = 128.0
 tint = Color(1, 1, 1, 1)
-awakened = SubResource("Resource_v71ey")
+awakened = SubResource("Resource_fcges")
 special = "swarm"
 special_cost = 12.0
 passive = "ball_every5"

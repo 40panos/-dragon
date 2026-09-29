@@ -10,6 +10,17 @@ extends Resource
 ## μέχρι να υπάρχουν ξεχωριστά γραφικά ανά περιοχή.
 @export var tint := Color.WHITE
 
+## Σετ σκηνικού γύρω από την πίστα (πλαίσιο, κάστρο, δάδες, λάβαρο, τείχος
+## του HUD). "" = τα βασικά σχέδια· αλλιώς το main ψάχνει <όνομα>_<theme>.png
+## (π.χ. frame_left_frost, από το tools/build_frost_theme.gd).
+@export var theme := ""
+
+## Καιρός πάνω από το ταμπλό (scripts/weather.gd): "" κανένας, "snow" χιόνι.
+@export var weather := ""
+
+## Μουσική που παίζει σε λούπα όσο είσαι σε αυτή την περιοχή. Κενό = σιωπή.
+@export var music: AudioStream
+
 ## Οι τύποι εχθρών που εμφανίζονται εδώ.
 @export var enemies: Array[EnemyType] = []
 
@@ -23,6 +34,19 @@ extends Resource
 @export var boss_cols := 3
 @export var boss_rows := 2
 @export var boss_hp_mult := 14.0
+
+## Ο μεγάλος boss της περιοχής (3x3). Όταν υπάρχει, ο `boss` παραπάνω γίνεται
+## mini-boss στον γύρο MINIBOSS_ROUND και ο μεγάλος έρχεται στον τελευταίο:
+## καθαρίζει το ταμπλό, στέκεται ακίνητος και πολεμάει με ό,τι ρίχνει. Χωρίς
+## αυτόν η περιοχή μένει όπως ήταν — boss στον τελευταίο γύρο.
+@export var final_boss: EnemyType
+@export var final_cols := 3
+@export var final_rows := 3
+@export var final_hp_mult := 30.0
+
+## Ό,τι βγάζει ο μεγάλος boss εκτός από τα minions: οδοφράγματα, βαρέλια,
+## τυμπανιστές. Δεν μπαίνουν στη δεξαμενή τυχαίας εμφάνισης.
+@export var specials: Array[EnemyType] = []
 
 
 ## Διαλέγει εχθρό με βάση το `weight`, ανάμεσα σε όσους επιτρέπονται στον

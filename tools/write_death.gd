@@ -37,11 +37,14 @@ func _load_frames(prefix: String, state: String, want_w: int) -> Array[Texture2D
 ## γεμίζει μόνο ό,τι αφορά την εμφάνιση.
 func _make_evolved() -> DragonType:
 	var a := DragonType.new()
-	var idle := _load_frames("evo", "idle", EVO_W)
-	var ready_ := _load_frames("evo", "ready", EVO_W)
-	var fire := _load_frames("evo", "fire", EVO_W)
+	# Η μορφή χωρίς μάσκα. Στην ηρεμία τα μάτια είναι μαύρα κενά· στη στόχευση
+	# μαζεύεται σκοτάδι γύρω τους· στη βολή εμφανίζονται άσπρες ίριδες που
+	# στενεύουν σε σχισμή.
+	var idle := _load_frames("evo2", "idle", EVO_W)
+	var ready_ := _load_frames("evo2", "ready", EVO_W)
+	var fire := _load_frames("evo2", "fire", EVO_W)
 	a.id = "death_evolved"
-	a.display_name = "Death Evolved"
+	a.display_name = "Death Unmasked"
 	a.sprite = idle[0]
 	a.sprite_idle = idle[0]
 	a.sprite_ready = ready_[0]
@@ -49,12 +52,23 @@ func _make_evolved() -> DragonType:
 	a.frames_idle = idle
 	a.frames_ready = ready_
 	a.frames_fire = fire
+	# η λάμψη πάνω στον εχθρό που χτυπάει: σκοτεινή φλόγα αντί για πράσινη
+	a.glow_frames = _load_glow("void")
 	a.fps_idle = 3.0
 	a.fps_ready = 6.0
 	a.fps_fire = 12.0
 	a.draw_width = float(EVO_W * EVO_SCALE)   # 256 = 2x
 	a.tint = Color(1, 1, 1, 1)
-	a.accent = Color("7bd93a")
+	# μαύρα particles, όχι πράσινα: όλα όσα εκπέμπει η μορφή χωρίς μάσκα είναι
+	# σκοτάδι. Το _accent() διαβάζει τον ενεργό δράκο, οπότε αλλάζουν μαζί της.
+	a.accent = Color("221a2b")
+	a.dark_eyes = true
+	# δικά της βλήματα: τα ίδια δρεπάνια ξαναβαμμένα σε σκοτάδι, από το
+	# tools/build_dark_balls.gd. Το ball_tex() διαβάζει τον ενεργό δράκο,
+	# οπότε αλλάζουν τη στιγμή που βγαίνει η μορφή.
+	a.ball_sprite = load("res://art/scythe_dark.png")
+	a.ball_aoe_sprite = load("res://art/scythe_aoe_dark.png")
+	a.ball_spin = 2.4
 	# το main διαβάζει τον ΚΥΡΙΟ δράκο γι' αυτά, αλλά μπαίνουν ίδια ώστε το
 	# .tres να μη διαβάζεται σαν να διαφωνούν οι δύο μορφές
 	a.special = "swarm"
@@ -115,7 +129,7 @@ func _initialize() -> void:
 	d.tint = Color(1, 1, 1, 1)
 	d.accent = Color("7bd93a")     # πράσινη φωτιά ψυχών, όχι πορτοκαλί
 	d.ball_spin = 2.4              # στροφές/δευτ. — τα δρεπάνια στριφογυρίζουν
-	d.awaken_tint = Color("8fe04a")  # η φλόγα μεταμόρφωσης βάφεται πράσινη
+	d.awaken_style = "skull"       # μαύρη νεκροκεφαλή αντί για φλόγα
 	d.awakened = _make_evolved()
 	# Το SWARM ρίχνει άλλη μια πλήρη ριπή. Το κόστος είναι ΣΚΟΤΩΜΟΙ: ο ember
 	# είναι στο 8 μετά τη σάρωση, και ο death μπαίνει λίγο πιο ψηλά γιατί

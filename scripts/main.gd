@@ -12,8 +12,12 @@ const BORDER := 60.0
 const PF_TOP := 190.0
 const DEATH_GAP := 218.0
 const UI_BAND := 142.0
-const HUD_BAND := 154.0
 const TRIPLE_TURNS := 3
+## Πόσους γύρους κρατάει το FREEZE. Σε αυτούς οι εχθροί δεν κατεβαίνουν, οι
+## ικανότητές τους σωπαίνουν και δεν μπαίνει νέα σειρά· ο δράκος μένει στην
+## εξελιγμένη μορφή του ως το τέλος του τελευταίου.
+const FREEZE_ROUNDS := 2
+const FROZEN_TINT := Color(0.62, 0.86, 1.35)   # πάνω στον τόνο της περιοχής, στο self_modulate
 const PTS_HIT := 5
 const PTS_KILL := 25
 
@@ -48,6 +52,11 @@ const SPLASH_RATIO := 0.33    # ζημιά σε λειτουργία AoE, στο
 ## ελέγχουν την πραγματική λογική ξεκλειδώματος.
 var unlock_all_dragons := false
 
+## ΔΟΚΙΜΕΣ: κουμπί TEST δίπλα στη μουσική, με μενού για άλμα σε πίστα/boss,
+## έξτρα μπάλες κ.λπ. Γύρνα το σε false πριν το δώσεις σε άλλους.
+var debug_menu := true
+var debug_open := false
+
 const BlockScene := preload("res://scenes/block.tscn")
 const BallScene := preload("res://scenes/ball.tscn")
 const OrbScene := preload("res://scenes/orb.tscn")
@@ -74,11 +83,37 @@ var launch_x := 0.0
 var next_x := -1.0
 var aim_dir := Vector2.UP
 var aiming := false
+## Το δάχτυλο κατέβηκε κάτω από το δάπεδο, πάνω στον δράκο: αν αφεθεί εκεί,
+## η βολή ακυρώνεται. Χωρίς αυτό δεν υπήρχε τρόπος να μετανιώσεις ένα σημάδι.
+var aim_cancel := false
+var transition_t := -1.0       # χρόνος μέσα στο cinematic αλλαγής περιοχής· <0 = κανένα
+var _trans_swapped := false
+var visual_area_index := 0     # η περιοχή που δείχνουν σκηνικό και καιρός (βλ. visual_area)
+
+# ---------------------------------------------------------------- μεγάλος boss
+## Ο mini-boss (ο παλιός boss της περιοχής) έρχεται σε αυτόν τον γύρο, όταν η
+## περιοχή έχει και μεγάλο boss (AreaDef.final_boss) για τον τελευταίο.
+const MINIBOSS_ROUND := 10
+const INTRO_CLEAR := 0.6       # ο χάρτης σβήνει
+const INTRO_DROP := 0.55       # ο boss πέφτει από ψηλά
+const INTRO_END := 1.9         # τέλος εισόδου, ξαναπαίζεις
+var boss_intro_t := -1.0
+var _intro_spawned := false
+var war_drums := false         # χτυπάει τύμπανο: όλοι κατεβαίνουν μία σειρά παραπάνω
+## Ό,τι πετάει ο boss: {from, to, tex, t, dur, h, spin, cb}. Όσο υπάρχουν, η
+## φάση είναι "boss_act" και ο παίκτης περιμένει να προσγειωθούν.
+var lobs: Array = []
+var reserved := {}             # κελιά όπου πέφτει κάτι· κανείς άλλος δεν τα παίρνει
+var fx_anims: Array = []       # εκρήξεις: {frames, pos, t, fps, scale}
+var explosion_frames: Array[Texture2D] = []
+var tex_spawn_barrel: Texture2D
+var tex_boulder: Texture2D
 var to_fire := 0
 var fire_timer := 0.0
 var shot_time := 0.0
 var live_balls := 0
 var triple_turns := 0
+var freeze_rounds := 0      # γύροι παγώματος που απομένουν (FREEZE)
 var balls_fired := 0
 var t := 0.0
 var banner := ""
@@ -128,7 +163,16 @@ var tex_frame_top: Texture2D
 var lair_frames: Array[Texture2D] = []
 var torch_frames: Array[Texture2D] = []
 var tex_banner: Texture2D
+var tex_hud_wall: Texture2D
+var tex_hud_top: Texture2D
+var tex_hud_panel: Texture2D
 var font: Font
+var bestiary       # το Book και οι ειδοποιήσεις νέων εχθρών (scripts/bestiary.gd)
+var weather        # χιόνι κ.λπ. πάνω από το ταμπλό (scripts/weather.gd)
+var glyph_aura     # ρούνες γύρω από δράκους με glyph_aura (scripts/glyph_aura.gd)
+var music: MusicPlayer         # το soundtrack της περιοχής (AreaDef.music), scripts/music.gd
+var volume_open := false       # ανοιχτό το πάνελ έντασης κάτω από τη νότα
+var volume_drag := false       # σέρνεται η μπάρα έντασης
 
 
 func _ready() -> void:
@@ -151,20 +195,12 @@ func _ready() -> void:
 		var af := _load_tex("awaken_%d" % i)
 		if af:
 			awaken_frames.append(af)
-	tex_frame_left = _load_tex("frame_left")
-	tex_frame_right = _load_tex("frame_right")
-	tex_frame_top = _load_tex("frame_top")
-	for i in range(1, LAIR_FRAMES + 1):
-		var lf := _load_tex("%s_%d" % [LAIR_SET, i])
-		if lf:
-			lair_frames.append(lf)
-		var tf := _load_tex("deco_torch_%d" % i)
-		if tf:
-			torch_frames.append(tf)
-	tex_banner = _load_tex("deco_banner")
+	tex_hud_panel = _load_tex("hud_panel")
 
 	_load_content()
 	save = SaveManager.load_data()
+	_make_music()
+	_apply_theme()
 	_build_walls()
 	_make_fx()
 	_make_hud()
@@ -173,6 +209,19 @@ func _ready() -> void:
 
 ## Τα εφέ μπαίνουν σε ψηλό z_index, πάνω από τους εχθρούς.
 func _make_fx() -> void:
+	# ο καιρός κάτω από τα εφέ: οι σπίθες των χτυπημάτων μένουν μπροστά
+	weather = Node2D.new()
+	weather.set_script(load("res://scripts/weather.gd"))
+	weather.z_index = 40
+	weather.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(weather)
+	weather.m = self
+	glyph_aura = Node2D.new()
+	glyph_aura.set_script(load("res://scripts/glyph_aura.gd"))
+	glyph_aura.z_index = 45
+	glyph_aura.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(glyph_aura)
+	glyph_aura.m = self
 	fx = Node2D.new()
 	fx.set_script(load("res://scripts/fx.gd"))
 	fx.z_index = 50
@@ -190,9 +239,124 @@ func _make_hud() -> void:
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	layer.add_child(hud)
 	hud.m = self
+	# το Book από πάνω από το HUD, στο ίδιο layer
+	bestiary = Node2D.new()
+	bestiary.set_script(load("res://scripts/bestiary.gd"))
+	bestiary.process_mode = Node.PROCESS_MODE_ALWAYS
+	bestiary.m = self
+	layer.add_child(bestiary)
+	# το μαύρο του cinematic, πάνω από όλα (scripts/fade.gd)
+	var top := CanvasLayer.new()
+	top.layer = 20
+	add_child(top)
+	var fade := Node2D.new()
+	fade.set_script(load("res://scripts/fade.gd"))
+	fade.process_mode = Node.PROCESS_MODE_ALWAYS
+	fade.visible = false
+	top.add_child(fade)
+	fade.m = self
 
 
 # ---------------------------------------------------------------- περιεχόμενο
+
+## Φορτώνει το σκηνικό της τρέχουσας περιοχής (βλ. AreaDef.theme): για κάθε
+## στοιχείο προτιμά το <όνομα>_<theme>.png και, αν λείπει, πέφτει στο βασικό.
+## Καλείται στην αρχή του run και όποτε αλλάζει περιοχή — όχι σε κάθε καρέ.
+func _apply_theme() -> void:
+	visual_area_index = area_index
+	var area := current_area()
+	var theme: String = area.theme if area else ""
+	var pick := func(name_: String) -> Texture2D:
+		if theme != "":
+			var t := _load_tex("%s_%s" % [name_, theme])
+			if t:
+				return t
+		return _load_tex(name_)
+	tex_frame_left = pick.call("frame_left")
+	tex_frame_right = pick.call("frame_right")
+	tex_frame_top = pick.call("frame_top")
+	lair_frames.clear()
+	torch_frames.clear()
+	for i in range(1, LAIR_FRAMES + 1):
+		var lf: Texture2D = pick.call("%s_%d" % [LAIR_SET, i])
+		if lf:
+			lair_frames.append(lf)
+		var tf: Texture2D = pick.call("deco_torch_%d" % i)
+		if tf:
+			torch_frames.append(tf)
+	tex_banner = pick.call("deco_banner")
+	tex_hud_wall = pick.call("hud_wall")
+	tex_hud_top = pick.call("hud_top")
+	_play_area_music()
+
+
+# ---------------------------------------------------------------- μουσική
+
+## Ο player παίζει και στην παύση: η σίγαση γίνεται μόνο από το κουμπί mute.
+func _make_music() -> void:
+	music = MusicPlayer.new()
+	add_child(music)
+
+
+## Βάζει το κομμάτι της τρέχουσας περιοχής. Αν είναι ήδη αυτό που παίζει, δεν
+## το ξεκινάει από την αρχή — αλλιώς κάθε restart θα έκοβε τη μουσική.
+func _play_area_music() -> void:
+	if music == null:
+		return
+	var area := current_area()
+	_apply_music_volume()
+	music.play_stream(area.music if area else null)
+
+
+func music_muted() -> bool:
+	return bool(save.get("music_muted", false))
+
+
+## Ένταση μουσικής, 0..1.
+func music_volume() -> float:
+	return clampf(float(save.get("music_volume", 0.8)), 0.0, 1.0)
+
+
+## Σιωπηλή: είτε σε mute είτε με την ένταση στο μηδέν.
+func music_silent() -> bool:
+	return music_muted() or music_volume() <= 0.0
+
+
+func _apply_music_volume() -> void:
+	if music == null:
+		return
+	music.set_volume(music_volume())
+	music.set_paused(music_silent())
+
+
+func _toggle_music() -> void:
+	save["music_muted"] = not music_muted()
+	SaveManager.save_data(save)
+	_apply_music_volume()
+
+
+## Η ένταση από τη θέση x πάνω στη μπάρα. Δεν αποθηκεύει: αυτό γίνεται όταν
+## σηκωθεί το δάχτυλο, όχι σε κάθε κίνηση του συρσίματος.
+func _set_volume_at(x: float) -> void:
+	var bar := volume_bar_rect()
+	save["music_volume"] = clampf((x - bar.position.x) / bar.size.x, 0.0, 1.0)
+	# όποιος σέρνει την ένταση θέλει να ακούσει μουσική
+	if music_muted() and music_volume() > 0.0:
+		save["music_muted"] = false
+	_apply_music_volume()
+
+
+## Πάτημα όσο είναι ανοιχτό το πάνελ έντασης. Η νότα και οτιδήποτε έξω από το
+## πάνελ το κλείνουν.
+func _volume_press(p: Vector2) -> void:
+	if volume_mute_rect().has_point(p):
+		_toggle_music()
+	elif volume_bar_rect().grow(18.0).has_point(p):
+		volume_drag = true
+		_set_volume_at(p.x)
+	elif not volume_panel_rect().has_point(p):
+		volume_open = false
+
 
 func _load_tex(name_: String) -> Texture2D:
 	var p := "res://art/%s.png" % name_
@@ -225,6 +389,17 @@ func _load_content() -> void:
 			enemy_by_id[e.id] = e
 		if a.boss:
 			enemy_by_id[a.boss.id] = a.boss
+		if a.final_boss:
+			enemy_by_id[a.final_boss.id] = a.final_boss
+		for e in a.specials:
+			enemy_by_id[e.id] = e
+	explosion_frames.clear()
+	var ei := 1
+	while ResourceLoader.exists("res://art/explosion_%d.png" % ei):
+		explosion_frames.append(load("res://art/explosion_%d.png" % ei))
+		ei += 1
+	tex_spawn_barrel = _load_tex("spawn_barrel")
+	tex_boulder = _load_tex("boulder")
 
 
 func _load_dir(dir_path: String) -> Array:
@@ -289,22 +464,28 @@ func is_dragon_unlocked(d: DragonType) -> bool:
 ## λάμψη του στόματος ήταν σταθερά πορτοκαλί, που πάνω στον πράσινο δράκο του
 ## θανάτου έδειχνε σαν να πετάει φωτιά ενώ πετάει δρεπάνια.
 func _accent(f: float) -> Color:
-	var c: Color = dragon.accent if dragon else Color("ff9e2c")
+	# ο ΕΝΕΡΓΟΣ δράκος, όχι ο κύριος: η εξελιγμένη μορφή έχει δικό της χρώμα,
+	# οπότε οι σπίθες της αλλάζουν μαζί της όταν βγαίνει
+	var dg := active_dragon()
+	var c: Color = dg.accent if dg else Color("ff9e2c")
 	return c.lerp(Color.WHITE, 1.0 - clampf(f, 0.0, 1.0))
 
 
 func ball_tex(aoe: bool) -> Texture2D:
-	if dragon:
-		if aoe and dragon.ball_aoe_sprite:
-			return dragon.ball_aoe_sprite
-		if not aoe and dragon.ball_sprite:
-			return dragon.ball_sprite
+	# ο ΕΝΕΡΓΟΣ δράκος: η εξελιγμένη μορφή ρίχνει δικά της βλήματα, οπότε όσο
+	# κρατάει η μεταμόρφωση φεύγουν τα μαύρα δρεπάνια αντί για τα οστέινα
+	var dg := active_dragon()
+	if dg:
+		if aoe and dg.ball_aoe_sprite:
+			return dg.ball_aoe_sprite
+		if not aoe and dg.ball_sprite:
+			return dg.ball_sprite
 	return fireball_aoe_tex if (aoe and fireball_aoe_tex) else fireball_tex
 
 
 ## Αλλαγή δράκου επιτρέπεται μόνο πριν από τη βολή.
 func can_switch_dragon() -> bool:
-	return phase == "aim" and not aiming and not paused
+	return phase == "aim" and not aiming and not frozen()
 
 
 func select_dragon(id: String) -> bool:
@@ -314,10 +495,32 @@ func select_dragon(id: String) -> bool:
 	dragon = d
 	# οι εχθροί που στέκονται ήδη στο ταμπλό πρέπει να πάρουν τη λάμψη του νέου
 	# δράκου — αλλιώς θα συνέχιζαν να ανάβουν με τη φλόγα του προηγούμενου
+	_refresh_glow()
+	return true
+
+
+## Η λάμψη χτυπήματος που αφήνει ο δράκος ΑΥΤΗ τη στιγμή. Ακολουθεί την ενεργή
+## μορφή, όπως τα βλήματα και τα particles: η ξεσκέπαστη μορφή του death αφήνει
+## σκοτάδι αντί για πράσινη φλόγα. Μορφή χωρίς δική της πέφτει στου βασικού.
+func glow_now() -> Array[Texture2D]:
+	var dg := active_dragon()
+	if dg and not dg.glow_frames.is_empty():
+		return dg.glow_frames
+	if dragon:
+		return dragon.glow_frames
+	return []
+
+
+## Περνάει τη λάμψη της τρέχουσας μορφής σε όσους εχθρούς στέκονται ήδη στο
+## ταμπλό. Καλείται όταν αλλάζει δράκος ΚΑΙ όταν αλλάζει μορφή — αλλιώς όσοι
+## ζούσαν πριν τη μεταμόρφωση θα συνέχιζαν να ανάβουν με την παλιά.
+func _refresh_glow() -> void:
+	var g := glow_now()
+	var c := _accent(1.0)
 	for b in get_tree().get_nodes_in_group("block"):
 		if is_instance_valid(b):
-			b.glow_frames = dragon.glow_frames
-	return true
+			b.glow_frames = g
+			b.burst_color = c
 
 
 # ---------------------------------------------------------------- στήσιμο
@@ -355,7 +558,14 @@ func _start() -> void:
 
 	# κάθε run ξεκινάει από την αρχή
 	area_index = 0
+	visual_area_index = 0
+	transition_t = -1.0
+	boss_intro_t = -1.0
+	lobs.clear()
+	reserved.clear()
+	fx_anims.clear()
 	level = 1
+	_apply_theme()
 
 	score = 0
 	kills = 0
@@ -365,6 +575,7 @@ func _start() -> void:
 	to_fire = 0
 	next_x = -1.0
 	triple_turns = 0
+	freeze_rounds = 0
 	balls_fired = 0
 	special_charge = 0.0
 	inferno_active = false
@@ -372,7 +583,7 @@ func _start() -> void:
 	aoe_mode = false
 	launch_x = W * 0.5
 	phase = "aim"
-	_announce("%s — ROUND %d" % [current_area().display_name if current_area() else "", level])
+	_announce("%s - ROUND %d" % [current_area().display_name if current_area() else "", level])
 	_add_row()
 
 
@@ -482,7 +693,19 @@ func block_center(col: int, row: int, cw: int, ch: int) -> Vector2:
 
 
 func _add_row() -> void:
-	if level % ROUNDS_PER_AREA == 0 and boss == null:
+	var area := current_area()
+	if area and area.final_boss:
+		# mini-boss στη μέση της περιοχής, μεγάλος boss στο τέλος
+		if area_round() >= ROUNDS_PER_AREA and boss == null:
+			_begin_boss_intro()
+			return
+		if area_round() == MINIBOSS_ROUND and boss == null:
+			_spawn_boss()
+			return
+		# όσο παλεύεις τον μεγάλο boss δεν πέφτουν σειρές — μόνο ό,τι ρίχνει
+		if boss_alive() and boss.is_final:
+			return
+	elif level % ROUNDS_PER_AREA == 0 and boss == null:
 		_spawn_boss()
 		return
 
@@ -540,7 +763,7 @@ func _spawn_boss() -> void:
 				b.queue_free()
 	var hp := maxf(10.0, round(level * area.boss_hp_mult))
 	boss = _make_block(col, 0, area.boss, hp, cw, ch, true)
-	_announce("BOSS — %s" % area.boss.display_name)
+	_announce("BOSS - %s" % area.boss.display_name)
 
 
 func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: int, as_boss: bool):
@@ -550,18 +773,53 @@ func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: in
 	b.col = col
 	b.row = row
 	b.is_boss = as_boss
+	b.invulnerable = type.invulnerable
+	b.show_hp = type.show_hp
 	var box := Vector2(cw * cell - 6.0, ch * cell - 6.0)
 	b.setup(hp, box, type.id, type.sprite, type.ability, cw, ch,
 		type.frames_idle, type.fps_idle, type.frames_hit, type.fps_hit,
 		type.sprite_scale)
-	b.glow_frames = dragon.glow_frames if dragon else []
+	b.glow_frames = glow_now()
+	b.burst_color = _accent(1.0)
 	b.position = block_center(col, row, cw, ch)
 	var area := current_area()
 	if area:
 		b.modulate = area.tint
 	grid.place(b)
 	b.damaged.connect(_on_block_damaged.bind(b))
+	if freeze_rounds > 0:
+		b.self_modulate = FROZEN_TINT     # ό,τι γεννιέται μέσα στο πάγωμα, παγωμένο
+		b.set_frozen(true)
+	if bestiary and not type.hidden_in_book:
+		bestiary.saw(type)
 	return b
+
+
+## Καλείται από το ShatterAbility (deferred): γεννάει έως `count` minions στο
+## κελί όπου ήταν ο εχθρός και στα διπλανά του. Παίρνει τιμές και όχι το ίδιο
+## το block, γιατί ως την ώρα της κλήσης εκείνο έχει ήδη ελευθερωθεί.
+func spawn_near(col: int, row: int, cw: int, ch: int, source_hp: float,
+		minion_id: String, count: int, hp_ratio: float) -> void:
+	var type: EnemyType = enemy_by_id.get(minion_id)
+	if type == null:
+		return
+	var spots: Array[Vector2i] = []
+	for c in cw:
+		for r in ch:
+			spots.append(Vector2i(col + c, row + r))
+	for d in [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		spots.append(Vector2i(col, row) + d)
+	var hp := maxf(1.0, round(source_hp * hp_ratio))
+	var made := 0
+	for s in spots:
+		if made >= count:
+			break
+		if s.x < 0 or s.x >= COLS or s.y < 0 or s.y >= death_row:
+			continue
+		if not grid.is_free(s.x, s.y):
+			continue
+		_make_block(s.x, s.y, type, hp, 1, 1, false)
+		made += 1
 
 
 ## Καλείται από το SummonerAbility.
@@ -612,7 +870,15 @@ func _on_ball_struck(block, ball) -> void:
 	if not is_instance_valid(block):
 		return
 	add_sparks(ball.position, 5, _accent(0.82), 190.0, 4.0)
-	_hurt(block, ball.damage)
+	var dmg: float = ball.damage
+	# αδύναμο σημείο του μεγάλου boss (ο Grukk στην κορυφή): διπλή ζημιά,
+	# χρυσές σπίθες — ο παίκτης βλέπει ότι βρήκε το σημείο
+	if block.is_final and block.weak_rect.has_area() and not block.shield_on:
+		if block.weak_rect.grow(10.0).has_point(block.to_local(ball.position)):
+			dmg *= WEAK_MULT
+			add_sparks(ball.position, 8, Color("ffe066"), 260.0, 6.0)
+			add_shake(1.2)
+	_hurt(block, dmg)
 	if aoe_mode:
 		for nb in grid.neighbors(block):
 			if ball.splashed.has(nb):
@@ -640,9 +906,18 @@ func _on_block_damaged(destroyed: bool, _amount: float, block) -> void:
 	kills += 1
 	special_charge += 1.0          # το special γεμίζει με σκοτωμούς, όχι με ζημιά
 	grid.erase(block)
+	if block.ability:
+		block.ability.on_death(block, self)
+	if block.kind == "war_drummer":
+		call_deferred("update_boss_shield")
 	if block == boss:
 		boss = null
-		_clear_area()
+		var area := current_area()
+		if block.is_final or area == null or area.final_boss == null:
+			_boss_fallen(block)
+			_clear_area()
+		else:
+			_announce("MINI-BOSS DOWN!")
 
 
 func boss_alive() -> bool:
@@ -657,9 +932,9 @@ func _clear_area() -> void:
 			run_dragons.append(d.id)
 			new_dragon = true
 			unlocked_now = true
-			_announce("ΝΕΟΣ ΔΡΑΚΟΣ: %s" % d.display_name)
+			_announce("NEW DRAGON: %s" % d.display_name)
 	if not unlocked_now:
-		_announce("Η περιοχή καθαρίστηκε!")
+		_announce("AREA CLEARED!")
 
 
 # ---------------------------------------------------------------- χειρισμός
@@ -672,28 +947,228 @@ func frame_right() -> float:
 	return pf_right + BORDER
 
 
-# Τα μεγέθη ακολουθούν τα πλακίδια του ui_buttons: 57 στο φυσικό του μέγεθος
-# για την παύση, 45x2 για τα δύο μεγάλα — ακέραια πολλαπλάσια, ώστε να μη
-# χρειαστεί αναδειγματοληψία σε pixel art.
+# Η γεωμετρία του HUD ζει εδώ και όχι στο hud.gd, γιατί από αυτήν βγαίνουν
+# και τα πατήματα. Όλα τα γραφικά του είναι σε art pixels και δείχνονται x2,
+# οπότε τα μεγέθη εδώ είναι τα διπλά των PNG (π.χ. hud_btn 38 -> 76).
+
+const HUD_BTN := 76.0                          # hud_btn.png, μενού και παύση
+const HUD_PANEL := Vector2(344.0, 160.0)       # hud_panel.png, ένα από τα δύο πάνελ
+const HUD_PANEL_GAP := 24.0                    # κενό ανάμεσά τους, κάτω από τον δράκο
+const HUD_MEDAL := Vector2(146.0, 110.0)       # hud_medal.png
+const HUD_CLAW := Vector2(132.0, 130.0)        # hud_claw.png
+
+
+## Παύση: πάνω δεξιά γωνία. Το μενού είναι το συμμετρικό της, πάνω αριστερά.
 func pause_rect() -> Rect2:
-	return Rect2(frame_right() - 85.0, 16.0, 57.0, 57.0)
+	return Rect2(frame_right() - 20.0 - HUD_BTN, 18.0, HUD_BTN, HUD_BTN)
 
 
-## Το κουμπί με τις τρεις γραμμές, δίπλα στην παύση.
 func menu_rect() -> Rect2:
-	return Rect2(frame_right() - 150.0, 16.0, 57.0, 57.0)
+	return Rect2(frame_left() + 20.0, 18.0, HUD_BTN, HUD_BTN)
 
 
+## Μουσική: αμέσως αριστερά από την παύση. Ανοίγει το πάνελ έντασης.
+func mute_rect() -> Rect2:
+	var pr := pause_rect()
+	return Rect2(pr.position.x - 10.0 - HUD_BTN, pr.position.y, HUD_BTN, HUD_BTN)
+
+
+## Κουμπί TEST: αμέσως αριστερά από τη μουσική (μόνο όταν debug_menu).
+func debug_rect() -> Rect2:
+	var mr := mute_rect()
+	return Rect2(mr.position.x - 10.0 - HUD_BTN, mr.position.y, HUD_BTN, HUD_BTN)
+
+
+# ---------------------------------------------------------------- test menu
+# Πλέγμα: μία στήλη ανά περιοχή (START / MINI / BOSS) και από κάτω τα
+# βοηθήματα (μπάλες, special, καθάρισμα). Όλα για δοκιμές στο κινητό, όπου
+# δεν υπάρχει κονσόλα.
+
+const DBG_COLS := 3
+const DBG_BTN := Vector2(168.0, 50.0)
+const DBG_GAP := 12.0
+const DBG_PAD := 20.0
+const DBG_TITLE := 58.0
+const DBG_HEAD := 30.0         # τίτλοι στηλών (ονόματα περιοχών)
+
+
+## Τα κουμπιά του μενού: [ετικέτα, ενέργεια, όρισμα].
+func debug_buttons() -> Array:
+	var out := []
+	for w in ["start", "mini", "boss"]:
+		for i in mini(areas.size(), DBG_COLS):
+			var label := "START"
+			if w == "mini":
+				label = "MINI-BOSS" if areas[i].final_boss else "ROUND %d" % MINIBOSS_ROUND
+			elif w == "boss":
+				label = "BOSS"
+			out.append([label, "jump", [i, w]])
+	out.append(["+10 BALLS", "balls", 10])
+	out.append(["+50 BALLS", "balls", 50])
+	out.append(["SPECIAL", "special", 0])
+	out.append(["KILL ALL", "clear", 0])
+	out.append(["BOSS -50%", "hurt_boss", 0.5])
+	out.append(["CLOSE", "close", 0])
+	return out
+
+
+func debug_panel_rect() -> Rect2:
+	var rows := ceili(float(debug_buttons().size()) / DBG_COLS)
+	var w := DBG_COLS * DBG_BTN.x + (DBG_COLS - 1) * DBG_GAP + DBG_PAD * 2.0
+	# + το κενό πριν από τα βοηθήματα και η γραμμή πληροφοριών στο κάτω μέρος
+	var h := DBG_TITLE + DBG_HEAD + rows * (DBG_BTN.y + DBG_GAP) + DBG_GAP * 3.0 + DBG_PAD + 22.0
+	return Rect2((W - w) * 0.5, PF_TOP - 40.0, w, h)
+
+
+func debug_button_rect(i: int) -> Rect2:
+	var p := debug_panel_rect()
+	var c := i % DBG_COLS
+	var r := i / DBG_COLS
+	# κενό ανάμεσα στις πίστες και στα βοηθήματα
+	var extra := DBG_GAP * 2.0 if r >= 3 else 0.0
+	return Rect2(p.position.x + DBG_PAD + c * (DBG_BTN.x + DBG_GAP),
+		p.position.y + DBG_TITLE + DBG_HEAD + r * (DBG_BTN.y + DBG_GAP) + extra, DBG_BTN.x, DBG_BTN.y)
+
+
+func _debug_press(p: Vector2) -> void:
+	if not debug_panel_rect().grow(DBG_GAP * 3.0).has_point(p):
+		debug_open = false
+		return
+	var btns := debug_buttons()
+	for i in btns.size():
+		if debug_button_rect(i).has_point(p):
+			_debug_do(btns[i][1], btns[i][2])
+			return
+
+
+func _debug_do(action: String, arg) -> void:
+	match action:
+		"jump":
+			debug_jump(arg[0], arg[1])
+			debug_open = false
+		"balls":
+			ball_count += int(arg)
+			_announce("+%d BALLS (x%d)" % [int(arg), ball_count])
+		"special":
+			if dragon:
+				special_charge = dragon.special_cost
+				_announce("SPECIAL READY")
+		"clear":
+			for b in grid.blocks():
+				if b != boss:
+					grid.erase(b)
+					add_sparks(b.position, 6, Color("d9d2c0"), 160.0, 4.0)
+					b.vanish()
+			update_boss_shield()
+			_announce("BOARD CLEARED")
+		"hurt_boss":
+			if boss_alive():
+				_hurt(boss, boss.hp * float(arg))
+		"close":
+			debug_open = false
+
+
+## Άλμα σε περιοχή: "start" (γύρος 1), "mini" (γύρος MINIBOSS_ROUND), "boss"
+## (τελευταίος γύρος — έρχεται ο boss, με την είσοδό του αν είναι μεγάλος).
+## Σταματάει ό,τι τρέχει: μπάλες, ρίψεις, cinematic.
+func debug_jump(area_i: int, which: String) -> void:
+	for b in get_tree().get_nodes_in_group("ball"):
+		b.queue_free()
+	live_balls = 0
+	to_fire = 0
+	Engine.time_scale = 1.0
+	lobs.clear()
+	reserved.clear()
+	fx_anims.clear()
+	transition_t = -1.0
+	boss_intro_t = -1.0
+	freeze_rounds = 0
+	inferno_active = false
+	awake_active = false
+	paused = false
+	get_tree().paused = false
+	for b in grid.blocks():
+		grid.erase(b)
+		b.vanish()
+	for o in get_tree().get_nodes_in_group("orb"):
+		o.queue_free()
+	boss = null
+	area_index = clampi(area_i, 0, areas.size() - 1)
+	var r := 1
+	if which == "mini":
+		r = MINIBOSS_ROUND
+	elif which == "boss":
+		r = ROUNDS_PER_AREA
+	level = area_index * ROUNDS_PER_AREA + r
+	_apply_theme()
+	phase = "aim"
+	aiming = false
+	_add_row()
+	if phase == "aim":
+		var area := current_area()
+		_announce("%s - ROUND %d" % [area.display_name if area else "", area_round()])
+
+
+## Το πάνελ έντασης κρέμεται κάτω από τη νότα, στοιχισμένο με την παύση δεξιά.
+func volume_panel_rect() -> Rect2:
+	var w := 330.0
+	return Rect2(pause_rect().end.x - w, mute_rect().end.y + 10.0, w, 92.0)
+
+
+## Mute μέσα στο πάνελ, αριστερά.
+func volume_mute_rect() -> Rect2:
+	var r := volume_panel_rect()
+	return Rect2(r.position + Vector2(12.0, 12.0), Vector2(68.0, 68.0))
+
+
+## Η μπάρα έντασης, δεξιά από το mute.
+func volume_bar_rect() -> Rect2:
+	var r := volume_panel_rect()
+	var x := volume_mute_rect().end.x + 26.0
+	return Rect2(x, r.get_center().y - 2.0, r.end.x - 30.0 - x, 20.0)
+
+
+## Τα δύο πάνελ της κάτω μπάρας, αριστερό και δεξί (το δεξί είναι καθρέφτισμα).
+func hud_panel_rect(right: bool) -> Rect2:
+	var y := H - HUD_PANEL.y - 18.0
+	var cx := (frame_left() + frame_right()) * 0.5
+	if right:
+		return Rect2(cx + HUD_PANEL_GAP * 0.5, y, HUD_PANEL.x, HUD_PANEL.y)
+	return Rect2(cx - HUD_PANEL_GAP * 0.5 - HUD_PANEL.x, y, HUD_PANEL.x, HUD_PANEL.y)
+
+
+## Το κέντρο της στρογγυλής υποδοχής κάθε πάνελ, κοντά στην εξωτερική του άκρη.
+func hud_socket(right: bool) -> Vector2:
+	var r := hud_panel_rect(right)
+	var y := r.position.y + r.size.y * 0.54
+	if right:
+		return Vector2(r.end.x - r.size.x * 0.21, y)
+	return Vector2(r.position.x + r.size.x * 0.21, y)
+
+
+## Special: το δαχτυλίδι με τα νύχια, στην υποδοχή του δεξιού πάνελ.
 func special_rect() -> Rect2:
-	return Rect2(frame_right() - 124.0, ui_top + 10.0, 90.0, 90.0)
+	var s := hud_socket(true)
+	return Rect2(s - Vector2(HUD_CLAW.x * 0.5, HUD_CLAW.y * 0.5 + 4.0), HUD_CLAW)
 
 
+## Διακόπτης SINGLE / AOE: δύο θέσεις μέσα στο δεξί πάνελ.
 func aoe_rect() -> Rect2:
-	return Rect2(frame_right() - 236.0, ui_top + 10.0, 90.0, 90.0)
+	var r := hud_panel_rect(true)
+	var x := r.position.x + 30.0
+	var w := hud_socket(true).x - 78.0 - x
+	return Rect2(x, r.position.y + r.size.y * 0.57, w, 40.0)
 
 
+## Ποια θέση του διακόπτη πατήθηκε: αριστερά SINGLE (false), δεξιά AOE (true).
+func aoe_pick(p: Vector2) -> bool:
+	return p.x >= aoe_rect().get_center().x
+
+
+## Επιλογή δράκου: το μετάλλιο στην υποδοχή του αριστερού πάνελ.
 func dragon_rect() -> Rect2:
-	return Rect2(frame_left() + 136.0, ui_top + 10.0, 86.0, 86.0)
+	var s := hud_socket(false)
+	return Rect2(s - Vector2(HUD_MEDAL.x * 0.5, HUD_MEDAL.y * 0.5 + 6.0), HUD_MEDAL)
 
 
 # ---------------------------------------------------------------- επιλογή δράκου
@@ -733,11 +1208,47 @@ func picker_press(p: Vector2) -> void:
 	picker_open = false
 
 
+## Πόσο κοντά είναι το passive του δράκου στο επόμενο «χτύπημά» του, 0..1.
+## Γεμάτο = η επόμενη μπάλα (ή ο επόμενος γύρος) το ενεργοποιεί.
+func passive_progress() -> float:
+	if dragon == null:
+		return 0.0
+	match dragon.passive:
+		"ball_every5":
+			return float(level % 5) / 5.0
+		_:
+			return float(balls_fired % 5) / 4.0
+
+
 func special_ready() -> bool:
 	return dragon != null and special_charge >= dragon.special_cost
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# όσο είναι ανοιχτό το Book ή μια κάρτα εχθρού, όλα τα πατήματα πάνε εκεί
+	if bestiary and bestiary.is_open():
+		if event is InputEventMouseButton and event.pressed 				and event.button_index == MOUSE_BUTTON_LEFT:
+			bestiary.press(get_global_mouse_position())
+		return
+	# όσο είναι ανοιχτό το test menu, πιάνει όλα τα πατήματα
+	if debug_open:
+		if event is InputEventMouseButton and event.pressed \
+				and event.button_index == MOUSE_BUTTON_LEFT:
+			_debug_press(get_global_mouse_position())
+		return
+	# όσο είναι ανοιχτό το πάνελ έντασης, πιάνει όλα τα πατήματα
+	if volume_open:
+		var vp := get_global_mouse_position()
+		if event is InputEventMouseMotion:
+			if volume_drag:
+				_set_volume_at(vp.x)
+		elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_volume_press(vp)
+			elif volume_drag:
+				volume_drag = false
+				SaveManager.save_data(save)
+		return
 	if event is InputEventMouseMotion:
 		if phase == "aim" and aiming:
 			_set_aim(get_global_mouse_position())
@@ -750,8 +1261,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	var p := get_global_mouse_position()
+	# ειδοποιήσεις νέων εχθρών και κουμπί του Book
+	if mb.pressed and not paused and bestiary and bestiary.press(p):
+		aiming = false
+		return
 	if mb.pressed and pause_rect().has_point(p):
 		_toggle_pause()
+		return
+	# δουλεύει και μέσα στην παύση
+	if mb.pressed and mute_rect().has_point(p):
+		volume_open = true
+		aiming = false
+		return
+	if mb.pressed and debug_menu and debug_rect().has_point(p):
+		debug_open = true
+		aiming = false
 		return
 	# δεν υπάρχει ακόμα οθόνη μενού· το κουμπί ανοίγει την παύση, που είναι
 	# το μέρος όπου θα ζήσει όταν φτιαχτεί
@@ -773,8 +1297,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	# όσο πετάνε μπάλες, τα δύο αυτά κουμπιά είναι κλειδωμένα — το HUD τα
 	# δείχνει γκριζαρισμένα, και εδώ το πάτημα απλώς καταπίνεται
 	if mb.pressed and aoe_rect().has_point(p):
+		# δύο θέσεις δίπλα-δίπλα: το πάτημα διαλέγει εκείνη που πατήθηκε
 		if not controls_locked():
-			aoe_mode = not aoe_mode
+			aoe_mode = aoe_pick(p)
 		return
 	if mb.pressed and special_rect().has_point(p):
 		if not controls_locked():
@@ -791,7 +1316,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				_set_aim(get_global_mouse_position())
 			elif aiming:
 				aiming = false
-				_fire()
+				if aim_cancel:
+					aim_cancel = false
+				else:
+					_fire()
 		"shoot":
 			if mb.pressed:
 				Engine.time_scale = 1.0 if Engine.time_scale > 1.0 else 3.0
@@ -819,6 +1347,15 @@ func _use_special() -> void:
 				_fire()
 				to_fire += ball_count
 			_announce("SWARM!")
+		"freeze":
+			freeze_rounds = FREEZE_ROUNDS
+			_paint_frozen()
+			# παγωμένη σκόνη πάνω σε κάθε εχθρό τη στιγμή που πιάνει ο πάγος
+			for fb in grid.blocks():
+				if is_instance_valid(fb):
+					add_sparks(fb.position, 6, Color("dff4ff"), 150.0, 4.0)
+			add_shake(4.0)
+			_announce("FREEZE!")
 		_:
 			inferno_active = true
 			_announce("INFERNO!")
@@ -827,7 +1364,18 @@ func _use_special() -> void:
 	if dragon.awakened is DragonType:
 		awake_active = true
 		_awaken_flash()
+		_refresh_glow()
 	special_charge = 0.0
+
+
+## Για ό,τι κινείται μόνο του (π.χ. η αύρα): σταματάει στην παύση και στο Book.
+func frozen_world_paused() -> bool:
+	return frozen()
+
+
+## Παγωμένο παιχνίδι: παύση, ή ανοιχτό Book / κάρτα εχθρού.
+func frozen() -> bool:
+	return paused or (bestiary != null and bestiary.is_open())
 
 
 func _toggle_pause() -> void:
@@ -837,7 +1385,13 @@ func _toggle_pause() -> void:
 	get_tree().paused = paused
 
 
+## Πόσο κάτω από τη γραμμή του δαπέδου πρέπει να κατέβει το δάχτυλο για να
+## ακυρωθεί η βολή — πάνω στο κεφάλι του δράκου.
+const AIM_CANCEL_DROP := 30.0
+
+
 func _set_aim(p: Vector2) -> void:
+	aim_cancel = p.y > floor_y + AIM_CANCEL_DROP
 	var d := p - Vector2(launch_x, floor_y - 18.0)
 	if d.y > -20.0:
 		d.y = -20.0
@@ -868,10 +1422,16 @@ func _process(delta: float) -> void:
 		banner_time = maxf(0.0, banner_time - delta)
 		if banner_time == 0.0:
 			banner = ""
-	if not paused:
+	if not frozen():
 		_update_life(delta)
+		if in_transition():
+			_update_transition(delta)
+		if boss_intro_t >= 0.0:
+			_update_boss_intro(delta)
+		_update_lobs(delta)
+		_update_fx_anims(delta)
 	queue_redraw()
-	if paused or phase != "shoot":
+	if frozen() or phase != "shoot":
 		return
 	shot_time += delta
 	if shot_time > 9.0:
@@ -909,6 +1469,9 @@ func _make_ball(dir: Vector2) -> void:
 	if dragon:
 		b.spin = dragon.ball_spin
 		b.trail_color = dragon.accent
+	var bdg := active_dragon()
+	if bdg:
+		b.heading = bdg.ball_heading
 	b.damage = _ball_damage()
 	b.died.connect(_on_ball_died)
 	b.struck.connect(_on_ball_struck)
@@ -939,10 +1502,19 @@ func _on_ball_died(x: float) -> void:
 
 func _end_turn() -> void:
 	Engine.time_scale = 1.0
-	if awake_active:
+	# γύρος παγώματος: μετράει κανονικά, αλλά ο κόσμος δεν κουνιέται
+	var frozen_turn := freeze_rounds > 0
+	if frozen_turn:
+		freeze_rounds -= 1
+	# η εξελιγμένη μορφή κρατάει όσο κρατάει το πάγωμα, όχι μόνο μία βολή
+	var keep_form := frozen_turn and freeze_rounds > 0
+	if awake_active and not keep_form:
 		_awaken_flash()      # η ίδια φλόγα καλύπτει και την επιστροφή
+	var was_awake := awake_active and not keep_form
 	inferno_active = false
-	awake_active = false
+	awake_active = awake_active and keep_form
+	if was_awake:
+		_refresh_glow()        # γύρισε η βασική μορφή, γυρίζει και η λάμψη της
 	ball_count += gained
 	if next_x >= 0.0:
 		launch_x = next_x
@@ -957,8 +1529,17 @@ func _end_turn() -> void:
 
 	var new_area := clampi(int((level - 1) / ROUNDS_PER_AREA), 0, maxi(areas.size() - 1, 0))
 	if new_area != area_index:
+		# η λογική αλλάζει περιοχή αμέσως· τα γραφικά και το ταμπλό στο μαύρο
+		# του cinematic (_area_swap), ώστε να μη φανεί η αλλαγή
 		area_index = new_area
-		_announce(current_area().display_name if current_area() else "")
+		_begin_area_transition()
+		return
+
+	if frozen_turn:
+		if freeze_rounds == 0:
+			_paint_frozen()        # λιώνει: οι εχθροί ξαναπαίρνουν το χρώμα τους
+		phase = "aim"
+		return
 
 	var tween := create_tween()
 	tween.set_parallel(true)
@@ -966,10 +1547,18 @@ func _end_turn() -> void:
 	# κατέβασμα: από κάτω προς τα πάνω, ώστε να ελευθερώνεται χώρος μπροστά
 	var ordered := grid.blocks()
 	ordered.sort_custom(func(a, b): return (a.row + a.ch) > (b.row + b.ch))
+	# πρώτα κοιτάνε όλοι γύρω τους, με το ταμπλό ακόμα ακίνητο (π.χ. η αγέλη)
+	war_drums = false
+	for b in ordered:
+		if b.ability:
+			b.ability.before_advance(b, self)
 	for b in ordered:
 		var want := 1
 		if b.ability:
 			want = b.ability.advance_rows(b, 1)
+		# τα τύμπανα πολέμου σπρώχνουν όποιον κινείται μία σειρά παραπάνω
+		if war_drums and want > 0 and not b.is_boss:
+			want += 1
 		var step := want
 		while step > 0 and not grid.fits(b.col, b.row + step, b.cw, b.ch, b):
 			step -= 1
@@ -988,8 +1577,9 @@ func _end_turn() -> void:
 				block_center(o.col, o.row, 1, 1).y, ADVANCE_TIME)
 
 	for b in grid.blocks():
-		if b.ability:
+		if b.ability and is_instance_valid(b) and not b.is_vanishing():
 			b.ability.on_round_end(b, self)
+	update_boss_shield()
 
 	for b in grid.blocks():
 		if b.row + b.ch > death_row:
@@ -997,7 +1587,458 @@ func _end_turn() -> void:
 			return
 
 	_add_row()
+	# ό,τι πέταξε ο boss πρέπει να προσγειωθεί πριν ξαναρίξεις
+	if phase != "boss_intro":
+		phase = "boss_act" if not lobs.is_empty() else "aim"
+
+
+## Βάφει τους εχθρούς παγωμένους όσο κρατάει το FREEZE και τους ξεβάφει όταν
+## λιώσει. Στο self_modulate, όχι στο modulate: εκεί ζουν ο τόνος της περιοχής
+## και το κόκκινο της Rage, που αλλιώς θα χάνονταν στο ξεπάγωμα.
+# ---------------------------------------------------------------- μεγάλος boss
+# Είσοδος: ο χάρτης σβήνει με σπίθες, ο boss πέφτει από ψηλά και σηκώνει
+# σκόνη. Μετά μένει ακίνητος και ό,τι βγάζει το ΡΙΧΝΕΙ (lob_*): κάθε minion,
+# οδόφραγμα ή βαρέλι πετάει σε καμπύλη από τον καταπέλτη και προσγειώνεται —
+# τίποτα δεν εμφανίζεται από το πουθενά.
+
+const WEAK_MULT := 2.0
+const LOB_TIME := 0.75
+const LOB_HEIGHT := 170.0
+
+
+func _begin_boss_intro() -> void:
+	boss_intro_t = 0.0
+	_intro_spawned = false
+	phase = "boss_intro"
+	aiming = false
+	aim_cancel = false
+	banner = ""
+	add_shake(5.0)
+	# ό,τι στέκεται στο ταμπλό σβήνει — όχι σε ένα καρέ, με σπίθες και ξεθώριασμα
+	for b in grid.blocks():
+		grid.erase(b)
+		add_sparks(b.position, 6, Color("d9d2c0"), 160.0, 4.0)
+		b.vanish()
+	for o in get_tree().get_nodes_in_group("orb"):
+		add_sparks(o.position, 5, Color("ffb638"), 140.0, 4.0)
+		o.queue_free()
+	freeze_rounds = 0
+	_announce("WARNING - BOSS INCOMING")
+
+
+func _update_boss_intro(delta: float) -> void:
+	boss_intro_t += delta
+	if not _intro_spawned and boss_intro_t >= INTRO_CLEAR:
+		_intro_spawned = true
+		_spawn_final_boss()
+	if boss_intro_t >= INTRO_END:
+		boss_intro_t = -1.0
+		phase = "aim"
+
+
+## Ολοκληρώνει αμέσως την είσοδο (tests).
+func finish_boss_intro() -> void:
+	if boss_intro_t < 0.0:
+		return
+	if not _intro_spawned:
+		_intro_spawned = true
+		_spawn_final_boss()
+	if boss and is_instance_valid(boss):
+		boss.position = block_center(boss.col, boss.row, boss.cw, boss.ch)
+	boss_intro_t = -1.0
 	phase = "aim"
+
+
+func _spawn_final_boss() -> void:
+	var area := current_area()
+	if area == null or area.final_boss == null:
+		return
+	var cw: int = area.final_cols
+	var ch: int = area.final_rows
+	var col := int((COLS - cw) * 0.5)
+	var hp := maxf(20.0, round(level * area.final_hp_mult))
+	boss = _make_block(col, 0, area.final_boss, hp, cw, ch, true)
+	boss.is_final = true
+	# αδύναμο σημείο: ποσοστό του σχεδίου (weak_uv της ικανότητας), σε τοπικές
+	# συντεταγμένες του κουτιού όπου ζωγραφίζεται το πορτρέτο
+	if boss.ability and "weak_uv" in boss.ability:
+		var uv: Rect2 = boss.ability.weak_uv
+		var ps: Vector2 = (boss.box - Vector2(6, 6)) * boss.sprite_scale
+		boss.weak_rect = Rect2(-ps * 0.5 + uv.position * ps, uv.size * ps)
+	# πτώση από ψηλά, με επιτάχυνση — και προσγείωση με σκόνη και τράνταγμα
+	var target: Vector2 = boss.position
+	boss.position.y = target.y - H * 0.6
+	var tw := create_tween()
+	tw.tween_property(boss, "position:y", target.y, INTRO_DROP) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(_boss_landed)
+
+
+func _boss_landed() -> void:
+	if boss == null or not is_instance_valid(boss):
+		return
+	add_shake(9.0)
+	var base_y: float = boss.position.y + boss.box.y * 0.5
+	for i in 14:
+		var x: float = boss.position.x + randf_range(-boss.box.x * 0.55, boss.box.x * 0.55)
+		add_sparks(Vector2(x, base_y), 2, Color("a8906a"), 180.0, 7.0)
+	_announce("BOSS - %s" % boss_name())
+
+
+func boss_name() -> String:
+	var area := current_area()
+	if area and area.final_boss:
+		return area.final_boss.display_name.to_upper()
+	return ""
+
+
+## Ο μεγάλος boss έπεσε: δυνατή έκρηξη στο σώμα του.
+func _boss_fallen(b) -> void:
+	if not b.is_final:
+		return
+	add_shake(9.0)
+	for i in 4:
+		var p: Vector2 = b.position + Vector2(randf_range(-80, 80), randf_range(-80, 80))
+		_play_explosion(p, 2.5 + randf())
+
+
+## Η φάση του boss άλλαξε (το καλεί η ικανότητά του).
+func boss_stage(b, stage: int) -> void:
+	add_shake(6.0)
+	add_sparks(b.position, 20, Color("ffb347"), 260.0, 6.0)
+	match stage:
+		2: _announce("GRUKK: BEAT THE DRUMS!")
+		3: _announce("GRUKK: BRING THE POWDER!")
+
+
+func boss_doom() -> int:
+	if boss_alive() and boss.is_final and boss.ability and boss.ability.has_method("doom_left"):
+		return boss.ability.doom_left()
+	return -1
+
+
+func count_kind(id: String) -> int:
+	var n := 0
+	for b in grid.blocks():
+		if b.kind == id and not b.is_vanishing():
+			n += 1
+	return n
+
+
+## Ασπίδα του μεγάλου boss: όσο ζει τυμπανιστής.
+func update_boss_shield() -> void:
+	if boss_alive() and boss.is_final:
+		boss.shield_on = count_kind("war_drummer") > 0
+
+
+# ---- ρίψεις
+
+## Από πού φεύγουν οι ρίψεις: ο καταπέλτης στο πλάι του πύργου.
+func _launch_point(src) -> Vector2:
+	if src and is_instance_valid(src):
+		return src.position + Vector2(src.box.x * 0.30, -src.box.y * 0.30)
+	return Vector2(W * 0.5, PF_TOP)
+
+
+## Ελεύθερα κελιά για ρίψη, ανάμεσα σε σειρές, μακριά από τη γραμμή θανάτου
+## και από όσα έχουν ήδη κρατηθεί από άλλη ρίψη.
+func _throw_cells(min_row: int, max_row: int, n: int) -> Array:
+	var last := mini(max_row, death_row - 3)
+	var cells := []
+	for c in grid.free_cells(min_row, last):
+		if not reserved.has(c):
+			cells.append(c)
+	cells.shuffle()
+	return cells.slice(0, n)
+
+
+func lob(from: Vector2, to: Vector2, tex: Texture2D, on_land: Callable,
+		height := LOB_HEIGHT, dur := LOB_TIME, spin := 7.0, scale := 2.0) -> void:
+	lobs.append({"from": from, "to": to, "tex": tex, "t": 0.0, "dur": dur,
+		"h": height, "spin": spin, "scale": scale, "cb": on_land})
+	if phase == "aim":
+		phase = "boss_act"
+
+
+## Η θέση ενός βλήματος σε καμπύλη: ευθεία από-προς, με παραβολή από πάνω.
+func lob_pos(l: Dictionary) -> Vector2:
+	var k: float = clampf(l.t / l.dur, 0.0, 1.0)
+	return (l.from as Vector2).lerp(l.to, k) + Vector2(0, -4.0 * l.h * k * (1.0 - k))
+
+
+func _update_lobs(delta: float) -> void:
+	if lobs.is_empty():
+		return
+	var i := lobs.size() - 1
+	while i >= 0:
+		var l: Dictionary = lobs[i]
+		l.t += delta
+		if l.t >= l.dur:
+			lobs.remove_at(i)
+			(l.cb as Callable).call()
+		i -= 1
+	if lobs.is_empty() and phase == "boss_act":
+		phase = "aim"
+
+
+## Βαρέλια με minions: σπάνε στην προσγείωση και το minion πετάγεται έξω.
+func lob_minions(src, id: String, n: int, min_row: int, max_row: int) -> int:
+	var type: EnemyType = enemy_by_id.get(id)
+	if type == null:
+		return 0
+	var cells := _throw_cells(min_row, max_row, n)
+	for c in cells:
+		reserved[c] = true
+		var hp := maxf(1.0, round(level * type.hp_mult))
+		lob(_launch_point(src), block_center(c.x, c.y, 1, 1), tex_spawn_barrel,
+			_land_spawn.bind(c, type, hp, "pop", true))
+	return cells.size()
+
+
+## Οδοφράγματα και βαρέλια μπαρούτι: πετάει το ίδιο το αντικείμενο.
+func lob_specials(src, id: String, n: int, min_row: int, max_row: int) -> int:
+	var type: EnemyType = enemy_by_id.get(id)
+	if type == null:
+		return 0
+	var cells := _throw_cells(min_row, max_row, n)
+	for c in cells:
+		reserved[c] = true
+		var mode := "rise" if type.invulnerable else "pop"
+		lob(_launch_point(src), block_center(c.x, c.y, 1, 1), type.sprite,
+			_land_spawn.bind(c, type, 1.0, mode, false), LOB_HEIGHT, LOB_TIME,
+			2.0 if type.invulnerable else 7.0)
+	return cells.size()
+
+
+## Δύο τυμπανιστές, ένας σε κάθε πλευρά του πύργου.
+func lob_drummers(src, id: String) -> int:
+	var type: EnemyType = enemy_by_id.get(id)
+	if type == null:
+		return 0
+	var sides := [
+		[Vector2i(1, 1), Vector2i(0, 1), Vector2i(1, 2), Vector2i(0, 2), Vector2i(1, 0), Vector2i(0, 0), Vector2i(1, 3)],
+		[Vector2i(5, 1), Vector2i(6, 1), Vector2i(5, 2), Vector2i(6, 2), Vector2i(5, 0), Vector2i(6, 0), Vector2i(5, 3)],
+	]
+	var n := 0
+	for side in sides:
+		for c: Vector2i in side:
+			if c.x >= 0 and c.x < COLS and grid.is_free(c.x, c.y) and not reserved.has(c):
+				reserved[c] = true
+				var hp := maxf(1.0, round(level * type.hp_mult))
+				lob(_launch_point(src), block_center(c.x, c.y, 1, 1), tex_spawn_barrel,
+					_land_spawn.bind(c, type, hp, "pop", true))
+				n += 1
+				break
+	return n
+
+
+func _land_spawn(c: Vector2i, type: EnemyType, hp: float, mode: String, barrel: bool) -> void:
+	reserved.erase(c)
+	var at := block_center(c.x, c.y, 1, 1)
+	add_shake(1.5)
+	if barrel:
+		# το βαρέλι σπάει: σανίδες και σκόνη
+		add_sparks(at, 10, Color("8a5a2b"), 220.0, 6.0)
+		add_sparks(at, 6, Color("c9b28a"), 120.0, 5.0)
+	else:
+		add_sparks(at + Vector2(0, cell * 0.35), 8, Color("a8906a"), 150.0, 5.0)
+	if phase == "over" or not grid.is_free(c.x, c.y):
+		return
+	var b = _make_block(c.x, c.y, type, hp, 1, 1, false)
+	b.appear(mode)
+	if type.id == "war_drummer":
+		update_boss_shield()
+
+
+# ---- πολιορκία, εκρήξεις
+
+## Ο καταπέλτης ρίχνει βράχο στον δράκο· στην πρόσκρουση όλο το ταμπλό
+## κατεβαίνει μία σειρά (εκτός από όσα δεν κουνιούνται: boss, οδοφράγματα).
+func siege_shot(src) -> void:
+	var to := Vector2(launch_x, floor_y + 34.0)
+	lob(_launch_point(src), to, tex_boulder, _siege_impact.bind(to), 300.0, 1.0, 9.0, 2.0)
+	_announce("SIEGE!")
+
+
+func _siege_impact(at: Vector2) -> void:
+	_play_explosion(at, 3.0)
+	add_shake(9.0)
+	add_sparks(at, 24, Color("ffb347"), 320.0, 7.0)
+	var ordered := grid.blocks()
+	ordered.sort_custom(func(a, b): return (a.row + a.ch) > (b.row + b.ch))
+	var tween := create_tween()
+	tween.set_parallel(true)
+	var moved := false
+	for b in ordered:
+		if b.is_vanishing() or (b.ability and b.ability.advance_rows(b, 1) == 0):
+			continue
+		if grid.fits(b.col, b.row + 1, b.cw, b.ch, b):
+			grid.move_to(b, b.col, b.row + 1)
+			b.begin_move(ADVANCE_TIME)
+			tween.tween_property(b, "position:y", block_center(b.col, b.row, b.cw, b.ch).y, ADVANCE_TIME)
+			moved = true
+	if not moved:
+		tween.kill()
+	for b in grid.blocks():
+		if b.row + b.ch > death_row:
+			_game_over()
+			return
+
+
+## Το βαρέλι χτυπήθηκε: έκρηξη 3x3. Minions πεθαίνουν, οδοφράγματα
+## γκρεμίζονται, ο boss χάνει ένα κομμάτι της ζωής του. Άλλο βαρέλι μέσα
+## στην έκρηξη σκάει κι αυτό — αλυσίδα.
+func keg_blast(col: int, row: int, pos: Vector2, boss_ratio: float) -> void:
+	_play_explosion(pos, 2.4)
+	add_shake(6.0)
+	add_sparks(pos, 18, Color("ff9e2c"), 300.0, 6.0)
+	var hit := []
+	for dc in range(-1, 2):
+		for dr in range(-1, 2):
+			var b = grid.at(col + dc, row + dr)
+			if b != null and not hit.has(b):
+				hit.append(b)
+	for b in hit:
+		if not is_instance_valid(b) or b.is_vanishing():
+			continue
+		if b.invulnerable:
+			crumble(b)
+		elif b.is_final:
+			_hurt(b, b.max_hp * boss_ratio)
+		else:
+			_hurt(b, b.hp + 1.0)
+
+
+## Το φυτίλι κάηκε χωρίς να το χτυπήσεις: σκάει μόνο του, δεν πειράζει
+## κανέναν, και από τα συντρίμμια πετάγονται goblins.
+func keg_fizzle(b, minion_id: String, n: int) -> void:
+	var pos: Vector2 = b.position
+	var col: int = b.col
+	var row: int = b.row
+	grid.erase(b)
+	b.vanish()
+	_play_explosion(pos, 1.6)
+	add_shake(3.0)
+	var type: EnemyType = enemy_by_id.get(minion_id)
+	if type == null:
+		return
+	var near := []
+	for c in grid.free_cells(maxi(0, row - 1), mini(death_row - 3, row + 1)):
+		if absi(c.x - col) <= 2 and not reserved.has(c):
+			near.append(c)
+	near.shuffle()
+	for c in near.slice(0, n):
+		reserved[c] = true
+		var hp := maxf(1.0, round(level * type.hp_mult))
+		lob(pos, block_center(c.x, c.y, 1, 1), tex_spawn_barrel,
+			_land_spawn.bind(c, type, hp, "pop", true), 70.0, 0.45, 9.0)
+
+
+## Γκρέμισμα οδοφράγματος: συντρίμμια ξύλου και ξεθώριασμα.
+func crumble(b) -> void:
+	grid.erase(b)
+	add_sparks(b.position, 12, Color("8a5a2b"), 200.0, 6.0)
+	add_sparks(b.position + Vector2(0, cell * 0.3), 6, Color("a8906a"), 120.0, 5.0)
+	b.vanish()
+
+
+func _play_explosion(pos: Vector2, scale: float) -> void:
+	if explosion_frames.is_empty():
+		add_sparks(pos, 20, Color("ff9e2c"), 280.0, 7.0)
+		return
+	fx_anims.append({"frames": explosion_frames, "pos": pos, "t": 0.0, "fps": 16.0, "scale": scale})
+
+
+func _update_fx_anims(delta: float) -> void:
+	var i := fx_anims.size() - 1
+	while i >= 0:
+		var a: Dictionary = fx_anims[i]
+		a.t += delta
+		if a.t * a.fps >= (a.frames as Array).size():
+			fx_anims.remove_at(i)
+		i -= 1
+
+
+# ---------------------------------------------------------------- αλλαγή περιοχής
+# Μικρό cinematic: σβήνει σε μαύρο, στο μαύρο καθαρίζει το ταμπλό και αλλάζει
+# σκηνικό, μουσική και καιρό, δείχνει το όνομα της νέας περιοχής και ξανανοίγει.
+
+const TRANS_OUT := 0.7
+const TRANS_HOLD := 0.7
+const TRANS_IN := 0.7
+
+
+func in_transition() -> bool:
+	return transition_t >= 0.0
+
+
+## Η περιοχή που ΦΑΙΝΕΤΑΙ: μένει η παλιά ως τη μέση του cinematic.
+func visual_area() -> AreaDef:
+	if areas.is_empty():
+		return null
+	return areas[clampi(visual_area_index, 0, areas.size() - 1)]
+
+
+## Πόσο μαύρη είναι η οθόνη, 0..1.
+func transition_alpha() -> float:
+	if transition_t < 0.0:
+		return 0.0
+	if transition_t < TRANS_OUT:
+		return transition_t / TRANS_OUT
+	if transition_t < TRANS_OUT + TRANS_HOLD:
+		return 1.0
+	return clampf(1.0 - (transition_t - TRANS_OUT - TRANS_HOLD) / TRANS_IN, 0.0, 1.0)
+
+
+func _begin_area_transition() -> void:
+	transition_t = 0.0
+	_trans_swapped = false
+	phase = "transition"
+	aiming = false
+	aim_cancel = false
+	banner = ""          # η ανακοίνωση της παλιάς περιοχής δεν μπαίνει στο μαύρο
+
+
+func _update_transition(delta: float) -> void:
+	transition_t += delta
+	if not _trans_swapped and transition_t >= TRANS_OUT:
+		_area_swap()
+	if transition_t >= TRANS_OUT + TRANS_HOLD + TRANS_IN:
+		transition_t = -1.0
+		phase = "aim"
+		var area := current_area()
+		_announce("%s - ROUND %d" % [area.display_name if area else "", area_round()])
+
+
+## Ολοκληρώνει αμέσως το cinematic (tests, ή όποιος δεν θέλει να περιμένει).
+func finish_transition() -> void:
+	if in_transition():
+		_update_transition(TRANS_OUT + TRANS_HOLD + TRANS_IN)
+
+
+## Στο μαύρο: άδειο ταμπλό, νέο σκηνικό, πρώτη σειρά της νέας περιοχής.
+func _area_swap() -> void:
+	_trans_swapped = true
+	for b in get_tree().get_nodes_in_group("block"):
+		if is_instance_valid(b):
+			grid.erase(b)
+			b.queue_free()
+	for o in get_tree().get_nodes_in_group("orb"):
+		o.queue_free()
+	boss = null
+	freeze_rounds = 0
+	lobs.clear()
+	reserved.clear()
+	visual_area_index = area_index
+	_apply_theme()
+	_add_row()
+
+
+func _paint_frozen() -> void:
+	for b in grid.blocks():
+		if is_instance_valid(b):
+			b.self_modulate = FROZEN_TINT if freeze_rounds > 0 else Color.WHITE
+			b.set_frozen(freeze_rounds > 0)
 
 
 func _game_over() -> void:
@@ -1023,6 +2064,7 @@ func _draw() -> void:
 	_draw_frame()
 	_draw_torches()
 	_draw_ground()
+	_draw_hud_base()
 	_draw_dragon()
 	_draw_aim()
 	# το HUD σχεδιάζεται σε CanvasLayer, δες scripts/hud.gd
@@ -1040,9 +2082,18 @@ func _draw_field() -> void:
 		# ένα κελί και στις δύο διαστάσεις. Τεντωμένο στο ui_top έβγαινε
 		# 85.7 x 94.8: οι ραφές ξέφευγαν από το πλέγμα κατά 9px τη σειρά και
 		# η διαφορά μάζευε προς τα κάτω. Ό,τι περισσεύει το κρύβει το HUD.
+		#
+		# Το φόντο ΕΠΑΝΑΛΑΜΒΑΝΕΤΑΙ προς τα κάτω μέχρι να φτάσει το HUD. Τα
+		# κινητά είναι πιο στενόμακρα από το 720x1280 και το stretch "expand"
+		# μακραίνει την οθόνη, οπότε ένα αντίγραφο σταματούσε πριν από το
+		# κάστρο και άφηνε μαύρη λωρίδα. Κάθε αντίγραφο είναι ακέραιος αριθμός
+		# κελιών, άρα η επανάληψη πέφτει πάνω στο πλέγμα χωρίς ραφή.
 		var bg_rows := float(bg.get_height()) * COLS / float(bg.get_width())
-		draw_texture_rect(bg, Rect2(pf_left, PF_TOP, PF_W, cell * bg_rows),
-			false, area.tint)
+		var bg_h := cell * bg_rows
+		var y0 := PF_TOP
+		while y0 < ui_top:
+			draw_texture_rect(bg, Rect2(pf_left, y0, PF_W, bg_h), false, area.tint)
+			y0 += bg_h
 	else:
 		var steps := 14
 		for i in steps:
@@ -1103,11 +2154,13 @@ func _pingpong(n: int, fps: float, off := 0.0) -> int:
 ## Καθρεφτίζει ένα rect οριζόντια. Το draw_texture_rect ΔΕΝ έχει όρισμα flip:
 ## το πέμπτο του είναι `transpose`, που γυρίζει την εικόνα 90° — περασμένο
 ## κατά λάθος ως flip έστριβε τις δεξιές δάδες και το λάβαρο στο πλάι.
-## Το αρνητικό πλάτος είναι ο σωστός τρόπος.
+## Το αρνητικό πλάτος είναι ο σωστός τρόπος. Το Godot κρατάει το rect στην
+## ίδια θέση (position .. position+|size|) και απλώς γυρίζει την εικόνα —
+## με μετατόπιση κατά size.x οι δεξιές δάδες έβγαιναν ένα BORDER έξω από το ξύλο.
 func _mirror(r: Rect2, flip: bool) -> Rect2:
 	if not flip:
 		return r
-	return Rect2(r.position.x + r.size.x, r.position.y, -r.size.x, r.size.y)
+	return Rect2(r.position.x, r.position.y, -r.size.x, r.size.y)
 
 
 ## Δάδες και λάβαρα. Ήταν ψημένα μέσα στο frame_left.png· βγήκαν από εκεί ώστε
@@ -1166,6 +2219,58 @@ func _draw_ground() -> void:
 		draw_texture_rect(lt, Rect2((W - lw) * 0.5, ui_top - lh, lw, lh), false)
 
 
+## Λωρίδα σε x2 που πιάνει από x0 ως x1: η αριστερή άκρη του texture μένει
+## ως έχει, η δεξιά είναι το καθρέφτισμά της, και η μέση επαναλαμβάνεται με
+## το τελευταίο κομμάτι κομμένο — ποτέ τεντωμένο. Τα κομμάτια του HUD είναι
+## ΜΙΣΑ πάνελ (η δεξιά τους άκρη ήταν το κέντρο), γι' αυτό η δεξιά άκρη δεν
+## παίρνεται από το ίδιο το texture. `src` είναι το κομμάτι που χρησιμοποιείται.
+## Static με τον καμβά ως όρισμα, ώστε να τη μοιράζεται και το hud.gd.
+static func strip2(ci: CanvasItem, t: Texture2D, src: Rect2, x0: float, x1: float, y: float) -> void:
+	var cap := int(src.size.x * 0.12)
+	var h := src.size.y
+	# η μέση πρώτα: το τελευταίο κομμάτι στρογγυλεύει ΠΡΟΣ ΤΑ ΠΑΝΩ και χώνεται
+	# κάτω από την άκρη — με int() έμενε κενό μισού pixel όταν το πλάτος
+	# δεν ήταν ακέραιο, και φαινόταν το φόντο σαν λεπτή γραμμή
+	var body := int(src.size.x) - cap * 2
+	var x := x0 + cap * 2
+	var end := x1 - cap * 2
+	while x < end:
+		var bw := mini(body, ceili((end - x) / 2.0))
+		ci.draw_texture_rect_region(t, Rect2(x, y, bw * 2, h * 2),
+			Rect2(src.position.x + cap, src.position.y, bw, h))
+		x += bw * 2
+	ci.draw_texture_rect_region(t, Rect2(x0, y, cap * 2, h * 2),
+		Rect2(src.position.x, src.position.y, cap, h))
+	# αρνητικό πλάτος = καθρέφτισμα στην ΙΔΙΑ θέση (x1-2cap .. x1)
+	ci.draw_texture_rect_region(t, Rect2(x1 - cap * 2, y, -cap * 2, h * 2),
+		Rect2(src.position.x, src.position.y, cap, h))
+
+
+## Το φόντο της κάτω μπάρας: η κορυφή του τείχους ως σκηνικό, και πάνω της
+## τα δύο πάνελ όπου κάθονται τα κουμπιά. Ζωγραφίζεται εδώ και όχι στο HUD
+## ώστε ο δράκος, που κάθεται ανάμεσα στα πάνελ, να μένει ΜΠΡΟΣΤΑ τους.
+## Τα κουμπιά και τα κείμενα από πάνω τα βάζει το hud.gd.
+func _draw_hud_base() -> void:
+	if tex_hud_wall == null or tex_hud_panel == null:
+		return
+	var ws := tex_hud_wall.get_size()
+	var by := ui_top - 48.0
+	draw_rect(Rect2(0, by + 16.0, W, H - by), Color("232226"))
+	strip2(self, tex_hud_wall, Rect2(Vector2.ZERO, ws), 0.0, W, by)
+	# ψηλές οθόνες: το τείχος συνεχίζει με τις κάτω σειρές του, επαναλαμβανόμενες
+	var band := int(ws.y * 0.28)
+	var src := Rect2(0, ws.y - band, ws.x, band)
+	var y := by + ws.y * 2.0
+	while y < H:
+		strip2(self, tex_hud_wall, src, 0.0, W, y)
+		y += band * 2.0
+	# δεξί πάνελ = καθρέφτισμα του αριστερού (αρνητικό πλάτος, ίδια θέση)
+	var lr := hud_panel_rect(false)
+	var rr := hud_panel_rect(true)
+	draw_texture_rect(tex_hud_panel, lr, false)
+	draw_texture_rect(tex_hud_panel, Rect2(rr.position, Vector2(-rr.size.x, rr.size.y)), false)
+
+
 ## Ποια κατάσταση δείχνει ο δράκος τώρα. Η φλόγα ανάβει ΜΟΝΟ όσο φεύγουν
 ## μπάλες από το στόμα — όχι όσο τριγυρνάνε στην πίστα, που κρατάει πολύ
 ## περισσότερο και θα την άφηνε αναμμένη σχεδόν μόνιμα.
@@ -1178,7 +2283,12 @@ func dragon_phase() -> String:
 ## Η φλόγα της εναλλαγής, πάνω από τον δράκο. Παίζει μία φορά προς τα εμπρός
 ## και σβήνει στο τέλος, ώστε να μη «γδέρνει» το καρέ όπου αλλάζει η μορφή.
 func _draw_awaken(base: Vector2, dragon_w: float) -> void:
-	if awaken_t <= 0.0 or awaken_frames.is_empty():
+	if awaken_t <= 0.0:
+		return
+	if dragon and dragon.awaken_style == "skull":
+		_draw_awaken_skull(base, dragon_w)
+		return
+	if awaken_frames.is_empty():
 		return
 	var f := 1.0 - awaken_t / AWAKEN_TIME          # 0 στην αρχή, 1 στο τέλος
 	var i := clampi(int(f * awaken_frames.size()), 0, awaken_frames.size() - 1)
@@ -1192,6 +2302,62 @@ func _draw_awaken(base: Vector2, dragon_w: float) -> void:
 	var tint: Color = dragon.awaken_tint if dragon else Color.WHITE
 	tint.a = clampf(awaken_t / (AWAKEN_TIME * 0.4), 0.0, 1.0)
 	draw_texture_rect(tex, Rect2(base.x - w * 0.5, base.y - h, w, h), false, tint)
+
+
+## Καπνός σκότους που βγαίνει αδιάκοπα από τις άδειες κόγχες. Τρέχει με τον
+## χρόνο, οπότε δίνει κίνηση σε μια μορφή που έχει ένα μόνο καρέ: τα μάτια
+## πάλλονται, και τολύπες ανεβαίνουν και σβήνουν σε ανεξάρτητους ρυθμούς ώστε
+## να μην πάλλονται οι δύο πλευρές συγχρονισμένα.
+func _draw_eye_smoke(w: float, h: float, open_eyes := false) -> void:
+	var pulse := 0.72 + sin(t * 2.6) * 0.28
+	for side in 2:
+		# ρητός float: από λίστα το στοιχείο βγαίνει Variant και το := δεν
+		# μπορεί να συμπεράνει τύπο στους υπολογισμούς παρακάτω
+		var sx := -1.0 if side == 0 else 1.0
+		var e := Vector2(sx * w * 0.16, -h * 0.55)
+		# η ίδια η κόγχη: βαθύ μαύρο που ανασαίνει. ΟΧΙ όταν βαράει: τότε τα
+		# καρέ έχουν άσπρες ίριδες μέσα στις κόγχες, και ο συμπαγής μαύρος
+		# πυρήνας θα τις σκέπαζε — μένει μόνο η αραιή άλω γύρω τους.
+		if not open_eyes:
+			draw_circle(e, (7.0 + pulse * 3.0), Color(0, 0, 0, 0.55 + pulse * 0.25))
+		draw_circle(e, (13.0 + pulse * 5.0), Color(0.03, 0.0, 0.06, 0.20 * pulse))
+		# τρεις τολύπες, η καθεμία με δική της φάση
+		# ανεβαίνουν αρκετά ψηλά ώστε να βγουν πάνω από το κεφάλι: μέσα στο
+		# περίγραμμά του, που είναι ήδη σχεδόν μαύρο, δεν φαίνονταν καθόλου
+		for k in 4:
+			var ph := fmod(t * 0.42 + float(k) * 0.27 + (0.14 if sx > 0.0 else 0.0), 1.0)
+			var rise := ph * h * 0.62
+			var drift := sx * ph * w * 0.12 + sin(ph * 4.4 + float(k)) * w * 0.05
+			var fade := (1.0 - ph) * 0.42 * minf(ph * 4.0, 1.0)
+			draw_circle(e + Vector2(drift, -rise), 5.0 + ph * 15.0,
+				Color(0.05, 0.0, 0.09, fade))
+
+
+## Αύρα μεταμόρφωσης για τον θάνατο: μια μαύρη νεκροκεφαλή που ανοίγει προς τα
+## έξω μέσα σε σκοτεινή δίνη, αντί για φλόγα. Δεν χρειάζεται δικά της καρέ —
+## είναι το ίδιο το κεφάλι του δράκου, βαμμένο μαύρο, σε μεγέθυνση που τρέχει
+## με τον χρόνο. Γι' αυτό δούλεψε χωρίς νέα γραφικά.
+func _draw_awaken_skull(base: Vector2, dragon_w: float) -> void:
+	var f := 1.0 - awaken_t / AWAKEN_TIME          # 0 στην αρχή, 1 στο τέλος
+	var fade := clampf(awaken_t / (AWAKEN_TIME * 0.5), 0.0, 1.0)
+	var c := base + Vector2(0, -dragon_w * 0.42)
+
+	# η δίνη: δαχτυλίδια σκότους που ανοίγουν και αραιώνουν
+	for i in 4:
+		var r := dragon_w * (0.30 + 0.48 * f) + i * 9.0
+		draw_circle(c, r, Color(0.03, 0.0, 0.05, fade * 0.16 / float(i + 1)))
+	# λίγη πράσινη ανταύγεια στο χείλος, ώστε να δένει με τον δράκο
+	draw_arc(c, dragon_w * (0.30 + 0.48 * f), 0.0, TAU, 48,
+		Color(0.35, 0.75, 0.2, fade * 0.22), 2.0)
+
+	# η νεκροκεφαλή: το κεφάλι του δράκου σε μαύρη σιλουέτα, να μεγαλώνει
+	var tex: Texture2D = dragon.sprite_idle if dragon else null
+	if tex == null:
+		return
+	var w := dragon_w * (0.72 + 0.62 * f)
+	var h := w * float(tex.get_height()) / float(tex.get_width())
+	draw_texture_rect(tex, Rect2(c.x - w * 0.5, c.y - h * 0.5, w, h), false,
+		Color(0.0, 0.0, 0.0, fade * 0.85))
 
 
 func _draw_dragon() -> void:
@@ -1217,11 +2383,32 @@ func _draw_dragon() -> void:
 
 		draw_set_transform(pivot, tilt, Vector2(1.0, breathe))
 		draw_texture_rect(dt, Rect2(-w * 0.5, -h, w, h), false, dg.tint)
-		# λάμψη στο στόμα την ώρα που φεύγει η μπάλα
+		# Οι άδειες κόγχες καπνίζουν ΣΥΝΕΧΩΣ, όχι μόνο στη βολή. Η μορφή χωρίς
+		# μάσκα έχει ένα μόνο καρέ όσο λείπουν τα generations, οπότε χωρίς αυτό
+		# στεκόταν εντελώς ακίνητη· ο καπνός της δίνει την κίνηση που θα είχε.
+		if dg.dark_eyes:
+			_draw_eye_smoke(w, h, dph == "shoot")
+		# λάμψη στο στόμα την ώρα που φεύγει η μπάλα — ή, για όσους έχουν άδειες
+		# κόγχες, σκοτάδι που χύνεται από τα μάτια αντί για φως από το στόμα
 		if recoil > 0.05:
 			var g := recoil
-			draw_circle(Vector2(0, -h * 0.45), 26.0 * g, Color(_accent(1.0), 0.30 * g))
-			draw_circle(Vector2(0, -h * 0.45), 12.0 * g, Color(1.0, 0.92, 0.70, 0.55 * g))
+			if dg.dark_eyes:
+				# Το σκοτάδι ΧΥΝΕΤΑΙ προς τα έξω και κάτω, πέρα από το
+				# περίγραμμα του κεφαλιού. Μέσα στο ίδιο το πρόσωπο δεν
+				# διαβαζόταν: η μορφή χωρίς μάσκα είναι ήδη σχεδόν μαύρη,
+				# οπότε μαύρο πάνω σε μαύρο χανόταν.
+				for sx in [-1.0, 1.0]:
+					var e := Vector2(sx * w * 0.16, -h * 0.55)
+					for k in range(2, 9):     # από λίγο κάτω από την κόγχη, όχι πάνω της
+						var t2 := float(k) / 8.0
+						# κυλάει προς τα κάτω-έξω, μεγαλώνοντας και αραιώνοντας
+						var p := e + Vector2(sx * t2 * w * 0.46, t2 * h * 0.50)
+						var r := (7.0 + t2 * 26.0) * g
+						draw_circle(p, r, Color(0.04, 0.0, 0.07, (0.60 - t2 * 0.44) * g))
+					# χωρίς συμπαγή μαύρο πυρήνα: στη βολή τα μάτια έχουν άσπρες ίριδες
+			else:
+				draw_circle(Vector2(0, -h * 0.45), 26.0 * g, Color(_accent(1.0), 0.30 * g))
+				draw_circle(Vector2(0, -h * 0.45), 12.0 * g, Color(1.0, 0.92, 0.70, 0.55 * g))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		_draw_awaken(base, w)
 		return
@@ -1249,7 +2436,7 @@ func _draw_dragon() -> void:
 
 
 func _draw_aim() -> void:
-	if phase != "aim" or not aiming:
+	if phase != "aim" or not aiming or aim_cancel:
 		return
 	# ξεκινάει από εκεί που γεννιούνται πραγματικά οι μπάλες, όχι από το
 	# σχεδιασμένο στόμα — τα δύο απέχουν ελάχιστα, αλλά η γραμμή πρέπει να

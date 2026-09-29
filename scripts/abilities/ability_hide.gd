@@ -19,3 +19,7 @@ func absorb(_block, amount: float) -> float:
 
 func badge() -> String:
 	return "##"
+
+
+func describe() -> String:
+	return "Thick hide: every hit does %s less damage" % str(reduce)

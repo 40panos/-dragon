@@ -8,9 +8,11 @@ extends SceneTree
 ##
 ##   godot --headless --path . --script tools/write_bat.gd
 
+## Μόνο το Goblin Land: το Frost Marches έχει πια δικούς του εχθρούς και
+## καλεί λύκους (tools/write_frost_marches.gd). Αν έμπαινε κι εκεί, ο Yeti θα
+## γύριζε να καλεί bats.
 const AREAS := [
 	"res://data/areas/01_goblin_land.tres",
-	"res://data/areas/02_frost_marches.tres",
 ]
 const FRAME_W := 32          # ίδιος καμβάς με τους υπόλοιπους εχθρούς
 const IDLE_N := 8

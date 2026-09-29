@@ -41,3 +41,7 @@ func on_round_end(block, game) -> void:
 
 func badge() -> String:
 	return "*"
+
+
+func describe() -> String:
+	return "Summoner: calls a servant every %d turns" % every
