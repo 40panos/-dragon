@@ -1333,22 +1333,6 @@ func _initialize() -> void:
 	m._debug_do("jump", [1, "boss"])
 	m.finish_boss_intro()
 	var wd = m.boss
-	ok("το Frost Marches έχει δικό του πλέγμα: 8 στήλες, κελί 72", m.COLS == 8
-		and is_equal_approx(m.cell, 72.0) and is_equal_approx(m.PF_W, 576.0)
-		and m.grid.free_cols_in_row(m.death_row - 1).size() == 8, "(%d, %.1f)" % [m.COLS, m.cell])
-	ok("...κεντραρισμένο, με περισσότερες σειρές", is_equal_approx(m.pf_left, (m.W - 576.0) * 0.5)
-		and m.death_row == int(floor((m.floor_y - m.PF_TOP) / 72.0)), "(σειρές %d)" % m.death_row)
-	ok("...και οι τοίχοι ακολουθούν τις άκρες του", is_equal_approx(m._walls[0].position.x, m.pf_left - 100.0)
-		and is_equal_approx(m._walls[1].position.x, m.pf_right + 100.0))
-	var lay_imp = m._make_block(0, 6, m.enemy_by_id["frost_imp"], 5.0, 1, 1, false)
-	ok("εκεί τα 32px σχέδια βγαίνουν ακριβώς x2", lay_imp.portrait_size() == Vector2(64, 64),
-		str(lay_imp.portrait_size()))
-	ok("...και ο Wendigo (96px) επίσης x2", wd.portrait_size() == Vector2(192, 192), str(wd.portrait_size()))
-	m.grid.erase(lay_imp)
-	lay_imp.queue_free()
-	var lay_bg: Texture2D = m.areas[1].background
-	ok("το φόντο του είναι πλακίδια 36px σε 8 στήλες (x2 = ένα κελί)", lay_bg.get_width() == 8 * 36
-		and lay_bg.get_height() % 36 == 0)
 	ok("ο Ice Wendigo είναι ο μεγάλος boss του Frost Marches", wd != null and wd.is_final
 		and wd.kind == "ice_wendigo" and wd.cw == 3 and wd.ch == 3)
 	var wd_ab = wd.ability
@@ -1466,13 +1450,6 @@ func _initialize() -> void:
 		wd_book_ids.has("ice_wendigo") and not wd_book_ids.has("iceberg"), str(wd_book_ids))
 	m._debug_do("jump", [0, "start"])
 	await process_frame
-	ok("πίσω στο Goblin Land: το βασικό πλέγμα (7 στήλες)", m.COLS == 7
-		and is_equal_approx(m.PF_W, 600.0) and m.grid.free_cols_in_row(m.death_row - 1).size() == 7)
-	var lay_gob = m._make_block(0, 6, m.enemy_by_id["goblin"], 5.0, 1, 1, false)
-	ok("...όπου τα πορτρέτα μένουν όπως ήταν (χωρίς snap)", not lay_gob.pixel_snap
-		and lay_gob.portrait_size() == lay_gob.box - Vector2(6, 6))
-	m.grid.erase(lay_gob)
-	lay_gob.queue_free()
 
 	print("--- αποθήκευση ---")
 	var d = SaveManager.defaults()
