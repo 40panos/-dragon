@@ -4,10 +4,14 @@ extends Node2D
 ## Το περιεχόμενο (εχθροί, δράκοι, περιοχές) ζει σε αρχεία .tres μέσα στο
 ## res://data/ και φορτώνεται δυναμικά· η προσθήκη νέων δεν αγγίζει κώδικα.
 
-const COLS := 7          # δοκιμαστικά: λιγότερες στήλες = μεγαλύτερο κελί (πλάτος & ύψος μαζί)
+## Το πλέγμα αλλάζει ανά περιοχή (AreaDef.cols / cell_px, βλ. _apply_layout):
+## εδώ τα βασικά, και στα COLS / PF_W αυτό που ισχύει τώρα.
+const DEFAULT_COLS := 7
+const DEFAULT_PF_W := 600.0
+var COLS := DEFAULT_COLS
+var PF_W := DEFAULT_PF_W        # πλάτος πεδίου = COLS κελιά, ώστε τα κελιά να μένουν τετράγωνα
 const BALL_SPEED := 950.0
 const FIRE_GAP := 0.08
-const PF_W := 600.0           # σταθερό πλάτος πεδίου ώστε τα κελιά να μένουν τετράγωνα
 const BORDER := 60.0
 const PF_TOP := 190.0
 const DEATH_GAP := 218.0
@@ -185,12 +189,9 @@ func _ready() -> void:
 	var vs := get_viewport_rect().size
 	W = vs.x
 	H = vs.y
-	cell = PF_W / float(COLS)
-	pf_left = (W - PF_W) * 0.5
-	pf_right = pf_left + PF_W
 	floor_y = H - DEATH_GAP
 	ui_top = H - UI_BAND
-	death_row = int(floor((floor_y - PF_TOP) / cell))
+	_set_layout(DEFAULT_COLS, DEFAULT_PF_W / DEFAULT_COLS)
 	launch_x = W * 0.5
 
 	fireball_tex = _load_tex("fireball")
@@ -543,13 +544,47 @@ func _refresh_glow() -> void:
 
 # ---------------------------------------------------------------- στήσιμο
 
+var _walls: Array[StaticBody2D] = []
+
+
 func _build_walls() -> void:
-	_wall(Vector2(pf_left - 100.0, H * 0.5), Vector2(200.0, H * 3.0))
-	_wall(Vector2(pf_right + 100.0, H * 0.5), Vector2(200.0, H * 3.0))
-	_wall(Vector2(W * 0.5, PF_TOP - 106.0), Vector2(W * 3.0, 200.0))
+	_walls.append(_wall(Vector2(pf_left - 100.0, H * 0.5), Vector2(200.0, H * 3.0)))
+	_walls.append(_wall(Vector2(pf_right + 100.0, H * 0.5), Vector2(200.0, H * 3.0)))
+	_walls.append(_wall(Vector2(W * 0.5, PF_TOP - 106.0), Vector2(W * 3.0, 200.0)))
 
 
-func _wall(pos: Vector2, size: Vector2) -> void:
+## Το πλέγμα της περιοχής: στήλες, κελί, πεδίο κεντραρισμένο, σειρές ως τη
+## γραμμή θανάτου, και οι πλαϊνοί τοίχοι εκεί που πέφτουν τώρα οι άκρες.
+## Το ταμπλό πρέπει να είναι άδειο (αρχή run, μαύρο του cinematic, άλμα).
+func _set_layout(cols: int, cell_w: float) -> void:
+	COLS = cols
+	cell = cell_w
+	PF_W = cell * COLS
+	pf_left = (W - PF_W) * 0.5
+	pf_right = pf_left + PF_W
+	death_row = int(floor((floor_y - PF_TOP) / cell))
+	if _walls.size() >= 2:
+		_walls[0].position.x = pf_left - 100.0
+		_walls[1].position.x = pf_right + 100.0
+	launch_x = clampf(launch_x, pf_left + 20.0, pf_right - 20.0)
+
+
+func _apply_layout() -> void:
+	var a := current_area()
+	var cols: int = a.cols if a and a.cols > 0 else DEFAULT_COLS
+	var cw: float = a.cell_px if a and a.cell_px > 0.0 else DEFAULT_PF_W / cols
+	var changed := cols != COLS or not is_equal_approx(cw, cell)
+	_set_layout(cols, cw)
+	if changed or grid == null:
+		grid = BattleGrid.new(COLS)
+
+
+func pixel_snap() -> bool:
+	var a := current_area()
+	return a != null and a.pixel_snap
+
+
+func _wall(pos: Vector2, size: Vector2) -> StaticBody2D:
 	var body := StaticBody2D.new()
 	body.position = pos
 	body.collision_layer = 1
@@ -560,6 +595,7 @@ func _wall(pos: Vector2, size: Vector2) -> void:
 	cs.shape = rect
 	body.add_child(cs)
 	add_child(body)
+	return body
 
 
 func _start() -> void:
@@ -585,6 +621,7 @@ func _start() -> void:
 	_soft.clear()
 	_reset_wendigo_fx()
 	level = 1
+	_apply_layout()
 	_apply_theme()
 
 	score = 0
@@ -943,6 +980,7 @@ func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: in
 		type.sprite_scale)
 	b.glow_frames = glow_now()
 	b.burst_color = _accent(1.0)
+	b.pixel_snap = pixel_snap()
 	b.position = block_center(col, row, cw, ch)
 	var area := current_area()
 	if area:
@@ -1428,6 +1466,7 @@ func debug_jump(area_i: int, which: String) -> void:
 		o.queue_free()
 	boss = null
 	area_index = clampi(area_i, 0, areas.size() - 1)
+	_apply_layout()
 	var r := 1
 	if which == "mini":
 		r = MINIBOSS_ROUND
@@ -2023,7 +2062,7 @@ func _spawn_final_boss() -> void:
 	# συντεταγμένες του κουτιού όπου ζωγραφίζεται το πορτρέτο
 	if boss.ability and "weak_uv" in boss.ability:
 		var uv: Rect2 = boss.ability.weak_uv
-		var ps: Vector2 = (boss.box - Vector2(6, 6)) * boss.sprite_scale
+		var ps: Vector2 = boss.portrait_size()
 		boss.weak_rect = Rect2(-ps * 0.5 + uv.position * ps, uv.size * ps)
 	# πτώση από ψηλά, με επιτάχυνση — και προσγείωση με σκόνη και τράνταγμα
 	var target: Vector2 = boss.position
@@ -2541,7 +2580,7 @@ func wendigo_glare(b, ab) -> void:
 		return
 	if not ab.glare_frames.is_empty():
 		b.play_act(ab.glare_frames, ab.act_fps)
-	glare_eyes = b.position + (ab.eyes_uv - Vector2(0.5, 0.5)) * (b.box - Vector2(6, 6)) * b.sprite_scale
+	glare_eyes = b.position + (ab.eyes_uv - Vector2(0.5, 0.5)) * b.portrait_size()
 	glare_t = 0.0
 	to_fire = 0                    # ό,τι δεν έχει φύγει ακόμα, δεν φεύγει
 	for ball in get_tree().get_nodes_in_group("ball"):
@@ -2770,6 +2809,8 @@ func _area_swap() -> void:
 	lobs.clear()
 	reserved.clear()
 	visual_area_index = area_index
+	# στο μαύρο αλλάζει και το πλέγμα, αν η νέα περιοχή έχει δικό της
+	_apply_layout()
 	_apply_theme()
 	_add_row()
 
@@ -2815,7 +2856,9 @@ func _draw() -> void:
 
 func _draw_field() -> void:
 	draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color("141024"))
-	var area := current_area()
+	# η περιοχή που ΦΑΙΝΕΤΑΙ: το φόντο της νέας είναι φτιαγμένο για το δικό
+	# της πλέγμα, που μπαίνει μόνο στο μαύρο του cinematic
+	var area := visual_area()
 	var bg: Texture2D = area.background if area else null
 	# η πίστα απλώνεται ΚΑΤΩ από τη γραμμή θανάτου, μέχρι το HUD: η ζώνη του
 	# δράκου είναι κομμάτι του εδάφους, όχι ξεχωριστό πέτρινο ταμπλό

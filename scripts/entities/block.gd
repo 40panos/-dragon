@@ -49,6 +49,26 @@ var is_boss := false
 
 # πόσο μέρος του κελιού πιάνει το πορτρέτο· αφορά μόνο τη σχεδίαση
 var sprite_scale := 1.0
+## Το πορτρέτο σε ΑΚΕΡΑΙΑ κλίμακα του σχεδίου (π.χ. 32px -> 64), τη μεγαλύτερη
+## που χωράει στο κουτί, αντί να τεντώνεται σε όλο το κουτί. Το ανάβει η
+## περιοχή (AreaDef.pixel_snap) όταν το κελί της είναι φτιαγμένο για x2.
+var pixel_snap := false
+
+
+## Το μέγεθος που ζωγραφίζεται το πορτρέτο. Και για ό,τι μετριέται πάνω του
+## (αδύναμο σημείο, μάτια του Wendigo), ώστε να πέφτει εκεί που φαίνεται.
+func portrait_size() -> Vector2:
+	var fit := (box - Vector2(6, 6)) * sprite_scale
+	# τα minions (μικρότερο πορτρέτο) μένουν τεντωμένα: η επόμενη ακέραια
+	# κλίμακα κάτω από το x2 είναι το x1, που στο κελί 72 τα έκανε μυρμήγκια
+	if not pixel_snap or sprite == null or sprite_scale < 0.99:
+		return fit
+	var art := sprite.get_size()
+	# λίγο αέρα παραπάνω από το «-6»: σε κελί 72 το 32px χωράει x2 με 1px γύρω
+	var k := floorf(minf((box.x - 2.0) * sprite_scale / art.x, (box.y - 2.0) * sprite_scale / art.y))
+	if k < 1.0:
+		return fit
+	return art * k
 
 # Καρέ του φλογερού περιγράμματος. Έρχονται από τον ΔΡΑΚΟ, όχι από τον εχθρό:
 # η λάμψη είναι το χτύπημα του παίκτη, οπότε ο δράκος της φωτιάς αφήνει φλόγες
@@ -738,10 +758,10 @@ func _draw() -> void:
 	if portrait:
 		# το sprite_scale μικραίνει μόνο το πορτρέτο, κεντραρισμένο μέσα στο
 		# κελί — το κουτί, το περίγραμμα και οι ενδείξεις μένουν στη θέση τους
-		var psize := (box - Vector2(6, 6)) * sprite_scale
+		var psize := portrait_size()
 		if uses_burst():
 			_draw_burst(psize)
-		draw_texture_rect(portrait, Rect2(-psize * 0.5, psize), false)
+		draw_texture_rect(portrait, Rect2((-psize * 0.5).floor(), psize), false)
 	else:
 		var map: Array = ART.get(kind, ART["goblin"])
 		var px := (minf(box.x, box.y) - 16.0) / 8.0

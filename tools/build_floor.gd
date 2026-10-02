@@ -62,17 +62,32 @@ const SETS := [
 		# accents) έχουν εξισωμένο μέσο τόνο: όπως ήρθαν από το PixelLab, το
 		# ένα ήταν γαλάζιο κι ανοιχτό, το άλλο γκρι και σκούρο, και το πάτωμα
 		# έβγαινε σκακιέρα. Τα αρχικά είναι στο bbdragon-art-proposals/ice/tiles_raw.
+		#
+		# Το Frost Marches έχει δικό του πλέγμα: 8 στήλες με κελί 72 (βλ.
+		# AreaDef.cols), όπου τα 32px σχέδια βγαίνουν ακριβώς x2. Το πλακίδιο
+		# του πατώματος γίνεται 36 art pixels (x2 = ένα κελί): ΚΟΜΜΑΤΙ 36x36 από
+		# τα 64px πλακίδια, όχι μίκρεμα — τα pixel μένουν ίδια, απλώς δείχνονται
+		# στο x2 αντί για το x1.34. Η λακκούβα (06) είναι πλατύτερη από 36 και
+		# θα έβγαινε κομμένη στη μέση της, οπότε μένει έξω.
 		"prefix": "ice",
 		"count": 10,
 		"out": "res://art/background_frost.png",
 		"seed": 20260926,
+		"tile": 36,
+		"cols": 8,
+		"rows": 14,              # (ui_top - PF_TOP) / 72 = 13.2
+		"crop": {
+			1: Vector2i(14, 14), 2: Vector2i(14, 14), 3: Vector2i(14, 14), 4: Vector2i(14, 14),
+			5: Vector2i(14, 14), 7: Vector2i(4, 4), 8: Vector2i(14, 14),
+			9: Vector2i(24, 10),   # το κρανίο, δεξιά στο πλακίδιο
+			10: Vector2i(2, 4),    # η ασπίδα, πάνω αριστερά
+		},
 		"weights": {
 			1: 14,    # σκέτο χιόνι — η βάση
 			2: 12,    # χιόνι με κυματισμούς από τον αέρα
 			3: 10,    # χιόνι με παγωμένες άκρες χόρτου
 			4: 3,     # μπαλώματα πάγου
 			5: 1,     # ραγισμένος πάγος — σκουραίνει, ελάχιστος
-			6: 1,     # παγωμένη λακκούβα — τραβάει το μάτι, ελάχιστη
 			7: 3,     # πέτρες με χιόνι
 			8: 2,     # ίχνη λύκου
 		},
@@ -121,6 +136,13 @@ func _load_tiles(prefix: String, count: int) -> Dictionary:
 
 func _build(set_: Dictionary) -> void:
 	var tiles := _load_tiles(set_.prefix, set_.count)
+	# σετ με δικό του πλέγμα: κομμάτια των πλακιδίων, στο δικό τους μέγεθος
+	var tile: int = set_.get("tile", TILE)
+	var cols: int = set_.get("cols", COLS)
+	var rows: int = set_.get("rows", ROWS)
+	var crop: Dictionary = set_.get("crop", {})
+	for id in crop:
+		tiles[id] = tiles[id].get_region(Rect2i(crop[id], Vector2i(tile, tile)))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = set_.seed
 
@@ -131,16 +153,16 @@ func _build(set_: Dictionary) -> void:
 
 	# πρώτα κληρώνεται όλο το δάπεδο από τα ήσυχα πλακίδια
 	var plan := []
-	for r in ROWS:
+	for r in rows:
 		var line := []
-		for c in COLS:
+		for c in cols:
 			line.append(bag[rng.randi() % bag.size()])
 		plan.append(line)
 
 	# μετά μπαίνουν τα accents, σε ξεχωριστά κελιά και όχι ψηλά στο ταμπλό
 	var spots := []
-	for r in range(ACCENT_MIN_ROW, ROWS):
-		for c in COLS:
+	for r in range(ACCENT_MIN_ROW, rows):
+		for c in cols:
 			spots.append(Vector2i(c, r))
 	var accents: Array = set_.accents
 	for i in int(set_.accent_count):
@@ -151,13 +173,13 @@ func _build(set_: Dictionary) -> void:
 		spots.remove_at(pick)
 		plan[spot.y][spot.x] = accents[i % accents.size()]
 
-	var sheet := Image.create(COLS * TILE, ROWS * TILE, false, Image.FORMAT_RGBA8)
+	var sheet := Image.create(cols * tile, rows * tile, false, Image.FORMAT_RGBA8)
 	var used := {}
-	for r in ROWS:
-		for c in COLS:
+	for r in rows:
+		for c in cols:
 			var id: int = plan[r][c]
 			used[id] = int(used.get(id, 0)) + 1
-			sheet.blit_rect(tiles[id], Rect2i(0, 0, TILE, TILE), Vector2i(c * TILE, r * TILE))
+			sheet.blit_rect(tiles[id], Rect2i(0, 0, tile, tile), Vector2i(c * tile, r * tile))
 
 	var err := sheet.save_png(ProjectSettings.globalize_path(set_.out))
 	if err != OK:
@@ -169,7 +191,7 @@ func _build(set_: Dictionary) -> void:
 	for id in ids:
 		report.append("%d:%d" % [id, used[id]])
 	print("γράφτηκε %s — %dx%d (%dx%d πλακίδια)"
-		% [set_.out, sheet.get_width(), sheet.get_height(), COLS, ROWS])
+		% [set_.out, sheet.get_width(), sheet.get_height(), cols, rows])
 	print("  χρήση: ", ", ".join(report))
 
 
