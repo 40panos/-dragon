@@ -101,8 +101,10 @@ var guard_dir := Vector2.DOWN
 
 # ---- cast καλεστή: φουσκώνει μέσα σε μωβ αύρα που πάλλεται
 const CAST_COL := Color("c77dff")
+const ROAR_COL := Color("ff8a3d")
 var cast_t := 1.0
 var cast_len := 0.5
+var cast_style := "magic"       # "magic": μωβ αύρα (warlock) · "roar": κύματα βρυχηθμού (boss)
 
 # ---- εμφάνιση / εξαφάνιση: τίποτα δεν πετάγεται ούτε χάνεται σε ένα καρέ
 const APPEAR_TIME := 0.38
@@ -380,10 +382,35 @@ func _draw_cast_glow() -> void:
 
 
 ## Ο καλεστής ξεκινάει cast για `dur` δευτερόλεπτα.
-func cast_pulse(dur: float) -> void:
+func cast_pulse(dur: float, style := "magic") -> void:
 	cast_len = maxf(dur, 0.05)
 	cast_t = 0.0
+	cast_style = style
 	queue_redraw()
+
+
+## Πολεμικό κάλεσμα του boss: κύματα ήχου (κύκλοι από τετράγωνα στο πλέγμα
+## των 2px) που ανοίγουν από το κεφάλι του, πορτοκαλί προς κόκκινο, και
+## ξεπερνάνε πολύ το κουτί του — ακούγεται σε όλο το ταμπλό.
+func _draw_roar() -> void:
+	var k := cast_t
+	var head := Vector2(0, -box.y * 0.22)
+	for w: int in 3:
+		var p := k * 1.6 - w * 0.28
+		if p <= 0.0 or p >= 1.0:
+			continue
+		var rad := lerpf(box.y * 0.25, box.x * 0.95, p)
+		var a := 1.0 - p * 0.8
+		var col := ROAR_COL.lerp(Color("ff3d2e"), p)
+		var n := int(rad * 0.5)
+		for i in n:
+			if i % 5 == 4:
+				continue           # κενά: κύμα, όχι γεμάτο δαχτυλίδι
+			var ang := TAU * float(i) / n
+			var pt := head + Vector2(cos(ang), sin(ang) * 0.75) * rad
+			pt = (pt / 2.0).floor() * 2.0
+			draw_rect(Rect2(pt - Vector2(6, 6), Vector2(12, 12)), Color(col, a * 0.3))
+			draw_rect(Rect2(pt - Vector2(4, 4), Vector2(8, 8)), Color(col.lightened(0.2), a))
 
 
 ## Ξεκινάει το animation εμφάνισης. "pop": πετάγεται από το βαρέλι που
@@ -430,9 +457,14 @@ func _appear_xform() -> Transform2D:
 	if bump_t < 1.0:
 		off.x += sin(bump_t * 40.0) * (1.0 - bump_t) * 3.0
 	if cast_t < 1.0:
-		# ο καλεστής φουσκώνει λίγο όσο «φορτίζει», σαν να παίρνει ανάσα
-		s *= 1.0 + 0.12 * sin(cast_t * PI)
-		off.y -= 4.0 * sin(cast_t * PI)
+		if cast_style == "roar":
+			# ο boss τινάζεται μπροστά στον βρυχηθμό και τρέμει
+			s *= 1.0 + 0.06 * sin(cast_t * PI)
+			off.x += sin(cast_t * 60.0) * 2.0 * (1.0 - cast_t)
+		else:
+			# ο καλεστής φουσκώνει λίγο όσο «φορτίζει», σαν να παίρνει ανάσα
+			s *= 1.0 + 0.12 * sin(cast_t * PI)
+			off.y -= 4.0 * sin(cast_t * PI)
 	return Transform2D(0.0, s, 0.0, off)
 
 
@@ -684,7 +716,7 @@ func _draw() -> void:
 
 	if shield_on or shield_hit_t < 1.0:
 		_draw_shield()
-	if cast_t < 1.0:
+	if cast_t < 1.0 and cast_style == "magic":
 		_draw_cast_glow()
 	# ούτε περίγραμμα κελιού όσο στήνεται ή σβήνει: θα έδειχνε το κουτί πριν το πλάσμα
 	if appear_t >= 1.0 and vanish_t < 0.0:
@@ -724,7 +756,10 @@ func _draw() -> void:
 		var pulse := 0.25 + 0.08 * sin(Time.get_ticks_msec() / 1000.0 * 3.0)
 		_draw_guard_edge(maxf(pulse, 1.0 - guard_t))
 	if cast_t < 1.0:
-		_draw_cast_aura()
+		if cast_style == "roar":
+			_draw_roar()
+		else:
+			_draw_cast_aura()
 	if weak_rect.has_area():
 		_draw_weak_point()
 	if fuse >= 0:

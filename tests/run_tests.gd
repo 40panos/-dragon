@@ -859,6 +859,19 @@ func _initialize() -> void:
 	var before_horn: Array = m.grid.blocks()
 	horn.every = 1
 	comp.on_round_end(king, m)
+	ok("ο boss καλεί με βρυχηθμό, όχι με τη μαγεία του warlock",
+		king.cast_style == "roar" and king.cast_t < 1.0)
+	m._update_lobs(m.WARCRY_TIME * 0.45 + 0.2)
+	var flyers := 0
+	var circles := 0
+	for fl in m.lobs:
+		if fl.has("frames"):
+			flyers += 1
+	for fa in m.fx_anims:
+		if fa.floor and fa.frames == m.summon_frames:
+			circles += 1
+	ok("...και τα bats έρχονται πετώντας, χωρίς μαγικό κύκλο", flyers == 2 and circles == 0,
+		"(%d πετάνε, %d κύκλοι)" % [flyers, circles])
 	m.flush_actions()
 	await process_frame
 	var spawned := 0

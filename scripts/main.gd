@@ -1026,20 +1026,28 @@ func _run_summons(summons: Array) -> void:
 		var src = s[0]
 		if not is_instance_valid(src) or src.is_vanishing():
 			continue
+		var roar: bool = src.is_boss
 		if not cast_done.has(src):
 			cast_done[src] = true
-			src.cast_pulse(SUMMON_CAST + SUMMON_BOLT)
 			var act := _act_frames(src.ability)
-			if not act.is_empty():
-				src.play_act(act, float(act.size()) / (SUMMON_CAST + SUMMON_BOLT))
-			for k in 10:
-				var off := Vector2(randf_range(-src.box.x, src.box.x) * 0.45, src.box.y * 0.4)
-				add_sparks(src.position + off, 1, SUMMON_COL, 120.0, 5.0)
-		_summon_now(src, s[1], s[2], s[3], s[4], s[5])
+			if roar:
+				# ο boss δεν κάνει μαγικά: βρυχάται, και το κάλεσμα είναι πολεμικό
+				src.cast_pulse(WARCRY_TIME, "roar")
+				if not act.is_empty():
+					src.play_act(act, float(act.size()) / WARCRY_TIME)
+				add_shake(3.5)
+			else:
+				src.cast_pulse(SUMMON_CAST + SUMMON_BOLT)
+				if not act.is_empty():
+					src.play_act(act, float(act.size()) / (SUMMON_CAST + SUMMON_BOLT))
+				for k in 10:
+					var off := Vector2(randf_range(-src.box.x, src.box.x) * 0.45, src.box.y * 0.4)
+					add_sparks(src.position + off, 1, SUMMON_COL, 120.0, 5.0)
+		_summon_now(src, s[1], s[2], s[3], s[4], s[5], roar)
 
 
 func _summon_now(source, minion_id: String, hp_ratio: float, min_row: int,
-		max_row: int, keep_clear: int = 0) -> void:
+		max_row: int, keep_clear: int = 0, warcry := false) -> void:
 	var type: EnemyType = enemy_by_id.get(minion_id)
 	if type == null:
 		return
@@ -1060,8 +1068,39 @@ func _summon_now(source, minion_id: String, hp_ratio: float, min_row: int,
 	var hp := maxf(1.0, round(source.max_hp * hp_ratio * (1.0 - depth * 0.5)))
 	reserved[spot] = true
 	var at := block_center(spot.x, spot.y, 1, 1)
+	if warcry:
+		# έρχονται από ψηλά, πάνω από το ταμπλό, πετώντας προς το κελί τους —
+		# λίγο μετά το πρώτο κύμα του βρυχηθμού, όχι όλα μαζί
+		var sky := Vector2(clampf(at.x + randf_range(-160.0, 160.0), pf_left, pf_right), PF_TOP - 120.0)
+		after(WARCRY_TIME * 0.45 + randf_range(0.0, 0.15), _warcry_fly.bind(sky, at, spot, type, hp))
+		return
 	var from: Vector2 = source.position + Vector2(0, -source.box.y * 0.3)
 	after(SUMMON_CAST, _summon_bolt.bind(from, at, spot, type, hp))
+
+
+const WARCRY_TIME := 0.55      # ο βρυχηθμός του boss
+const WARCRY_FLY := 0.45       # η πτήση των minions προς τα κελιά τους
+
+
+## Το minion πετάει από τον ουρανό στο κελί του, με τα δικά του καρέ ηρεμίας
+## να παίζουν όσο πετάει (οι νυχτερίδες χτυπάνε φτερά), και προσγειώνεται με
+## σκόνη — χωρίς κύκλο, χωρίς μαγεία.
+func _warcry_fly(sky: Vector2, at: Vector2, spot: Vector2i, type: EnemyType, hp: float) -> void:
+	lob(sky, at, type.sprite, _warcry_land.bind(spot, type, hp), -50.0, WARCRY_FLY, 0.0,
+		2.0 * type.sprite_scale)
+	if not type.frames_idle.is_empty():
+		lobs[-1]["frames"] = type.frames_idle
+		lobs[-1]["fps"] = 16.0
+
+
+func _warcry_land(spot: Vector2i, type: EnemyType, hp: float) -> void:
+	reserved.erase(spot)
+	if phase == "over" or not grid.is_free(spot.x, spot.y):
+		return
+	var at := block_center(spot.x, spot.y, 1, 1)
+	add_sparks(at + Vector2(0, cell * 0.3), 8, Color("c9b28a"), 130.0, 5.0)
+	var b = _make_block(spot.x, spot.y, type, hp, 1, 1, false)
+	b.appear("pop")
 
 
 ## Το μαγικό βλήμα: μια μικρή μωβ σφαίρα που πετάει σε χαμηλή καμπύλη

@@ -45,6 +45,10 @@ func _draw_lobs() -> void:
 		draw_texture_rect(dot, Rect2(ground.x - sw, ground.y - sw * 0.3, sw * 2.0, sw * 0.6), false,
 			Color(0, 0, 0, 0.18 + 0.2 * k))
 		var tex: Texture2D = l.tex
+		# ζωντανό βλήμα (π.χ. νυχτερίδα που πετάει): παίζουν τα καρέ του
+		if l.has("frames"):
+			var fr: Array = l.frames
+			tex = fr[int(l.t * float(l.fps)) % fr.size()]
 		if tex == null:
 			draw_texture_rect(dot, Rect2(p - Vector2(8, 8), Vector2(16, 16)), false, Color("8a5a2b"))
 			continue
