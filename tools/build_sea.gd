@@ -59,6 +59,16 @@ const DRAGON := {
 	"fire": ["fisher_fire_b", "fisher_fire_a", "fisher_fire_c"],
 }
 
+## Η εξελιγμένη μορφή (128x128, στα 2x = 256): ο ψαράς που τον κυρίεψε η
+## θάλασσα — πτερύγια, λέπια, δόλωμα πεσκαδρίτσας, δόντια ψαριού. Βγήκε με
+## edit_image_pro_flash πάνω στο σχέδιό του μεγεθυμένο x2 (raw/evo_d), και τα
+## καρέ του με edits πάνω σε αυτό. -> art/fisher_awake_<κατάσταση>_1..3.
+const EVOLVED := {
+	"idle": ["evo_d", "evo_idle_b", "evo_idle_c"],
+	"ready": ["evo_ready_a", "evo_ready_b", "evo_ready_c"],
+	"fire": ["evo_fire_b", "evo_fire_a", "evo_fire_c"],
+}
+
 
 func _load(path: String) -> Image:
 	var im := Image.load_from_file(path)
@@ -162,9 +172,18 @@ func _dragon() -> void:
 				quit(1)
 				return
 			_save(im, "fisher_%s_%d" % [state, i + 1])
+	for state in EVOLVED:
+		var evo: Array = EVOLVED[state]
+		for i in evo.size():
+			var im := _load(RAW + evo[i] + ".png")
+			if im.get_size() != Vector2i(128, 128):
+				push_error("%s: %s, περίμενα 128x128" % [evo[i], im.get_size()])
+				quit(1)
+				return
+			_save(im, "fisher_awake_%s_%d" % [state, i + 1])
 	_save(_load(RAW + "harpoon.png"), "harpoon")
 	_save(_load(RAW + "hook_aoe.png"), "hook_aoe")
-	print("δράκος: %d καταστάσεις, βλήματα harpoon / hook_aoe" % DRAGON.size())
+	print("δράκος: %d καταστάσεις (+ εξελιγμένη μορφή), βλήματα harpoon / hook_aoe" % DRAGON.size())
 
 
 ## Η λάμψη του χτυπήματος: τα καρέ του death (πράσινη φλόγα) ξαναβαμμένα σε

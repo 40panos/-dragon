@@ -1186,6 +1186,50 @@ func _initialize() -> void:
 	m._end_turn()
 	ok("η επόμενη βολή είναι πάλι κανονική", not m.harpoon_active)
 	hp_dg.special = hp_special
+
+	print("--- fisher: εξελιγμένη μορφή και λάμψη ματιών ---")
+	var fe: DragonType = fi.awakened if fi else null
+	ok("ο ψαράς έχει εξελιγμένη μορφή, διπλάσια", fe != null
+		and fe.draw_width == fi.draw_width * 2.0)
+	ok("...με 3 καρέ ανά κατάσταση στα 128x128", fe != null and fe.frames_idle.size() == 3
+		and fe.frames_ready.size() == 3 and fe.frames_fire.size() == 3
+		and fe.frames_fire[2].get_size() == Vector2(128, 128))
+	ok("...κρατάει καμάκια και αγκίστρια", fe != null and fe.ball_sprite == fi.ball_sprite
+		and fe.ball_aoe_sprite == fi.ball_aoe_sprite)
+	ok("...αλλάζει μέσα σε δίνη νερού", fi != null and fi.awaken_style == "tide")
+	ok("τα μάτια της λάμπουν πιο δυνατά από του μικρού", fe != null
+		and fe.eye_glow > fi.eye_glow and fi.eye_glow > 0.0)
+	ok("στα μεγάλα καρέ της βολής τα μάτια ανεβαίνουν", fe != null
+		and fe.eyes_for(fe.frames_fire[1]).y > fe.eyes_for(fe.frames_idle[0]).y)
+	var eg_old: DragonType = m.dragon
+	m.dragon = fi
+	m.phase = "aim"
+	m.aiming = true
+	m.awake_active = true
+	ok("στη στόχευση ζωγραφίζεται η μεγάλη μορφή", m.active_dragon() == fe)
+	for eg_i in 20:
+		m.eye_glow._process(0.05)
+	var eg_aim: float = m.eye_glow._heat
+	var eg_eyes: Array = m.eye_glow.eyes()
+	ok("η λάμψη ανάβει στη στόχευση, πάνω στα δύο μάτια", eg_aim > 0.3 and eg_aim < 0.6
+		and eg_eyes.size() == 2 and eg_eyes[0].x < m.launch_x and eg_eyes[1].x > m.launch_x
+		and eg_eyes[0].y < m.dragon_base().y, "(%.2f)" % eg_aim)
+	m.phase = "shoot"
+	m.to_fire = 5
+	m.recoil = 1.0
+	for eg_j in 20:
+		m.eye_glow._process(0.05)
+	ok("...και φουντώνει στη βολή, με ίχνη φωτός", m.eye_glow._heat > 0.95
+		and not m.eye_glow._wisps.is_empty(), "(%.2f, %d)" % [m.eye_glow._heat, m.eye_glow._wisps.size()])
+	m.to_fire = 0
+	m.phase = "aim"
+	m.aiming = false
+	m.recoil = 0.0
+	m.awake_active = false
+	m.dragon = eg_old
+	for eg_k in 40:
+		m.eye_glow._process(0.05)
+	ok("δράκος χωρίς λάμψη ματιών: τίποτα", m.eye_glow._wisps.is_empty() or m.dragon.eye_glow > 0.0)
 	for hp_b in m.grid.blocks():
 		if is_instance_valid(hp_b):
 			hp_b.queue_free()

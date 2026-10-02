@@ -177,6 +177,7 @@ var font: Font
 var bestiary       # το Book και οι ειδοποιήσεις νέων εχθρών (scripts/bestiary.gd)
 var weather        # χιόνι κ.λπ. πάνω από το ταμπλό (scripts/weather.gd)
 var glyph_aura     # ρούνες γύρω από δράκους με glyph_aura (scripts/glyph_aura.gd)
+var eye_glow       # λάμψη στα μάτια δράκων με eye_glow (scripts/eye_glow.gd)
 var music: MusicPlayer         # το soundtrack της περιοχής (AreaDef.music), scripts/music.gd
 var volume_open := false       # ανοιχτό το πάνελ έντασης κάτω από τη νότα
 var volume_drag := false       # σέρνεται η μπάρα έντασης
@@ -229,6 +230,13 @@ func _make_fx() -> void:
 	glyph_aura.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(glyph_aura)
 	glyph_aura.m = self
+	# λάμψη στα μάτια (ψαράς): πάνω από τον δράκο, με προσθετική μίξη
+	eye_glow = Node2D.new()
+	eye_glow.set_script(load("res://scripts/eye_glow.gd"))
+	eye_glow.z_index = 46
+	eye_glow.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(eye_glow)
+	eye_glow.m = self
 	fx = Node2D.new()
 	fx.set_script(load("res://scripts/fx.gd"))
 	fx.z_index = 50
@@ -3047,6 +3055,9 @@ func _draw_awaken(base: Vector2, dragon_w: float) -> void:
 	if dragon and dragon.awaken_style == "skull":
 		_draw_awaken_skull(base, dragon_w)
 		return
+	if dragon and dragon.awaken_style == "tide":
+		_draw_awaken_tide(base, dragon_w)
+		return
 	if awaken_frames.is_empty():
 		return
 	var f := 1.0 - awaken_t / AWAKEN_TIME          # 0 στην αρχή, 1 στο τέλος
@@ -3119,6 +3130,79 @@ func _draw_awaken_skull(base: Vector2, dragon_w: float) -> void:
 		Color(0.0, 0.0, 0.0, fade * 0.85))
 
 
+## Πού και πώς ζωγραφίζεται το κεφάλι αυτή τη στιγμή: ανάσα, τρέμουλο της
+## στόχευσης, κλωτσιά της βολής, στροφή. Το καρέ πατάει στο (0,0) με τη βάση
+## του και απλώνεται προς τα πάνω. Το χρησιμοποιεί και η λάμψη των ματιών
+## (scripts/eye_glow.gd), ώστε να μένει πάνω στα μάτια όπως κι αν κουνηθεί.
+func dragon_xform() -> Transform2D:
+	var dph := dragon_phase()
+	var bob := 0.0
+	var breathe := 1.0
+	if dph == "aim" and not aiming:
+		bob = sin(t * 2.1) * 2.5                      # ήρεμη ανάσα
+		breathe = 1.0 + sin(t * 2.1) * 0.018
+	elif dph == "aim" and aiming:
+		bob = 3.0 + sin(t * 26.0) * 0.9               # τρέμουλο έντασης
+	# η κλωτσιά σπρώχνει το κεφάλι αντίθετα από τη βολή
+	var kick := -aim_dir * recoil * 9.0
+	var pivot := dragon_base() + Vector2(0, bob) + kick
+	return Transform2D(tilt, Vector2(1.0, breathe), 0.0, pivot)
+
+
+## Αύρα μεταμόρφωσης για τον ψαρά: η θάλασσα τον καταπίνει και τον ξερνάει
+## πίσω μεγαλύτερο. Δίνη από δαχτυλίδια νερού που στροβιλίζονται και ανοίγουν,
+## σταγόνες που πετάγονται σε τόξο, και το κεφάλι του σε κυανή σιλουέτα που
+## φουσκώνει — όπως η νεκροκεφαλή του death, χωρίς δικά της καρέ. Όλα πάνω
+## στο πλέγμα των 2px, για να δένουν με το pixel art.
+func _draw_awaken_tide(base: Vector2, dragon_w: float) -> void:
+	var f := 1.0 - awaken_t / AWAKEN_TIME          # 0 στην αρχή, 1 στο τέλος
+	var fade := clampf(awaken_t / (AWAKEN_TIME * 0.5), 0.0, 1.0)
+	var c := base + Vector2(0, -dragon_w * 0.42)
+	var sea := Color("4fd6e0")
+	var foam := Color("dffcff")
+	var px := 2.0
+	# δίνη: τρία σπασμένα δαχτυλίδια που γυρίζουν αντίθετα και ανοίγουν
+	for i in 3:
+		var r := dragon_w * (0.28 + 0.50 * f) + i * 10.0
+		var spin := t * (5.0 - i * 1.4) * (1.0 if i % 2 == 0 else -1.0)
+		var dots := 34 + i * 8
+		for k in dots:
+			# κενά στο δαχτυλίδι: μοιάζει με κύμα που σπάει, όχι με κύκλο
+			if (k + i * 3) % 7 < 2:
+				continue
+			var a := spin + TAU * float(k) / float(dots)
+			var p := c + Vector2(cos(a), sin(a) * 0.62) * r
+			p = (p / px).floor() * px
+			var col := foam if k % 5 == 0 else sea
+			draw_rect(Rect2(p, Vector2(px * 2.0, px * 2.0)), Color(col, fade * (0.85 - i * 0.2)))
+	# σταγόνες σε τόξο: βγαίνουν από τη βάση, ανεβαίνουν και πέφτουν
+	for k in 16:
+		var side := -1.0 if k % 2 == 0 else 1.0
+		var spread := (0.25 + float(k % 8) * 0.1) * side
+		var tt := clampf(f * 1.3 - float(k) * 0.02, 0.0, 1.0)
+		var p := base + Vector2(spread * dragon_w * tt * 1.4,
+			-dragon_w * (1.1 * tt - 0.9 * tt * tt) - 6.0)
+		p = (p / px).floor() * px
+		draw_rect(Rect2(p, Vector2(px * 2.0, px * 3.0)), Color(foam if k % 3 == 0 else sea, fade))
+	# το κεφάλι σε κυανή σιλουέτα που φουσκώνει
+	var tex: Texture2D = dragon.sprite_idle if dragon else null
+	if tex == null:
+		return
+	var w := dragon_w * (0.72 + 0.62 * f)
+	var h := w * float(tex.get_height()) / float(tex.get_width())
+	draw_texture_rect(tex, Rect2(c.x - w * 0.5, c.y - h * 0.5, w, h), false,
+		Color(0.35, 0.95, 1.0, fade * 0.32))
+
+
+## Πλάτος και ύψος του καρέ που ζωγραφίζεται τώρα.
+func dragon_size() -> Vector2:
+	var dg := active_dragon()
+	var dt: Texture2D = dg.frame_for(dragon_phase(), aiming, t) if dg else null
+	if dt == null:
+		return Vector2.ZERO
+	return Vector2(dg.draw_width, dg.draw_width * float(dt.get_height()) / float(dt.get_width()))
+
+
 func _draw_dragon() -> void:
 	var base := dragon_base()
 	var dg := active_dragon()
@@ -3126,21 +3210,9 @@ func _draw_dragon() -> void:
 	if dt:
 		var w: float = dg.draw_width
 		var h := w * float(dt.get_height()) / float(dt.get_width())
-
 		var dph := dragon_phase()
-		var bob := 0.0
-		var breathe := 1.0
-		if dph == "aim" and not aiming:
-			bob = sin(t * 2.1) * 2.5                      # ήρεμη ανάσα
-			breathe = 1.0 + sin(t * 2.1) * 0.018
-		elif dph == "aim" and aiming:
-			bob = 3.0 + sin(t * 26.0) * 0.9               # τρέμουλο έντασης
 
-		# η κλωτσιά σπρώχνει το κεφάλι αντίθετα από τη βολή
-		var kick := -aim_dir * recoil * 9.0
-		var pivot := base + Vector2(0, bob) + kick
-
-		draw_set_transform(pivot, tilt, Vector2(1.0, breathe))
+		draw_set_transform_matrix(dragon_xform())
 		draw_texture_rect(dt, Rect2(-w * 0.5, -h, w, h), false, dg.tint)
 		# Οι άδειες κόγχες καπνίζουν ΣΥΝΕΧΩΣ, όχι μόνο στη βολή. Η μορφή χωρίς
 		# μάσκα έχει ένα μόνο καρέ όσο λείπουν τα generations, οπότε χωρίς αυτό
@@ -3165,6 +3237,8 @@ func _draw_dragon() -> void:
 						var r := (7.0 + t2 * 26.0) * g
 						draw_circle(p, r, Color(0.04, 0.0, 0.07, (0.60 - t2 * 0.44) * g))
 					# χωρίς συμπαγή μαύρο πυρήνα: στη βολή τα μάτια έχουν άσπρες ίριδες
+			elif dg.eye_glow > 0.0:
+				pass    # το φως βγαίνει από τα μάτια (eye_glow.gd)· ο δίσκος θα τα σκέπαζε
 			else:
 				draw_circle(Vector2(0, -h * 0.45), 26.0 * g, Color(_accent(1.0), 0.30 * g))
 				draw_circle(Vector2(0, -h * 0.45), 12.0 * g, Color(1.0, 0.92, 0.70, 0.55 * g))

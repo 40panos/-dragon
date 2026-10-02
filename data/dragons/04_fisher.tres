@@ -1,47 +1,96 @@
-[gd_resource type="Resource" script_class="DragonType" load_steps=16 format=3]
+[gd_resource type="Resource" script_class="DragonType" load_steps=26 format=3]
 
-[ext_resource type="Texture2D" path="res://art/hook_aoe.png" id="1_takmw"]
-[ext_resource type="Texture2D" path="res://art/harpoon.png" id="2_hvflh"]
-[ext_resource type="Texture2D" path="res://art/fisher_fire_1.png" id="3_y35ci"]
-[ext_resource type="Texture2D" path="res://art/fisher_fire_2.png" id="4_stjeh"]
-[ext_resource type="Texture2D" path="res://art/fisher_fire_3.png" id="5_m5waj"]
-[ext_resource type="Texture2D" path="res://art/fisher_idle_1.png" id="6_qvirq"]
-[ext_resource type="Texture2D" path="res://art/fisher_idle_2.png" id="7_jed1u"]
-[ext_resource type="Texture2D" path="res://art/fisher_idle_3.png" id="8_7ca7v"]
-[ext_resource type="Texture2D" path="res://art/fisher_ready_1.png" id="9_mf7l6"]
-[ext_resource type="Texture2D" path="res://art/fisher_ready_2.png" id="10_xu2pw"]
-[ext_resource type="Texture2D" path="res://art/fisher_ready_3.png" id="11_e7shx"]
-[ext_resource type="Texture2D" path="res://art/glow_sea_1.png" id="12_jjidu"]
-[ext_resource type="Texture2D" path="res://art/glow_sea_2.png" id="13_c58ed"]
-[ext_resource type="Texture2D" path="res://art/glow_sea_3.png" id="14_was6i"]
-[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="15_5iw8y"]
+[ext_resource type="Texture2D" path="res://art/hook_aoe.png" id="1_mo6ju"]
+[ext_resource type="Texture2D" path="res://art/harpoon.png" id="2_jx653"]
+[ext_resource type="Texture2D" path="res://art/fisher_awake_fire_1.png" id="3_77cff"]
+[ext_resource type="Texture2D" path="res://art/fisher_awake_fire_2.png" id="4_bxfu1"]
+[ext_resource type="Texture2D" path="res://art/fisher_awake_fire_3.png" id="5_cxh3w"]
+[ext_resource type="Texture2D" path="res://art/fisher_awake_idle_1.png" id="6_wti7j"]
+[ext_resource type="Texture2D" path="res://art/fisher_awake_idle_2.png" id="7_kf2xe"]
+[ext_resource type="Texture2D" path="res://art/fisher_awake_idle_3.png" id="8_0f64f"]
+[ext_resource type="Texture2D" path="res://art/fisher_awake_ready_1.png" id="9_paxdd"]
+[ext_resource type="Texture2D" path="res://art/fisher_awake_ready_2.png" id="10_t1f5y"]
+[ext_resource type="Texture2D" path="res://art/fisher_awake_ready_3.png" id="11_2gedp"]
+[ext_resource type="Texture2D" path="res://art/glow_sea_1.png" id="12_it36v"]
+[ext_resource type="Texture2D" path="res://art/glow_sea_2.png" id="13_37y80"]
+[ext_resource type="Texture2D" path="res://art/glow_sea_3.png" id="14_mo70a"]
+[ext_resource type="Script" path="res://scripts/data/dragon_type.gd" id="15_x864b"]
+[ext_resource type="Texture2D" path="res://art/fisher_fire_1.png" id="16_7h6un"]
+[ext_resource type="Texture2D" path="res://art/fisher_fire_2.png" id="17_3kqmi"]
+[ext_resource type="Texture2D" path="res://art/fisher_fire_3.png" id="18_yk2t0"]
+[ext_resource type="Texture2D" path="res://art/fisher_idle_1.png" id="19_hcmw6"]
+[ext_resource type="Texture2D" path="res://art/fisher_idle_2.png" id="20_qh8ms"]
+[ext_resource type="Texture2D" path="res://art/fisher_idle_3.png" id="21_dydh3"]
+[ext_resource type="Texture2D" path="res://art/fisher_ready_1.png" id="22_5yr5c"]
+[ext_resource type="Texture2D" path="res://art/fisher_ready_2.png" id="23_n1smp"]
+[ext_resource type="Texture2D" path="res://art/fisher_ready_3.png" id="24_6l1tk"]
 
-[resource]
-script = ExtResource("15_5iw8y")
-id = "fisher"
-display_name = "Fisher"
-sprite = ExtResource("6_qvirq")
-sprite_idle = ExtResource("6_qvirq")
-sprite_ready = ExtResource("9_mf7l6")
-sprite_fire = ExtResource("3_y35ci")
-frames_idle = Array[Texture2D]([ExtResource("6_qvirq"), ExtResource("7_jed1u"), ExtResource("8_7ca7v")])
-frames_ready = Array[Texture2D]([ExtResource("9_mf7l6"), ExtResource("10_xu2pw"), ExtResource("11_e7shx")])
-frames_fire = Array[Texture2D]([ExtResource("3_y35ci"), ExtResource("4_stjeh"), ExtResource("5_m5waj")])
-glow_frames = Array[Texture2D]([ExtResource("12_jjidu"), ExtResource("13_c58ed"), ExtResource("14_was6i")])
-ball_sprite = ExtResource("2_hvflh")
-ball_aoe_sprite = ExtResource("1_takmw")
+[sub_resource type="Resource" id="Resource_rm3fu"]
+script = ExtResource("15_x864b")
+id = "fisher_evolved"
+display_name = "Fisher of the Deep"
+sprite = ExtResource("6_wti7j")
+sprite_idle = ExtResource("6_wti7j")
+sprite_ready = ExtResource("9_paxdd")
+sprite_fire = ExtResource("3_77cff")
+frames_idle = Array[Texture2D]([ExtResource("6_wti7j"), ExtResource("7_kf2xe"), ExtResource("8_0f64f")])
+frames_ready = Array[Texture2D]([ExtResource("9_paxdd"), ExtResource("10_t1f5y"), ExtResource("11_2gedp")])
+frames_fire = Array[Texture2D]([ExtResource("3_77cff"), ExtResource("4_bxfu1"), ExtResource("5_cxh3w")])
+glow_frames = Array[Texture2D]([ExtResource("12_it36v"), ExtResource("13_37y80"), ExtResource("14_mo70a")])
+ball_sprite = ExtResource("2_jx653")
+ball_aoe_sprite = ExtResource("1_mo6ju")
 accent = Color(0.309804, 0.839216, 0.878431, 1)
 ball_spin = 0.0
 ball_heading = -0.785398
 awaken_tint = Color(1, 1, 1, 1)
 awaken_style = "flame"
 dark_eyes = false
+eye_glow = 1.0
+eye_pos = Vector2(0.13, 0.336)
+eye_pos_fire = Array[Vector2]([Vector2(0.13, 0.336), Vector2(0.172, 0.534), Vector2(0.172, 0.534)])
+eye_color = Color(0.435294, 0.972549, 1, 1)
+glyph_aura = false
+fps_idle = 3.0
+fps_ready = 6.0
+fps_fire = 12.0
+draw_width = 256.0
+tint = Color(1, 1, 1, 1)
+special = "harpoon"
+special_cost = 12.0
+passive = "every5_double"
+unlock_after_area = 0
+
+[resource]
+script = ExtResource("15_x864b")
+id = "fisher"
+display_name = "Fisher"
+sprite = ExtResource("19_hcmw6")
+sprite_idle = ExtResource("19_hcmw6")
+sprite_ready = ExtResource("22_5yr5c")
+sprite_fire = ExtResource("16_7h6un")
+frames_idle = Array[Texture2D]([ExtResource("19_hcmw6"), ExtResource("20_qh8ms"), ExtResource("21_dydh3")])
+frames_ready = Array[Texture2D]([ExtResource("22_5yr5c"), ExtResource("23_n1smp"), ExtResource("24_6l1tk")])
+frames_fire = Array[Texture2D]([ExtResource("16_7h6un"), ExtResource("17_3kqmi"), ExtResource("18_yk2t0")])
+glow_frames = Array[Texture2D]([ExtResource("12_it36v"), ExtResource("13_37y80"), ExtResource("14_mo70a")])
+ball_sprite = ExtResource("2_jx653")
+ball_aoe_sprite = ExtResource("1_mo6ju")
+accent = Color(0.309804, 0.839216, 0.878431, 1)
+ball_spin = 0.0
+ball_heading = -0.785398
+awaken_tint = Color(1, 1, 1, 1)
+awaken_style = "tide"
+dark_eyes = false
+eye_glow = 0.6
+eye_pos = Vector2(0.136, 0.333)
+eye_pos_fire = Array[Vector2]([Vector2(0.137, 0.46), Vector2(0.137, 0.46), Vector2(0.137, 0.46)])
+eye_color = Color(0.372549, 0.956863, 1, 1)
 glyph_aura = false
 fps_idle = 3.0
 fps_ready = 6.0
 fps_fire = 12.0
 draw_width = 128.0
 tint = Color(1, 1, 1, 1)
+awakened = SubResource("Resource_rm3fu")
 special = "harpoon"
 special_cost = 12.0
 passive = "every5_double"
