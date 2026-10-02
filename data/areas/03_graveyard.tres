@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AreaDef" load_steps=103 format=3]
+[gd_resource type="Resource" script_class="AreaDef" load_steps=104 format=3]
 
 [ext_resource type="Texture2D" path="res://art/background_grave.png" id="1_oh7gp"]
 [ext_resource type="Script" path="res://scripts/abilities/enemy_ability.gd" id="2_xerqk"]
@@ -89,6 +89,7 @@
 [ext_resource type="Texture2D" path="res://art/grave_bat_idle_6.png" id="87_b21lp"]
 [ext_resource type="Texture2D" path="res://art/grave_bat_idle_7.png" id="88_setqh"]
 [ext_resource type="Texture2D" path="res://art/grave_bat_idle_8.png" id="89_ut85q"]
+[ext_resource type="AudioStream" path="res://audio/music_graveyard.mp3" id="90_d1wic"]
 [ext_resource type="Script" path="res://scripts/data/area_def.gd" id="90_u8kwp"]
 
 [sub_resource type="Resource" id="Resource_0an2w"]
@@ -129,6 +130,9 @@ weight = 1.0
 ability = SubResource("Resource_68oxl")
 description = "Keeper of the Graveyard. Blows slide off its shroud, and bats pour from its robe."
 face_center = Vector2(43, 15)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
 
 [sub_resource type="Resource" id="Resource_8y3gh"]
 script = ExtResource("18_0o3i2")
@@ -146,6 +150,9 @@ min_round = 1
 weight = 40.0
 description = "Old bones that forgot how to stay buried. Weak alone, but the graves never run out."
 face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
 
 [sub_resource type="Resource" id="Resource_daabe"]
 script = ExtResource("33_damrb")
@@ -168,6 +175,9 @@ weight = 20.0
 ability = SubResource("Resource_daabe")
 description = "Feeds on the dead, and on its own wounds. Leave it alone for one turn and it heals."
 face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
 
 [sub_resource type="Resource" id="Resource_20aiy"]
 script = ExtResource("48_1pkgi")
@@ -190,6 +200,9 @@ weight = 14.0
 ability = SubResource("Resource_20aiy")
 description = "Still guarding a king long gone. Break the shield first, the bones come after."
 face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
 
 [sub_resource type="Resource" id="Resource_4xhg6"]
 script = ExtResource("3_deowx")
@@ -213,6 +226,9 @@ weight = 12.0
 ability = SubResource("Resource_4xhg6")
 description = "Half here, half not. Weak hits pass right through it; strike hard."
 face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
 
 [sub_resource type="Resource" id="Resource_uphye"]
 script = ExtResource("18_0o3i2")
@@ -230,6 +246,9 @@ min_round = 1
 weight = 1.0
 description = "Nests in the reaper's robe. Weak alone, but they fill the gaps fast."
 face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
 
 [resource]
 script = ExtResource("90_u8kwp")
@@ -239,9 +258,14 @@ background = ExtResource("1_oh7gp")
 tint = Color(1, 1, 1, 1)
 theme = "grave"
 weather = "fog"
+music = ExtResource("90_d1wic")
 enemies = Array[ExtResource("18_0o3i2")]([SubResource("Resource_8y3gh"), SubResource("Resource_0htsj"), SubResource("Resource_etp78"), SubResource("Resource_j2gh3")])
 minions = Array[ExtResource("18_0o3i2")]([SubResource("Resource_uphye")])
 boss = SubResource("Resource_hsbh8")
 boss_cols = 3
 boss_rows = 2
 boss_hp_mult = 18.0
+final_cols = 3
+final_rows = 3
+final_hp_mult = 30.0
+specials = Array[ExtResource("18_0o3i2")]([])

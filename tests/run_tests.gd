@@ -1171,6 +1171,13 @@ func _initialize() -> void:
 	m.area_index = 1
 	m._apply_theme()
 	ok("περιοχή χωρίς μουσική = σιωπή", m.music.stream == null)
+	m.area_index = 2
+	m._apply_theme()
+	var grave_song = m.areas[2].music
+	ok("το Graveyard έχει δικό του soundtrack", grave_song != null and grave_song != goblin_song
+		and m.music.stream == grave_song)
+	ok("...που κι αυτό κλείνει τη λούπα με crossfade, όχι στο import",
+		grave_song != null and not grave_song.loop)
 	m.area_index = 0
 	m._apply_theme()
 	var vbar: Rect2 = m.volume_bar_rect()
