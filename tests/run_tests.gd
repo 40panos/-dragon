@@ -1103,6 +1103,97 @@ func _initialize() -> void:
 	m.weather._process(0.1)
 	ok("γυρνώντας πίσω η ομίχλη φεύγει", m.weather._active == "" and m.weather._fog.is_empty())
 
+	print("--- drowned coast ---")
+	ok("υπάρχει 4η περιοχή, το Drowned Coast", m.areas.size() >= 4 and m.areas[3].id == "drowned_coast")
+	var dc = m.areas[3]
+	var dc_ids := []
+	for e in dc.enemies:
+		dc_ids.append(e.id)
+	ok("...με ψαροειδή τέρατα", dc_ids.has("murkfin") and dc_ids.has("razorjaw")
+		and dc_ids.has("shellback") and dc_ids.has("drift_jelly"), str(dc_ids))
+	ok("...ο Razorjaw κυνηγάει σε αγέλη, ο Shellback έχει ασπίδα",
+		dc.enemies[dc_ids.find("razorjaw")].ability is PackHunterAbility
+		and dc.enemies[dc_ids.find("shellback")].ability is ShieldAbility)
+	ok("...boss ο Abyssal Angler που καλεί Bitefins", dc.boss.id == "angler"
+		and _find_summoner(dc.boss.ability) != null
+		and _find_summoner(dc.boss.ability).minion_id == "bitefin"
+		and m.enemy_by_id.has("bitefin"))
+	var dc_no_anim := []
+	for e in dc.enemies + dc.minions + [dc.boss]:
+		if e.frames_idle.is_empty() or e.frames_hit.is_empty():
+			dc_no_anim.append(e.id)
+	ok("...κάθε εχθρός του έχει idle και hit animation", dc_no_anim.is_empty(), str(dc_no_anim))
+	var dc_sizes_ok: bool = dc.background_frames.size() >= 2
+	for bf in dc.background_frames:
+		if bf.get_size() != dc.background.get_size():
+			dc_sizes_ok = false
+	ok("το δάπεδο κυματίζει: καρέ ίδιου μεγέθους με το φόντο", dc_sizes_ok,
+		"(%d καρέ)" % dc.background_frames.size())
+	m.area_index = 3
+	m._apply_theme()
+	m.weather._process(0.1)
+	ok("στο Drowned Coast βρεγμένο σκηνικό με δικούς του τοίχους",
+		m.tex_frame_left.resource_path.ends_with("frame_left_sea.png")
+		and m.tex_frame_top.resource_path.ends_with("frame_top_sea.png"))
+	ok("...χωρίς χιόνι ή ομίχλη", m.weather._active == "")
+	m.area_index = 0
+	m._apply_theme()
+
+	print("--- fisher και HARPOON ---")
+	var fi: DragonType = m.dragon_by_id("fisher")
+	ok("υπάρχει ο δράκος ψαράς", fi != null and fi.special == "harpoon"
+		and fi.special_name() == "HARPOON")
+	ok("...με 3 καρέ ανά κατάσταση, ίδιου καμβά", fi != null and fi.frames_idle.size() == 3
+		and fi.frames_ready.size() == 3 and fi.frames_fire.size() == 3
+		and fi.frames_fire[0].get_size() == fi.frames_idle[0].get_size())
+	ok("...καμάκι και αγκίστρια για βλήματα", fi != null and fi.ball_sprite != null
+		and fi.ball_aoe_sprite != null and fi.ball_sprite != fi.ball_aoe_sprite)
+	ok("...ξεκλειδώνει μετά το Graveyard", fi != null and fi.unlock_after_area == 3)
+	var hp_dg: DragonType = m.dragon
+	var hp_special: String = hp_dg.special
+	hp_dg.special = "harpoon"
+	m.phase = "aim"
+	m.special_charge = hp_dg.special_cost
+	m._use_special()
+	ok("το HARPOON οπλίζει τη βολή", m.harpoon_active and m.special_charge == 0.0)
+	for hp_old in m.grid.blocks():
+		if is_instance_valid(hp_old):
+			hp_old.queue_free()
+	m.grid = BattleGrid.new(m.COLS)
+	m.boss = null
+	await process_frame
+	var hp_near = m._make_block(3, 6, m.enemy_by_id["goblin"], 20.0, 1, 1, false)
+	var hp_far = m._make_block(3, 3, m.enemy_by_id["goblin"], 20.0, 1, 1, false)
+	m._make_ball(Vector2.UP)
+	var hp_ball = null
+	for hb_n in m.get_children():
+		if hb_n is Ball:
+			hp_ball = hb_n
+	ok("...και η μπάλα της βολής διαπερνάει", hp_ball != null and hp_ball.pierce)
+	if hp_ball:
+		hp_ball.position = m.block_center(3, 8, 1, 1)
+		# χωρίς αυτό, όταν πέσει στο δάπεδο θα έκλεινε μόνη της τον γύρο
+		hp_ball.died.disconnect(m._on_ball_died)
+	for hp_i in 50:
+		await physics_frame
+	ok("το καμάκι περνάει μέσα από τον πρώτο και βρίσκει και τον πίσω",
+		hp_near.hp < 20.0 and hp_far.hp < 20.0, "(%.1f / %.1f)" % [hp_near.hp, hp_far.hp])
+	ok("...χτυπάει τον καθένα μία φορά", hp_near.hp == 19.0, "(%.1f)" % hp_near.hp)
+	if is_instance_valid(hp_ball):
+		hp_ball.queue_free()
+	m.live_balls = 0
+	m.to_fire = 0
+	m._end_turn()
+	ok("η επόμενη βολή είναι πάλι κανονική", not m.harpoon_active)
+	hp_dg.special = hp_special
+	for hp_b in m.grid.blocks():
+		if is_instance_valid(hp_b):
+			hp_b.queue_free()
+	m.grid = BattleGrid.new(m.COLS)
+	m.boss = null
+	m.phase = "aim"
+	await process_frame
+
 	print("--- νιφάδα του freeze ---")
 	var fz = m._make_block(1, 6, m.enemy_by_id["goblin"], 9.0, 1, 1, false)
 	ok("χωρίς πάγωμα δεν έχει νιφάδα", not fz.frozen)

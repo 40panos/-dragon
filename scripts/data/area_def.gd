@@ -6,6 +6,11 @@ extends Resource
 @export var display_name := "Goblin Land"
 @export var background: Texture2D
 
+## Κινούμενο φόντο: καρέ του ίδιου δαπέδου που παίζουν σε βρόχο (τα κύματα της
+## θάλασσας). Άδειο = μένει το στατικό `background`. Όλα ίδιου μεγέθους με αυτό.
+@export var background_frames: Array[Texture2D] = []
+@export var background_fps := 3.0
+
 ## Χρωματικός τόνος για φόντο και εχθρούς — προσωρινή διαφοροποίηση
 ## μέχρι να υπάρχουν ξεχωριστά γραφικά ανά περιοχή.
 @export var tint := Color.WHITE

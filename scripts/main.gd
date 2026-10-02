@@ -126,6 +126,9 @@ var banner_time := 0.0
 var aoe_mode := false
 var special_charge := 0.0
 var inferno_active := false
+## HARPOON: η επόμενη βολή διαπερνάει τους εχθρούς (βλ. Ball.pierce). Κρατάει
+## μία βολή, όπως το INFERNO.
+var harpoon_active := false
 ## Η ΜΟΡΦΗ είναι ξεχωριστή από το bonus ζημιάς: κάθε δράκος με awakened μορφή
 ## μεταμορφώνεται όταν ρίχνει το special του, αλλά μόνο το INFERNO τριπλασιάζει
 ## τη ζημιά. Χωρίς τον διαχωρισμό, ο death θα έπαιρνε δώρο x3 μαζί με το SWARM.
@@ -599,6 +602,7 @@ func _start() -> void:
 	balls_fired = 0
 	special_charge = 0.0
 	inferno_active = false
+	harpoon_active = false
 	awake_active = false
 	aoe_mode = false
 	launch_x = W * 0.5
@@ -1316,8 +1320,10 @@ func debug_rect() -> Rect2:
 # βοηθήματα (μπάλες, special, καθάρισμα). Όλα για δοκιμές στο κινητό, όπου
 # δεν υπάρχει κονσόλα.
 
-const DBG_COLS := 3
-const DBG_BTN := Vector2(168.0, 50.0)
+## Τέσσερις στήλες για τις τέσσερις περιοχές· τα κουμπιά στενεύουν (150) ώστε
+## το πάνελ να χωράει στα 720 της οθόνης.
+const DBG_COLS := 4
+const DBG_BTN := Vector2(150.0, 50.0)
 const DBG_GAP := 12.0
 const DBG_PAD := 20.0
 const DBG_TITLE := 58.0
@@ -1418,6 +1424,7 @@ func debug_jump(area_i: int, which: String) -> void:
 	boss_intro_t = -1.0
 	freeze_rounds = 0
 	inferno_active = false
+	harpoon_active = false
 	awake_active = false
 	paused = false
 	get_tree().paused = false
@@ -1690,6 +1697,9 @@ func _use_special() -> void:
 					add_sparks(fb.position, 6, Color("dff4ff"), 150.0, 4.0)
 			add_shake(4.0)
 			_announce("FREEZE!")
+		"harpoon":
+			harpoon_active = true
+			_announce("HARPOON!")
 		_:
 			inferno_active = true
 			_announce("INFERNO!")
@@ -1809,6 +1819,7 @@ func _make_ball(dir: Vector2) -> void:
 	if bdg:
 		b.heading = bdg.ball_heading
 	b.damage = _ball_damage()
+	b.pierce = harpoon_active
 	b.died.connect(_on_ball_died)
 	b.struck.connect(_on_ball_struck)
 	live_balls += 1
@@ -1851,6 +1862,7 @@ func _end_turn() -> void:
 		_awaken_flash()      # η ίδια φλόγα καλύπτει και την επιστροφή
 	var was_awake := awake_active and not keep_form
 	inferno_active = false
+	harpoon_active = false
 	awake_active = awake_active and keep_form
 	if was_awake:
 		_refresh_glow()        # γύρισε η βασική μορφή, γυρίζει και η λάμψη της
@@ -2817,6 +2829,10 @@ func _draw_field() -> void:
 	draw_rect(Rect2(Vector2.ZERO, Vector2(W, H)), Color("141024"))
 	var area := current_area()
 	var bg: Texture2D = area.background if area else null
+	# κινούμενο δάπεδο (κύματα): ευθύς βρόχος, τα καρέ κλείνουν κύκλο μόνα τους
+	if area and not area.background_frames.is_empty():
+		var n := area.background_frames.size()
+		bg = area.background_frames[int(floor(t * area.background_fps)) % n]
 	# η πίστα απλώνεται ΚΑΤΩ από τη γραμμή θανάτου, μέχρι το HUD: η ζώνη του
 	# δράκου είναι κομμάτι του εδάφους, όχι ξεχωριστό πέτρινο ταμπλό
 	if bg:

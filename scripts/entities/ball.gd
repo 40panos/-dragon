@@ -32,6 +32,11 @@ var spin_t := 0.0
 ## έμοιαζε με φλόγα.
 var trail_color := Color(1.0, 0.5, 0.1)
 
+## HARPOON: το βλήμα περνάει μέσα από τους εχθρούς αντί να αναπηδά. Χτυπάει
+## τον καθένα μία φορά (μετά μπαίνει στις εξαιρέσεις σύγκρουσης) και συνεχίζει
+## ίσια. Τοίχοι και άτρωτα (οδοφράγματα) το γυρίζουν πίσω κανονικά.
+var pierce := false
+
 ## Ποια blocks έχει ήδη πιτσιλίσει αυτή η μπάλα — το splash μετράει μία φορά ανά μπάλα.
 var splashed := {}
 
@@ -82,8 +87,14 @@ func _physics_process(delta: float) -> void:
 		var col := move_and_collide(motion)
 		if col == null:
 			break
-		velocity = velocity.bounce(col.get_normal())
 		var other := col.get_collider()
+		if pierce and not chilled and other and other.is_in_group("block") \
+				and not other.invulnerable:
+			struck.emit(other, self)
+			add_collision_exception_with(other)
+			motion = col.get_remainder()
+			continue
+		velocity = velocity.bounce(col.get_normal())
 		if other and other.is_in_group("block") and not chilled:
 			struck.emit(other, self)
 		motion = velocity.normalized() * col.get_remainder().length()
