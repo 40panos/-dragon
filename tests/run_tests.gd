@@ -101,13 +101,17 @@ func _initialize() -> void:
 	ok("κρατάει ζώνη ασφαλείας", sa.keep_clear == 2, "(%d)" % sa.keep_clear)
 	m.fx_anims.clear()
 	sa.on_round_end(wl, m)
+	ok("το κάλεσμα δεν γεννάει αμέσως: πρώτα ο καλεστής κάνει cast",
+		m.lobs.size() > 0 and wl.cast_t < 1.0 and wl.act_playing)
+	m._update_lobs(m.SUMMON_CAST + 0.01)
+	ok("...μετά πετάει μαγικό βλήμα στο κελί", m.lobs.any(func(l): return not l.get("hidden", false)))
+	m._update_lobs(m.SUMMON_BOLT + 0.01)
 	var circle_on_floor := false
 	for fa in m.fx_anims:
 		if fa.floor:
 			circle_on_floor = true
-	ok("το κάλεσμα δεν γεννάει αμέσως: πρώτα cast και μαγικός κύκλος",
-		m.lobs.size() > 0 and circle_on_floor and wl.act_playing)
-	m._update_lobs(5.0)
+	ok("...που ανοίγει μαγικό κύκλο στο πάτωμα", circle_on_floor)
+	m.flush_actions()
 	await process_frame
 	var minion = null
 	for b in m.grid.blocks():
@@ -132,7 +136,7 @@ func _initialize() -> void:
 				b.queue_free()
 		await process_frame
 		sa.on_round_end(wl, m)
-		m._update_lobs(5.0)
+		m.flush_actions()
 		await process_frame
 		for b in m.grid.blocks():
 			if b != wl and not rows_seen.has(b.row):
@@ -163,7 +167,7 @@ func _initialize() -> void:
 	for i in 60:
 		for s in summoners:
 			s.ability.on_round_end(s, m)
-		m._update_lobs(5.0)          # το κάλεσμα βγάζει το minion μετά το cast
+		m.flush_actions()          # το κάλεσμα βγάζει το minion μετά το cast
 	await process_frame
 	# άλλο όνομα: το `deepest` υπάρχει ήδη πιο πάνω, και στο _initialize()
 	# όλες οι μεταβλητές ζουν στο ίδιο scope
@@ -290,10 +294,10 @@ func _initialize() -> void:
 		ok("ο boss έχει κάλεσμα", boss_summoner != null)
 		if boss_summoner:
 			boss_summoner.every = 1000
-		m._update_lobs(5.0)          # η πτώση του mini-boss
+		m.flush_actions()          # η πτώση του mini-boss
 		for turn in 3:
 			m._end_turn()
-			m._update_lobs(5.0)
+			m.flush_actions()
 			await process_frame
 		ok("με ζωντανό boss ο γύρος δεν προχωράει", m.level == 10, "(%d)" % m.level)
 		ok("με ζωντανό boss η περιοχή δεν αλλάζει", m.area_index == 0, "(%d)" % m.area_index)
@@ -344,7 +348,7 @@ func _initialize() -> void:
 			== m.COLS - 3)
 		ok("ρίχνει ό,τι βγάζει — βλήματα στον αέρα, και περιμένεις", not m.lobs.is_empty()
 			and m.phase == "boss_act", "(%d, %s)" % [m.lobs.size(), m.phase])
-		m._update_lobs(5.0)
+		m.flush_actions()
 		ok("...που προσγειώνονται: goblin και οδοφράγματα", m.count_kind("goblin") >= 1
 			and m.count_kind("barricade") >= 1 and m.phase == "aim",
 			"(goblin %d, barricade %d)" % [m.count_kind("goblin"), m.count_kind("barricade")])
@@ -368,9 +372,9 @@ func _initialize() -> void:
 		# φάση 2: τύμπανα
 		fb.take_damage(fb.max_hp * 0.45)
 		ok("στο 60% η φάση 2", fb_ab.stage == 2)
-		m._update_lobs(5.0)
+		m.flush_actions()
 		m._end_turn()
-		m._update_lobs(5.0)
+		m.flush_actions()
 		await process_frame
 		ok("φάση 2: δύο τυμπανιστές δίπλα στον πύργο", m.count_kind("war_drummer") == 2,
 			"(%d)" % m.count_kind("war_drummer"))
@@ -386,14 +390,14 @@ func _initialize() -> void:
 		# φάση 3: μπαρούτι
 		fb.take_damage(fb.hp - fb.max_hp * 0.25)
 		ok("στο 30% η φάση 3", fb_ab.stage == 3)
-		m._update_lobs(5.0)
+		m.flush_actions()
 		for b in m.grid.blocks():
 			if b.kind == "barricade" or b.kind == "goblin":
 				m.grid.erase(b)
 				b.queue_free()
 		await process_frame
 		m._end_turn()
-		m._update_lobs(5.0)
+		m.flush_actions()
 		await process_frame
 		var kegs := []
 		for b in m.grid.blocks():
@@ -419,7 +423,7 @@ func _initialize() -> void:
 		var sg = m._make_block(1, 4, m.enemy_by_id["goblin"], 50.0, 1, 1, false)
 		siege_row = sg.row
 		m._end_turn()
-		m._update_lobs(5.0)
+		m.flush_actions()
 		await process_frame
 		ok("η πολιορκία ρίχνει βράχο και κατεβάζει το ταμπλό", is_instance_valid(sg)
 			and sg.row >= siege_row + 2 and fb.row == 0, "(%d -> %d)" % [siege_row, sg.row])
@@ -855,7 +859,7 @@ func _initialize() -> void:
 	var before_horn: Array = m.grid.blocks()
 	horn.every = 1
 	comp.on_round_end(king, m)
-	m._update_lobs(5.0)
+	m.flush_actions()
 	await process_frame
 	var spawned := 0
 	for kb in m.grid.blocks():
@@ -1167,8 +1171,19 @@ func _initialize() -> void:
 	var ch_r = m._make_block(3, 1, m.enemy_by_id["orc"], 50.0, 1, 1, false)
 	ch_r.ability._rounds = 1                  # ο επόμενος γύρος είναι διπλό βήμα
 	m.phase = "aim"
+	var sum_wl = m._make_block(6, 1, m.enemy_by_id["warlock"], 50.0, 1, 1, false)
+	sum_wl.ability.every = 1
+	m.fx_anims.clear()
 	m._end_turn()
-	m._update_lobs(5.0)
+	ok("πρώτα κατεβαίνουν όλοι μία σειρά, ο καβαλάρης μαζί τους",
+		ch_r.row == 2 and m.phase == "boss_act", "(σειρά %d)" % ch_r.row)
+	ok("...και κανείς δεν καλεί όσο κινούνται", sum_wl.cast_t >= 1.0)
+	m._update_lobs(m.ADVANCE_TIME + m.ABILITY_GAP + 0.01)
+	ok("μετά, χωριστά, το dash του καβαλάρη", ch_r.row == 3 and sum_wl.cast_t >= 1.0,
+		"(σειρά %d)" % ch_r.row)
+	m._update_lobs(m.CHARGE_TIME + m.ABILITY_GAP + 0.01)
+	ok("και τελευταίο το κάλεσμα", sum_wl.cast_t < 1.0)
+	m.flush_actions()
 	await process_frame
 	ok("ο καβαλάρης κάνει διπλό βήμα", ch_r.row == 3, "(σειρά %d)" % ch_r.row)
 	var arrows_on_skip := false
@@ -1186,7 +1201,7 @@ func _initialize() -> void:
 	fake_ball.position = kn2.position + Vector2(-60, 0)
 	var sparks0: int = m.sparks.size()
 	m._on_ball_struck(kn2, fake_ball)
-	ok("ο knight με ασπίδα: τετράγωνο προστασίας αντί για σπίθες",
+	ok("ο knight με ασπίδα: ανάβει το περίγραμμά του αντί για σπίθες",
 		kn2.guard_t < 1.0 and kn2.guard_dir == Vector2.LEFT and m.sparks.size() == sparks0
 		and kn2.flash == 0.0)
 	kn2.ability.shield = 0.0
@@ -1209,13 +1224,25 @@ func _initialize() -> void:
 	m.fx_anims.clear()
 	m._mini_landed(mb)
 	var has_cracks := false
-	var has_emote := false
+	var cracks_cover := false
 	for fa in m.fx_anims:
 		if fa.floor and fa.frames[0] == m.tex_cracks:
 			has_cracks = true
+			var csz: Vector2 = m.tex_cracks.get_size() * float(fa.scale)
+			if csz.x >= mb.box.x and absf(fa.pos.x - mb.position.x) < 1.0:
+				cracks_cover = true
+	ok("...στην προσγείωση ρωγμές σε όλα τα κελιά του, πίσω του", has_cracks and cracks_cover)
+	var emote_now := false
+	for fa in m.fx_anims:
+		if fa.pop:
+			emote_now = true
+	ok("...το emote δεν σκάει αμέσως", not emote_now)
+	m._update_soft(m.EMOTE_DELAY + 0.01)
+	var has_emote := false
+	for fa in m.fx_anims:
 		if fa.pop:
 			has_emote = true
-	ok("...στην προσγείωση ρωγμές στο έδαφος και emote", has_cracks and has_emote and mb.act_playing)
+	ok("...αλλά ένα δευτερόλεπτο μετά, με βρυχηθμό", has_emote and mb.act_playing)
 	mb.queue_free()
 	m.grid.erase(mb)
 	m.boss = null

@@ -91,12 +91,18 @@ var shield_hit_t := 1.0         # χρόνος από το τελευταίο χ
 var weak_rect := Rect2()        # αδύναμο σημείο σε τοπικές συντεταγμένες (μέγεθος 0 = κανένα)
 var bump_t := 1.0               # τράνταγμα όταν χτυπιέται κάτι άθραυστο
 
-# ---- ασπίδα που μπλοκάρει (ShieldAbility): αντί για σπίθες, ένα φωτεινό
-# τετράγωνο προστασίας στην πλευρά απ' όπου ήρθε το χτύπημα
-const GUARD_TIME := 0.35
-static var guard_frames: Array[Texture2D] = []
+# ---- ασπίδα που μπλοκάρει (ShieldAbility): αντί για σπίθες, ανάβει όλο το
+# περίγραμμα του κελιού με γαλάζια λάμψη, πιο έντονη στην πλευρά απ' όπου
+# ήρθε το χτύπημα. Όσο υπάρχει ασπίδα μένει και μια αχνή λάμψη.
+const GUARD_TIME := 0.4
+const GUARD_COL := Color("9fe0ff")
 var guard_t := 1.0
 var guard_dir := Vector2.DOWN
+
+# ---- cast καλεστή: φουσκώνει μέσα σε μωβ αύρα που πάλλεται
+const CAST_COL := Color("c77dff")
+var cast_t := 1.0
+var cast_len := 0.5
 
 # ---- εμφάνιση / εξαφάνιση: τίποτα δεν πετάγεται ούτε χάνεται σε ένα καρέ
 const APPEAR_TIME := 0.38
@@ -280,6 +286,9 @@ func _process(delta: float) -> void:
 	if guard_t < 1.0:
 		guard_t = minf(1.0, guard_t + delta / GUARD_TIME)
 		queue_redraw()
+	if cast_t < 1.0:
+		cast_t = minf(1.0, cast_t + delta / cast_len)
+		queue_redraw()
 	if bump_t < 1.0:
 		bump_t = minf(1.0, bump_t + delta * 6.0)
 		queue_redraw()
@@ -309,15 +318,72 @@ func guard_flash(from: Vector2) -> void:
 	queue_redraw()
 
 
-func _draw_guard() -> void:
-	if guard_frames.is_empty():
+## Το περίγραμμα της ασπίδας: τρεις ζώνες (αχνή έξω, φωτεινή, λευκός πυρήνας)
+## στο πλέγμα των 2px, με «σπίθες» στις γωνίες. `k`: ένταση 0..1.
+func _draw_guard_edge(k: float) -> void:
+	if k <= 0.01:
 		return
-	var i := clampi(int(guard_t * guard_frames.size()), 0, guard_frames.size() - 1)
-	var tex := guard_frames[i]
-	var s := minf(box.x, box.y) * 0.62
-	var c := guard_dir * (box * 0.5 - Vector2(s, s) * 0.18)
-	var a := 1.0 - guard_t * guard_t
-	draw_texture_rect(tex, Rect2(c - Vector2(s, s) * 0.5, Vector2(s, s)), false, Color(1, 1, 1, a))
+	var r := Rect2(-box * 0.5, box).grow(2.0)
+	var t := Time.get_ticks_msec() / 1000.0
+	draw_rect(r.grow(4.0), Color(GUARD_COL, 0.22 * k), false, 4.0)
+	draw_rect(r.grow(1.0), Color(GUARD_COL, 0.85 * k), false, 3.0)
+	draw_rect(r, Color(1, 1, 1, 0.75 * k), false, 1.0)
+	# η πλευρά του χτυπήματος καίει πιο δυνατά: χοντρή λωρίδα από πάνω της
+	var flash := 1.0 - guard_t
+	if flash > 0.0:
+		# όλο το κελί γυαλίζει για μια στιγμή, σαν να πέρασε κύμα από την ασπίδα
+		draw_rect(r, Color(GUARD_COL, 0.28 * flash * flash))
+		var side := Rect2()
+		var th := 10.0
+		if guard_dir.x < 0.0:
+			side = Rect2(r.position.x - th * 0.5, r.position.y, th, r.size.y)
+		elif guard_dir.x > 0.0:
+			side = Rect2(r.end.x - th * 0.5, r.position.y, th, r.size.y)
+		elif guard_dir.y < 0.0:
+			side = Rect2(r.position.x, r.position.y - th * 0.5, r.size.x, th)
+		else:
+			side = Rect2(r.position.x, r.end.y - th * 0.5, r.size.x, th)
+		draw_rect(side.grow(6.0), Color(GUARD_COL, 0.3 * flash))
+		draw_rect(side.grow(2.0), Color(GUARD_COL, 0.8 * flash))
+		draw_rect(side.grow(-2.0), Color(1, 1, 1, flash))
+	# τέσσερις γωνίες που αστράφτουν σε σειρά
+	for i: int in 4:
+		var cx := r.position.x if i % 3 == 0 else r.end.x
+		var cy := r.position.y if i < 2 else r.end.y
+		var tw := 0.5 + 0.5 * sin(t * 8.0 + i * 1.6)
+		var sz := 4.0 + 4.0 * tw * k
+		draw_rect(Rect2(cx - sz * 0.5, cy - sz * 0.5, sz, sz), Color(1, 1, 1, 0.9 * k))
+
+
+## Αύρα του cast: μωβ τετράγωνο-περίγραμμα που ανοίγει προς τα έξω και
+## σβήνει, δύο φορές μέσα στο cast — σαν παλμός μαγείας.
+func _draw_cast_aura() -> void:
+	var k := cast_t
+	# ανεβαίνει γρήγορα, κρατάει, σβήνει στο τέλος
+	var power := clampf(minf(k / 0.2, (1.0 - k) / 0.25), 0.0, 1.0)
+	for w: int in 3:
+		var p := fmod(k * 2.5 + w / 3.0, 1.0)
+		var r := Rect2(-box * 0.5, box).grow(2.0 + p * 26.0)
+		var a := (1.0 - p) * power
+		draw_rect(r.grow(2.0), Color(CAST_COL, a * 0.35), false, 6.0)
+		draw_rect(r, Color(CAST_COL.lightened(0.35), a), false, 3.0)
+	# το περίγραμμα του κελιού καίει μωβ όσο κρατάει το cast
+	draw_rect(Rect2(-box * 0.5, box), Color(CAST_COL.lightened(0.5), 0.9 * power), false, 3.0)
+
+
+## Μωβ λάμψη ΠΙΣΩ από τον καλεστή (πριν το πορτρέτο): το σώμα του μένει
+## καθαρό, και η μαγεία φαίνεται να βγαίνει από γύρω του.
+func _draw_cast_glow() -> void:
+	var power := clampf(minf(cast_t / 0.2, (1.0 - cast_t) / 0.25), 0.0, 1.0)
+	var r := Rect2(-box * 0.5, box).grow(22.0)
+	draw_texture_rect(Ball.dot_tex(), r, false, Color(CAST_COL, 0.55 * power))
+
+
+## Ο καλεστής ξεκινάει cast για `dur` δευτερόλεπτα.
+func cast_pulse(dur: float) -> void:
+	cast_len = maxf(dur, 0.05)
+	cast_t = 0.0
+	queue_redraw()
 
 
 ## Ξεκινάει το animation εμφάνισης. "pop": πετάγεται από το βαρέλι που
@@ -363,6 +429,10 @@ func _appear_xform() -> Transform2D:
 			off.y = -sin(k * PI) * box.y * 0.35
 	if bump_t < 1.0:
 		off.x += sin(bump_t * 40.0) * (1.0 - bump_t) * 3.0
+	if cast_t < 1.0:
+		# ο καλεστής φουσκώνει λίγο όσο «φορτίζει», σαν να παίρνει ανάσα
+		s *= 1.0 + 0.12 * sin(cast_t * PI)
+		off.y -= 4.0 * sin(cast_t * PI)
 	return Transform2D(0.0, s, 0.0, off)
 
 
@@ -614,6 +684,8 @@ func _draw() -> void:
 
 	if shield_on or shield_hit_t < 1.0:
 		_draw_shield()
+	if cast_t < 1.0:
+		_draw_cast_glow()
 	# ούτε περίγραμμα κελιού όσο στήνεται ή σβήνει: θα έδειχνε το κουτί πριν το πλάσμα
 	if appear_t >= 1.0 and vanish_t < 0.0:
 		_draw_edge()
@@ -647,8 +719,12 @@ func _draw() -> void:
 		draw_texture_rect(SHIELD_TEX, Rect2(spos, Vector2(sic, sic)), false)
 		_draw_outline_text(spos + Vector2(sic + 2.0, sic - 1.0), str(shield_amt), 13, Color("bfe6ff"))
 
-	if guard_t < 1.0:
-		_draw_guard()
+	if ability is ShieldAbility and (ability as ShieldAbility).shield > 0.0 and vanish_t < 0.0:
+		# αχνή όσο υπάρχει ασπίδα, δυνατή μόλις κρατήσει χτύπημα
+		var pulse := 0.25 + 0.08 * sin(Time.get_ticks_msec() / 1000.0 * 3.0)
+		_draw_guard_edge(maxf(pulse, 1.0 - guard_t))
+	if cast_t < 1.0:
+		_draw_cast_aura()
 	if weak_rect.has_area():
 		_draw_weak_point()
 	if fuse >= 0:

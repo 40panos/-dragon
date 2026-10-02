@@ -418,7 +418,6 @@ func _load_content() -> void:
 	tex_emote = _load_tex("fx_emote_angry")
 	charge_frames = _load_seq("fx_charge")
 	summon_frames = _load_seq("fx_summon")
-	Block.guard_frames = _load_seq("fx_guard")
 
 
 func _load_dir(dir_path: String) -> Array:
@@ -583,7 +582,7 @@ func _start() -> void:
 	lobs.clear()
 	reserved.clear()
 	fx_anims.clear()
-	_late_banner = ""
+	_soft.clear()
 	level = 1
 	_apply_theme()
 
@@ -807,13 +806,21 @@ func _mini_landed(b) -> void:
 	add_shake(5.0)
 	_ground_impact(b)
 	var area := current_area()
-	# η ανακοίνωση περιμένει το emote: η πινακίδα της πέφτει ακριβώς πάνω στο
-	# κεφάλι του boss, και θα το έκρυβε
+	# το emote έρχεται λίγο μετά την πτώση, όταν έχει κάτσει η σκόνη· η
+	# ανακοίνωση περιμένει κι αυτή, γιατί η πινακίδα της πέφτει ακριβώς πάνω
+	# στο κεφάλι του boss και θα το έκρυβε
+	later(EMOTE_DELAY, _mini_emote.bind(b))
 	_announce_later("MINI-BOSS - %s" % (area.boss.display_name.to_upper() if area and area.boss else ""),
-		EMOTE_TIME)
+		EMOTE_DELAY + EMOTE_TIME)
+
+
+func _mini_emote(b) -> void:
+	if b == null or not is_instance_valid(b) or b.is_vanishing():
+		return
 	var act := _act_frames(b.ability)
 	if not act.is_empty():
 		b.play_act(act, 10.0)
+	add_shake(2.0)
 	if tex_emote:
 		# μέσα στο κουτί του, πάνω δεξιά από το κεφάλι: ο mini-boss στέκεται στην
 		# πρώτη σειρά, και πιο ψηλά το συννεφάκι έβγαινε πάνω στο παραπέτο
@@ -821,25 +828,43 @@ func _mini_landed(b) -> void:
 			EMOTE_TIME, 0.35, false, true)
 
 
+const EMOTE_DELAY := 1.0
 const EMOTE_TIME := 1.6
-var _late_banner := ""
-var _late_banner_t := 0.0
+var _soft: Array = []          # [χρόνος, callable]: καθυστερήσεις που ΔΕΝ σταματάνε το παιχνίδι
+
+
+## Κάτι που γίνεται σε λίγο, χωρίς να περιμένει ο παίκτης (σε αντίθεση με το after).
+func later(delay: float, cb: Callable) -> void:
+	_soft.append([delay, cb])
+
+
+func _update_soft(delta: float) -> void:
+	var i := _soft.size() - 1
+	while i >= 0:
+		_soft[i][0] -= delta
+		if _soft[i][0] <= 0.0:
+			var cb: Callable = _soft[i][1]
+			_soft.remove_at(i)
+			cb.call()
+		i -= 1
 
 
 ## Ανακοίνωση που βγαίνει σε λίγο, χωρίς να σταματάει το παιχνίδι.
 func _announce_later(text: String, delay: float) -> void:
-	_late_banner = text
-	_late_banner_t = delay
+	later(delay, _announce.bind(text))
 
 
 ## Ρωγμές και σκόνη κάτω από ό,τι προσγειώθηκε βαριά (mini-boss, μεγάλος boss).
 func _ground_impact(b) -> void:
 	var base_y: float = b.position.y + b.box.y * 0.5
 	if tex_cracks:
-		# στο έδαφος γύρω από τα πόδια του, όχι κάτω από το σώμα του όπου θα
-		# κρύβονταν· x2, ακέραια κλίμακα, όπως όλο το pixel art
-		play_fx([tex_cracks], Vector2(b.position.x, base_y + 6.0), 2.0, 1.0,
-			CRACKS_LIFE, 1.0, true)
+		# Το σώμα του σκεπάζει σχεδόν όλα τα κελιά του, οπότε οι ρωγμές μπαίνουν
+		# εκεί που φαίνονται: μία μεγάλη στα πόδια του, που ξεχειλίζει μπροστά,
+		# και από μία στα κελιά αριστερά και δεξιά του — ακέραιες κλίμακες.
+		play_fx([tex_cracks], Vector2(b.position.x, base_y), 3.0, 1.0, CRACKS_LIFE, 1.0, true)
+		for sx: float in [-1.0, 1.0]:
+			var side := Vector2(b.position.x + sx * (b.box.x * 0.5 + cell * 0.35), b.position.y + b.box.y * 0.2)
+			play_fx([tex_cracks], side, 2.0, 1.0, CRACKS_LIFE, 1.0, true)
 	for i in 12:
 		var x: float = b.position.x + randf_range(-b.box.x * 0.55, b.box.x * 0.55)
 		add_sparks(Vector2(x, base_y), 2, Color("a8906a"), 170.0, 6.0)
@@ -916,28 +941,101 @@ func spawn_near(col: int, row: int, cw: int, ch: int, source_hp: float,
 		made += 1
 
 
-## Διπλό βήμα (καβαλάρης, τύμπανα): βελάκια ταχύτητας με άνεμο στιγμιαία
-## πάνω στο κελί που προσπέρασε, και σκόνη εκεί που ξεκίνησε. Καλείται πριν
-## μετακινηθεί, με το block ακόμα στην παλιά του σειρά.
-func _charge_fx(b, step: int) -> void:
-	for k in range(1, step):
-		var c := block_center(b.col, b.row + k, 1, 1)
+const ABILITY_GAP := 0.06     # ανάσα ανάμεσα στα βήματα της σειράς ικανοτήτων
+const CHARGE_TIME := 0.24      # το dash του καβαλάρη
+var _post_charges: Array = []  # [block, έξτρα σειρές] για μετά το γενικό κατέβασμα
+var _post_summons: Array = []  # καλέσματα για μετά τα charges
+var _collecting := false       # μέσα στο τέλος γύρου: οι ικανότητες μαζεύονται σε ουρά
+
+
+## Τα έξτρα βήματα, αφού έχουν σταθεί όλοι: βελάκια ταχύτητας με άνεμο στο
+## κελί απ' όπου φεύγει, γραμμές ταχύτητας πίσω του, σκόνη και μικρό
+## τράνταγμα εκεί που πατάει. Γίνονται όλα μαζί, ώστε να μη σέρνεται ο ρυθμός.
+func _run_charges(charges: Array) -> void:
+	var tween := create_tween()
+	tween.set_parallel(true)
+	var any := false
+	# από κάτω προς τα πάνω, ώστε όποιος είναι μπροστά να ελευθερώνει χώρο
+	charges.sort_custom(func(a, c): return a[0].row > c[0].row)
+	for ch in charges:
+		var b = ch[0]
+		if not is_instance_valid(b) or b.is_vanishing() or not grid.blocks().has(b):
+			continue
+		var step: int = ch[1]
+		while step > 0 and not grid.fits(b.col, b.row + step, b.cw, b.ch, b):
+			step -= 1
+		if step <= 0:
+			continue
+		any = true
+		# από το πλέγμα, όχι από τον κόμβο: το γενικό κατέβασμα μπορεί να μην
+		# έχει τελειώσει ακόμα στην οθόνη
+		var from := block_center(b.col, b.row, b.cw, b.ch)
 		if not charge_frames.is_empty():
-			play_fx(charge_frames, c, 2.0, 18.0, -1.0, 0.12)
-		else:
-			add_sparks(c, 6, Color(1, 1, 1, 0.8), 140.0, 4.0)
-	add_sparks(b.position + Vector2(0, cell * 0.35), 6, Color("c9b28a"), 120.0, 5.0)
+			play_fx(charge_frames, from, 2.0, 18.0, -1.0, 0.12)
+		for k in 6:
+			add_sparks(from + Vector2(randf_range(-cell * 0.3, cell * 0.3), 0), 1,
+				Color(1, 1, 1, 0.9), 90.0, 4.0)
+		grid.move_to(b, b.col, b.row + step)
+		b.begin_move(CHARGE_TIME)
+		var to := block_center(b.col, b.row, b.cw, b.ch)
+		tween.tween_property(b, "position:y", to.y, CHARGE_TIME) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_callback(_charge_landed.bind(b)).set_delay(CHARGE_TIME * 0.8)
+	if not any:
+		tween.kill()
+		return
+	for b in grid.blocks():
+		if b.row + b.ch > death_row:
+			_game_over()
+			return
 
 
-const SUMMON_DELAY := 0.5      # από το cast ως την εμφάνιση του minion
+func _charge_landed(b) -> void:
+	if not is_instance_valid(b):
+		return
+	add_sparks(b.position + Vector2(0, cell * 0.38), 8, Color("c9b28a"), 140.0, 5.0)
+	add_shake(1.5)
+
+
+const SUMMON_CAST := 0.28      # ο καλεστής «φορτίζει»
+const SUMMON_BOLT := 0.26      # το μαγικό βλήμα ως το κελί
+const SUMMON_RISE := 0.32      # ο κύκλος ανοίγει, το minion υψώνεται
 const SUMMON_COL := Color("c77dff")
 
 
-## Καλείται από το SummonerAbility. Δεν γεννάει αμέσως: ο καλεστής βγάζει
-## μωβ σπίθες (και τα καρέ δράσης του, από την ικανότητα), στο κελί-στόχο
-## ανοίγει μαγικός κύκλος με ίδιες σπίθες, και το minion υψώνεται από μέσα
-## του μόλις κλείσει το cast. Το κελί κρατιέται ώστε να μην το πάρει άλλος.
+## Καλείται από το SummonerAbility, αλλά δεν γεννάει αμέσως: μπαίνει στην
+## ουρά και παίζει αφού σταθούν όλοι (_run_summons), ώστε το μάτι να το πιάνει.
 func summon_minion(source, minion_id: String, hp_ratio: float, min_row: int,
+		max_row: int, keep_clear: int = 0) -> void:
+	var s := [source, minion_id, hp_ratio, min_row, max_row, keep_clear]
+	if _collecting:
+		_post_summons.append(s)
+	else:
+		_run_summons([s])        # εκτός τέλους γύρου (π.χ. tests): ξεκινάει αμέσως
+
+
+## Τα καλέσματα, όλα μαζί: ο καλεστής φουσκώνει μέσα σε μωβ αύρα που
+## πάλλεται, με σπίθες που ανεβαίνουν· μετά ένα μαγικό βλήμα πετάει από αυτόν
+## στο κελί-στόχο, εκεί ανοίγει ο κύκλος, και το minion υψώνεται από μέσα του.
+func _run_summons(summons: Array) -> void:
+	var cast_done := {}
+	for s in summons:
+		var src = s[0]
+		if not is_instance_valid(src) or src.is_vanishing():
+			continue
+		if not cast_done.has(src):
+			cast_done[src] = true
+			src.cast_pulse(SUMMON_CAST + SUMMON_BOLT)
+			var act := _act_frames(src.ability)
+			if not act.is_empty():
+				src.play_act(act, float(act.size()) / (SUMMON_CAST + SUMMON_BOLT))
+			for k in 10:
+				var off := Vector2(randf_range(-src.box.x, src.box.x) * 0.45, src.box.y * 0.4)
+				add_sparks(src.position + off, 1, SUMMON_COL, 120.0, 5.0)
+		_summon_now(src, s[1], s[2], s[3], s[4], s[5])
+
+
+func _summon_now(source, minion_id: String, hp_ratio: float, min_row: int,
 		max_row: int, keep_clear: int = 0) -> void:
 	var type: EnemyType = enemy_by_id.get(minion_id)
 	if type == null:
@@ -959,13 +1057,25 @@ func summon_minion(source, minion_id: String, hp_ratio: float, min_row: int,
 	var hp := maxf(1.0, round(source.max_hp * hp_ratio * (1.0 - depth * 0.5)))
 	reserved[spot] = true
 	var at := block_center(spot.x, spot.y, 1, 1)
-	if is_instance_valid(source):
-		add_sparks(source.position + Vector2(0, -source.box.y * 0.3), 10, SUMMON_COL, 170.0, 5.0)
+	var from: Vector2 = source.position + Vector2(0, -source.box.y * 0.3)
+	after(SUMMON_CAST, _summon_bolt.bind(from, at, spot, type, hp))
+
+
+## Το μαγικό βλήμα: μια μικρή μωβ σφαίρα που πετάει σε χαμηλή καμπύλη
+## από τον καλεστή στο κελί, με ουρά από σπίθες.
+func _summon_bolt(from: Vector2, at: Vector2, spot: Vector2i, type: EnemyType, hp: float) -> void:
+	add_sparks(from, 12, SUMMON_COL, 180.0, 6.0)
+	var orb: Texture2D = summon_frames[2] if summon_frames.size() > 2 else null
+	lob(from, at, orb, _summon_circle.bind(at, spot, type, hp), 60.0, SUMMON_BOLT, 12.0, 1.5)
+	lobs[-1]["trail"] = SUMMON_COL
+
+
+func _summon_circle(at: Vector2, spot: Vector2i, type: EnemyType, hp: float) -> void:
 	if not summon_frames.is_empty():
-		play_fx(summon_frames, at, 2.2, float(summon_frames.size()) / SUMMON_DELAY,
-			SUMMON_DELAY + 0.35, 0.35, true)
-	add_sparks(at, 8, SUMMON_COL, 110.0, 4.0)
-	after(SUMMON_DELAY, _summon_land.bind(spot, type, hp))
+		play_fx(summon_frames, at, 2.2, float(summon_frames.size()) / SUMMON_RISE,
+			SUMMON_RISE + 0.3, 0.3, true)
+	add_sparks(at, 10, SUMMON_COL, 140.0, 5.0)
+	after(SUMMON_RISE, _summon_land.bind(spot, type, hp))
 
 
 func _summon_land(spot: Vector2i, type: EnemyType, hp: float) -> void:
@@ -1570,11 +1680,7 @@ func _process(delta: float) -> void:
 			_update_boss_intro(delta)
 		_update_lobs(delta)
 		_update_fx_anims(delta)
-		if _late_banner != "":
-			_late_banner_t -= delta
-			if _late_banner_t <= 0.0:
-				_announce(_late_banner)
-				_late_banner = ""
+		_update_soft(delta)
 	queue_redraw()
 	if frozen() or phase != "shoot":
 		return
@@ -1694,6 +1800,9 @@ func _end_turn() -> void:
 	ordered.sort_custom(func(a, b): return (a.row + a.ch) > (b.row + b.ch))
 	# πρώτα κοιτάνε όλοι γύρω τους, με το ταμπλό ακόμα ακίνητο (π.χ. η αγέλη)
 	war_drums = false
+	_post_charges.clear()
+	_post_summons.clear()
+	_collecting = true
 	for b in ordered:
 		if b.ability:
 			b.ability.before_advance(b, self)
@@ -1704,11 +1813,16 @@ func _end_turn() -> void:
 		# τα τύμπανα πολέμου σπρώχνουν όποιον κινείται μία σειρά παραπάνω
 		if war_drums and want > 0 and not b.is_boss:
 			want += 1
+		# Ό,τι κάνει παραπάνω από ένα βήμα (καβαλάρης, τύμπανα) κατεβαίνει πρώτα
+		# μία σειρά μαζί με όλους, και κάνει το υπόλοιπο ΧΩΡΙΣΤΑ μόλις σταθούν
+		# όλοι (_run_charges) — αλλιώς το διπλό βήμα χανόταν μέσα στη γενική
+		# κίνηση και ο παίκτης δεν έβλεπε ποιος έκανε τι.
+		if want >= 2 and b.cw == 1 and not b.is_boss:
+			_post_charges.append([b, want - 1])
+			want = 1
 		var step := want
 		while step > 0 and not grid.fits(b.col, b.row + step, b.cw, b.ch, b):
 			step -= 1
-		if step >= 2 and b.cw == 1:
-			_charge_fx(b, step)
 		if step > 0:
 			grid.move_to(b, b.col, b.row + step)
 			b.begin_move(ADVANCE_TIME)      # όσο κατεβαίνει, κρύβει το περίγραμμά του
@@ -1727,6 +1841,7 @@ func _end_turn() -> void:
 		if b.ability and is_instance_valid(b) and not b.is_vanishing():
 			b.ability.on_round_end(b, self)
 	update_boss_shield()
+	_collecting = false
 
 	for b in grid.blocks():
 		if b.row + b.ch > death_row:
@@ -1734,6 +1849,16 @@ func _end_turn() -> void:
 			return
 
 	_add_row()
+	# Οι ικανότητες, μία-μία αφού σταθούν όλοι: πρώτα τα charges, μετά τα
+	# καλέσματα. Ο παίκτης περιμένει (after), αλλά μόνο όσο κρατάνε.
+	var at := ADVANCE_TIME + ABILITY_GAP
+	if not _post_charges.is_empty():
+		var charges := _post_charges.duplicate()
+		after(at, _run_charges.bind(charges))
+		at += CHARGE_TIME + ABILITY_GAP
+	if not _post_summons.is_empty():
+		var summons := _post_summons.duplicate()
+		after(at, _run_summons.bind(summons))
 	# ό,τι πέταξε ο boss πρέπει να προσγειωθεί πριν ξαναρίξεις
 	if phase != "boss_intro":
 		phase = "boss_act" if not lobs.is_empty() else "aim"
@@ -1917,6 +2042,9 @@ func _update_lobs(delta: float) -> void:
 	while i >= 0:
 		var l: Dictionary = lobs[i]
 		l.t += delta
+		# ουρά από σπίθες πίσω από ό,τι πετάει με χρώμα ουράς (μαγικό βλήμα)
+		if l.has("trail") and l.t < l.dur:
+			add_sparks(lob_pos(l), 2, l.trail, 60.0, 5.0)
 		if l.t >= l.dur:
 			lobs.remove_at(i)
 			(l.cb as Callable).call()
@@ -2138,6 +2266,15 @@ func _draw_floor_fx() -> void:
 		var tex: Texture2D = st[0]
 		var sz: Vector2 = tex.get_size() * float(st[1])
 		draw_texture_rect(tex, Rect2((a.pos as Vector2) - sz * 0.5, sz), false, Color(1, 1, 1, st[2]))
+
+
+## Τρέχει ως το τέλος ό,τι περιμένει στη ροή του γύρου (ρίψεις, καλέσματα,
+## charges) — και όσα γεννάει το ένα για το άλλο. Για tests.
+func flush_actions() -> void:
+	for i in 30:
+		if lobs.is_empty():
+			return
+		_update_lobs(5.0)
 
 
 ## Καθυστέρηση μέσα στη ροή του γύρου: όσο περιμένει, ο παίκτης περιμένει

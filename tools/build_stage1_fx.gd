@@ -7,7 +7,6 @@ extends SceneTree
 ##
 ##   fx_charge_1..N      βελάκια ταχύτητας με άνεμο (διπλό βήμα του καβαλάρη)
 ##   fx_summon_1..N      μαγικός κύκλος στο κελί όπου θα βγει minion
-##   fx_guard_1..N       τετράγωνο προστασίας όταν η ασπίδα κρατάει χτύπημα
 ##   fx_cracks           ρωγμές στο έδαφος όταν προσγειώνεται boss
 ##   fx_emote_angry      συννεφάκι θυμού του mini-boss
 ##   warlock_cast_1..N   ο warlock σηκώνει το ραβδί και καλεί
@@ -21,7 +20,6 @@ const RAW := "C:/Users/panos/Documents/bbdragon-art-proposals/stage1fx/raw/"
 const SEQS := {
 	"fx_charge": ["charge", false],
 	"fx_summon": ["summon", false],
-	"fx_guard": ["guard", false],
 	"warlock_cast": ["warlock_cast", true],
 }
 const SINGLES := {"fx_cracks": "cracks", "fx_emote_angry": "emote"}

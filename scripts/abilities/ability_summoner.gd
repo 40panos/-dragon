@@ -33,10 +33,10 @@ func on_round_end(block, game) -> void:
 	_rounds += 1
 	if _rounds % every != 0:
 		return
+	# το main τα παίζει όλα μαζί μόλις σταθεί το ταμπλό: τα καρέ δράσης (το
+	# cast του warlock, ο βρυχηθμός του βασιλιά), η αύρα και το βλήμα
 	for i in maxi(count, 1):
 		game.summon_minion(block, minion_id, hp_ratio, min_row, max_row, keep_clear)
-	if not act_frames.is_empty():
-		block.play_act(act_frames, act_fps)
 
 
 func badge() -> String:
