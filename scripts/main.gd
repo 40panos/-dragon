@@ -858,13 +858,16 @@ func _announce_later(text: String, delay: float) -> void:
 func _ground_impact(b) -> void:
 	var base_y: float = b.position.y + b.box.y * 0.5
 	if tex_cracks:
-		# Το σώμα του σκεπάζει σχεδόν όλα τα κελιά του, οπότε οι ρωγμές μπαίνουν
-		# εκεί που φαίνονται: μία μεγάλη στα πόδια του, που ξεχειλίζει μπροστά,
-		# και από μία στα κελιά αριστερά και δεξιά του — ακέραιες κλίμακες.
-		play_fx([tex_cracks], Vector2(b.position.x, base_y), 3.0, 1.0, CRACKS_LIFE, 1.0, true)
-		for sx: float in [-1.0, 1.0]:
-			var side := Vector2(b.position.x + sx * (b.box.x * 0.5 + cell * 0.35), b.position.y + b.box.y * 0.2)
-			play_fx([tex_cracks], side, 2.0, 1.0, CRACKS_LIFE, 1.0, true)
+		# Ρωγμές ΜΟΝΟ στα κελιά όπου πάτησε, πίσω του: μία ανά κελί, κομμένη
+		# στα όριά του, ώστε να μη βγαίνει έξω από το αποτύπωμά του. Κάθε κελί
+		# δείχνει άλλο κομμάτι της ρωγμής (μετατοπισμένο κέντρο), και το χώμα
+		# σκουραίνει λίγο — φαίνονται εκεί όπου το σώμα του αφήνει κενό.
+		for cx in b.cw:
+			for cy in b.ch:
+				var cr := Rect2(pf_left + (b.col + cx) * cell, PF_TOP + (b.row + cy) * cell, cell, cell)
+				var jitter := Vector2(randf_range(-22.0, 22.0), randf_range(-14.0, 14.0))
+				play_fx([tex_cracks], cr.get_center() + jitter, 2.0, 1.0, CRACKS_LIFE, 1.0, true)
+				fx_anims[-1]["clip"] = cr
 	for i in 12:
 		var x: float = b.position.x + randf_range(-b.box.x * 0.55, b.box.x * 0.55)
 		add_sparks(Vector2(x, base_y), 2, Color("a8906a"), 170.0, 6.0)
@@ -2264,8 +2267,21 @@ func _draw_floor_fx() -> void:
 			continue
 		var st := fx_state(a)
 		var tex: Texture2D = st[0]
-		var sz: Vector2 = tex.get_size() * float(st[1])
-		draw_texture_rect(tex, Rect2((a.pos as Vector2) - sz * 0.5, sz), false, Color(1, 1, 1, st[2]))
+		var sc: float = st[1]
+		var sz: Vector2 = tex.get_size() * sc
+		var dst := Rect2((a.pos as Vector2) - sz * 0.5, sz)
+		var col := Color(1, 1, 1, st[2])
+		if a.has("clip"):
+			# κομμένο σε ένα κελί: σκούρο χώμα από κάτω, και μόνο το κομμάτι
+			# της εικόνας που πέφτει μέσα στο κελί
+			var clip: Rect2 = a.clip
+			draw_rect(clip, Color(0.08, 0.05, 0.03, 0.22 * float(st[2])))
+			var inter := dst.intersection(clip)
+			if inter.has_area():
+				var src := Rect2((inter.position - dst.position) / sc, inter.size / sc)
+				draw_texture_rect_region(tex, inter, src, col)
+			continue
+		draw_texture_rect(tex, dst, false, col)
 
 
 ## Τρέχει ως το τέλος ό,τι περιμένει στη ροή του γύρου (ρίψεις, καλέσματα,

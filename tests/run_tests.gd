@@ -1223,15 +1223,16 @@ func _initialize() -> void:
 		< m.block_center(mb.col, mb.row, mb.cw, mb.ch).y - 100.0)
 	m.fx_anims.clear()
 	m._mini_landed(mb)
-	var has_cracks := false
-	var cracks_cover := false
+	var crack_cells := 0
+	var cracks_inside := true
+	var foot := Rect2(m.pf_left + mb.col * m.cell, m.PF_TOP + mb.row * m.cell, mb.cw * m.cell, mb.ch * m.cell)
 	for fa in m.fx_anims:
 		if fa.floor and fa.frames[0] == m.tex_cracks:
-			has_cracks = true
-			var csz: Vector2 = m.tex_cracks.get_size() * float(fa.scale)
-			if csz.x >= mb.box.x and absf(fa.pos.x - mb.position.x) < 1.0:
-				cracks_cover = true
-	ok("...στην προσγείωση ρωγμές σε όλα τα κελιά του, πίσω του", has_cracks and cracks_cover)
+			crack_cells += 1
+			if not fa.has("clip") or not foot.grow(0.5).encloses(fa.clip):
+				cracks_inside = false
+	ok("...στην προσγείωση ρωγμές μόνο στα κελιά του, πίσω του",
+		crack_cells == mb.cw * mb.ch and cracks_inside, "(%d κελιά)" % crack_cells)
 	var emote_now := false
 	for fa in m.fx_anims:
 		if fa.pop:
