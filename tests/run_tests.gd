@@ -99,7 +99,15 @@ func _initialize() -> void:
 	sa.every = 1
 	ok("καλεί orc bat", sa.minion_id == "bat", "(%s)" % sa.minion_id)
 	ok("κρατάει ζώνη ασφαλείας", sa.keep_clear == 2, "(%d)" % sa.keep_clear)
+	m.fx_anims.clear()
 	sa.on_round_end(wl, m)
+	var circle_on_floor := false
+	for fa in m.fx_anims:
+		if fa.floor:
+			circle_on_floor = true
+	ok("το κάλεσμα δεν γεννάει αμέσως: πρώτα cast και μαγικός κύκλος",
+		m.lobs.size() > 0 and circle_on_floor and wl.act_playing)
+	m._update_lobs(5.0)
 	await process_frame
 	var minion = null
 	for b in m.grid.blocks():
@@ -112,6 +120,7 @@ func _initialize() -> void:
 			"(%.2f)" % minion.sprite_scale)
 		ok("έχει idle animation", minion.frames_idle.size() > 1,
 			"(%d καρέ)" % minion.frames_idle.size())
+		ok("υψώνεται μέσα από τον κύκλο", minion.appear_mode == "rise")
 
 	# απαγορευμένες ζώνες: οι πρώτες σειρές και οι δύο πριν τη γραμμή θανάτου
 	print("--- ζώνες που απαγορεύονται στον καλεστή ---")
@@ -123,6 +132,7 @@ func _initialize() -> void:
 				b.queue_free()
 		await process_frame
 		sa.on_round_end(wl, m)
+		m._update_lobs(5.0)
 		await process_frame
 		for b in m.grid.blocks():
 			if b != wl and not rows_seen.has(b.row):
@@ -153,6 +163,7 @@ func _initialize() -> void:
 	for i in 60:
 		for s in summoners:
 			s.ability.on_round_end(s, m)
+		m._update_lobs(5.0)          # το κάλεσμα βγάζει το minion μετά το cast
 	await process_frame
 	# άλλο όνομα: το `deepest` υπάρχει ήδη πιο πάνω, και στο _initialize()
 	# όλες οι μεταβλητές ζουν στο ίδιο scope
@@ -279,8 +290,10 @@ func _initialize() -> void:
 		ok("ο boss έχει κάλεσμα", boss_summoner != null)
 		if boss_summoner:
 			boss_summoner.every = 1000
+		m._update_lobs(5.0)          # η πτώση του mini-boss
 		for turn in 3:
 			m._end_turn()
+			m._update_lobs(5.0)
 			await process_frame
 		ok("με ζωντανό boss ο γύρος δεν προχωράει", m.level == 10, "(%d)" % m.level)
 		ok("με ζωντανό boss η περιοχή δεν αλλάζει", m.area_index == 0, "(%d)" % m.area_index)
@@ -842,6 +855,7 @@ func _initialize() -> void:
 	var before_horn: Array = m.grid.blocks()
 	horn.every = 1
 	comp.on_round_end(king, m)
+	m._update_lobs(5.0)
 	await process_frame
 	var spawned := 0
 	for kb in m.grid.blocks():
@@ -1139,6 +1153,75 @@ func _initialize() -> void:
 	m.save["music_volume"] = 0.8
 	m.save["music_muted"] = false
 	m._apply_music_volume()
+
+	print("--- animations ικανοτήτων ---")
+	for ab_b in m.grid.blocks():
+		m.grid.erase(ab_b)
+		ab_b.queue_free()
+	await process_frame
+	m.fx_anims.clear()
+	m.area_index = 0
+	m.level = 3
+	m.boss = null
+	m.freeze_rounds = 0
+	var ch_r = m._make_block(3, 1, m.enemy_by_id["orc"], 50.0, 1, 1, false)
+	ch_r.ability._rounds = 1                  # ο επόμενος γύρος είναι διπλό βήμα
+	m.phase = "aim"
+	m._end_turn()
+	m._update_lobs(5.0)
+	await process_frame
+	ok("ο καβαλάρης κάνει διπλό βήμα", ch_r.row == 3, "(σειρά %d)" % ch_r.row)
+	var arrows_on_skip := false
+	for fa in m.fx_anims:
+		if fa.frames == m.charge_frames and absf(fa.pos.y - m.block_center(3, 2, 1, 1).y) < 1.0:
+			arrows_on_skip = true
+	ok("...και στο κελί που πήδηξε φαίνονται βελάκια ταχύτητας", arrows_on_skip)
+	var kn2 = m._make_block(5, 4, m.enemy_by_id["knight"], 20.0, 1, 1, false)
+	var fake_ball := Node2D.new()
+	fake_ball.set("position", kn2.position + Vector2(-60, 0))
+	var fb_script := GDScript.new()
+	fb_script.source_code = "extends Node2D\nvar damage := 1.0\nvar splashed := {}\n"
+	fb_script.reload()
+	fake_ball.set_script(fb_script)
+	fake_ball.position = kn2.position + Vector2(-60, 0)
+	var sparks0: int = m.sparks.size()
+	m._on_ball_struck(kn2, fake_ball)
+	ok("ο knight με ασπίδα: τετράγωνο προστασίας αντί για σπίθες",
+		kn2.guard_t < 1.0 and kn2.guard_dir == Vector2.LEFT and m.sparks.size() == sparks0
+		and kn2.flash == 0.0)
+	kn2.ability.shield = 0.0
+	kn2.guard_t = 1.0
+	m._on_ball_struck(kn2, fake_ball)
+	ok("...χωρίς ασπίδα ξανά οι κανονικές σπίθες", kn2.guard_t >= 1.0 and m.sparks.size() > sparks0)
+	fake_ball.free()
+	for ab_b in m.grid.blocks():
+		m.grid.erase(ab_b)
+		ab_b.queue_free()
+	await process_frame
+	m.area_index = 0
+	m.level = m.MINIBOSS_ROUND
+	m.boss = null
+	m.phase = "shoot"
+	m._add_row()
+	var mb = m.boss
+	ok("ο mini-boss πέφτει από τον ουρανό", mb != null and mb.position.y
+		< m.block_center(mb.col, mb.row, mb.cw, mb.ch).y - 100.0)
+	m.fx_anims.clear()
+	m._mini_landed(mb)
+	var has_cracks := false
+	var has_emote := false
+	for fa in m.fx_anims:
+		if fa.floor and fa.frames[0] == m.tex_cracks:
+			has_cracks = true
+		if fa.pop:
+			has_emote = true
+	ok("...στην προσγείωση ρωγμές στο έδαφος και emote", has_cracks and has_emote and mb.act_playing)
+	mb.queue_free()
+	m.grid.erase(mb)
+	m.boss = null
+	m.lobs.clear()
+	m.phase = "aim"
+	await process_frame
 
 	print("--- test menu ---")
 	var tb: Array[Rect2] = [m.debug_rect(), m.mute_rect(), m.pause_rect(), m.menu_rect(),

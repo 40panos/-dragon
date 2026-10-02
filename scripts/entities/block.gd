@@ -1,3 +1,4 @@
+class_name Block
 extends StaticBody2D
 ## Εχθρός στο ταμπλό. Μπορεί να πιάνει παραπάνω από ένα κελί (boss).
 
@@ -90,6 +91,13 @@ var shield_hit_t := 1.0         # χρόνος από το τελευταίο χ
 var weak_rect := Rect2()        # αδύναμο σημείο σε τοπικές συντεταγμένες (μέγεθος 0 = κανένα)
 var bump_t := 1.0               # τράνταγμα όταν χτυπιέται κάτι άθραυστο
 
+# ---- ασπίδα που μπλοκάρει (ShieldAbility): αντί για σπίθες, ένα φωτεινό
+# τετράγωνο προστασίας στην πλευρά απ' όπου ήρθε το χτύπημα
+const GUARD_TIME := 0.35
+static var guard_frames: Array[Texture2D] = []
+var guard_t := 1.0
+var guard_dir := Vector2.DOWN
+
 # ---- εμφάνιση / εξαφάνιση: τίποτα δεν πετάγεται ούτε χάνεται σε ένα καρέ
 const APPEAR_TIME := 0.38
 const VANISH_TIME := 0.45
@@ -171,6 +179,11 @@ func take_damage(amount: float) -> float:
 	var through := amount
 	if ability:
 		through = ability.absorb(self, amount)
+	# η ασπίδα το κράτησε ολόκληρο: φαίνεται μόνο το τετράγωνο προστασίας
+	# (guard_flash, από το main), όχι η φλόγα του χτυπήματος
+	if through <= 0.0 and ability is ShieldAbility:
+		damaged.emit(false, amount)
+		return 0.0
 	flash = 1.0
 	burst_t = 0.0
 	glow_t = 0.0        # η φλόγα ξεκινάει από την αρχή σε κάθε χτύπημα
@@ -264,6 +277,9 @@ func _process(delta: float) -> void:
 	if appear_t < 1.0:
 		appear_t = minf(1.0, appear_t + delta / APPEAR_TIME)
 		queue_redraw()
+	if guard_t < 1.0:
+		guard_t = minf(1.0, guard_t + delta / GUARD_TIME)
+		queue_redraw()
 	if bump_t < 1.0:
 		bump_t = minf(1.0, bump_t + delta * 6.0)
 		queue_redraw()
@@ -279,6 +295,29 @@ func _process(delta: float) -> void:
 		if k >= 1.0:
 			queue_free()
 		queue_redraw()
+
+
+## Η ασπίδα κράτησε ένα χτύπημα από την κατεύθυνση `from` (σε τοπικές
+## συντεταγμένες). Η πλευρά κουμπώνει στον κοντινότερο άξονα: το τετράγωνο
+## στέκεται πάνω, κάτω, αριστερά ή δεξιά του εχθρού, όχι λοξά.
+func guard_flash(from: Vector2) -> void:
+	if absf(from.x) > absf(from.y):
+		guard_dir = Vector2(signf(from.x), 0.0)
+	else:
+		guard_dir = Vector2(0.0, signf(from.y) if from.y != 0.0 else 1.0)
+	guard_t = 0.0
+	queue_redraw()
+
+
+func _draw_guard() -> void:
+	if guard_frames.is_empty():
+		return
+	var i := clampi(int(guard_t * guard_frames.size()), 0, guard_frames.size() - 1)
+	var tex := guard_frames[i]
+	var s := minf(box.x, box.y) * 0.62
+	var c := guard_dir * (box * 0.5 - Vector2(s, s) * 0.18)
+	var a := 1.0 - guard_t * guard_t
+	draw_texture_rect(tex, Rect2(c - Vector2(s, s) * 0.5, Vector2(s, s)), false, Color(1, 1, 1, a))
 
 
 ## Ξεκινάει το animation εμφάνισης. "pop": πετάγεται από το βαρέλι που
@@ -608,6 +647,8 @@ func _draw() -> void:
 		draw_texture_rect(SHIELD_TEX, Rect2(spos, Vector2(sic, sic)), false)
 		_draw_outline_text(spos + Vector2(sic + 2.0, sic - 1.0), str(shield_amt), 13, Color("bfe6ff"))
 
+	if guard_t < 1.0:
+		_draw_guard()
 	if weak_rect.has_area():
 		_draw_weak_point()
 	if fuse >= 0:

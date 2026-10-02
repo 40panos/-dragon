@@ -36,6 +36,8 @@ func _draw() -> void:
 func _draw_lobs() -> void:
 	var dot := Ball.dot_tex()
 	for l in m.lobs:
+		if l.get("hidden", false):
+			continue
 		var k: float = clampf(l.t / l.dur, 0.0, 1.0)
 		var ground: Vector2 = (l.from as Vector2).lerp(l.to, k)
 		var p: Vector2 = m.lob_pos(l)
@@ -74,10 +76,13 @@ func _draw_tethers() -> void:
 			draw_rect(Rect2(p - Vector2(3, 3), Vector2(6, 6)), Color(1.0, 0.81, 0.35, a))
 
 
+## Εφέ πάνω από τους εχθρούς (εκρήξεις, βελάκια, ασπίδες, emotes). Όσα είναι
+## στο πάτωμα τα ζωγραφίζει το main, κάτω από τους εχθρούς.
 func _draw_explosions() -> void:
 	for a in m.fx_anims:
-		var frames: Array = a.frames
-		var i := clampi(int(a.t * a.fps), 0, frames.size() - 1)
-		var tex: Texture2D = frames[i]
-		var s: Vector2 = tex.get_size() * float(a.scale)
-		draw_texture_rect(tex, Rect2((a.pos as Vector2) - s * 0.5, s), false)
+		if a.floor:
+			continue
+		var st: Array = m.fx_state(a)
+		var tex: Texture2D = st[0]
+		var s: Vector2 = tex.get_size() * float(st[1])
+		draw_texture_rect(tex, Rect2((a.pos as Vector2) - s * 0.5, s), false, Color(1, 1, 1, st[2]))

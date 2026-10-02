@@ -108,6 +108,10 @@ var fx_anims: Array = []       # εκρήξεις: {frames, pos, t, fps, scale}
 var explosion_frames: Array[Texture2D] = []
 var tex_spawn_barrel: Texture2D
 var tex_boulder: Texture2D
+var tex_cracks: Texture2D      # ρωγμές στο έδαφος όταν προσγειώνεται boss
+var tex_emote: Texture2D       # συννεφάκι θυμού του mini-boss
+var charge_frames: Array[Texture2D] = []   # βελάκια ταχύτητας στο διπλό βήμα
+var summon_frames: Array[Texture2D] = []   # μαγικός κύκλος του καλέσματος
 var to_fire := 0
 var fire_timer := 0.0
 var shot_time := 0.0
@@ -363,6 +367,16 @@ func _load_tex(name_: String) -> Texture2D:
 	return load(p) if ResourceLoader.exists(p) else null
 
 
+## Καρέ <όνομα>_1..N, όσα υπάρχουν.
+func _load_seq(name_: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	var i := 1
+	while ResourceLoader.exists("res://art/%s_%d.png" % [name_, i]):
+		out.append(load("res://art/%s_%d.png" % [name_, i]))
+		i += 1
+	return out
+
+
 ## Η γραμματοσειρά του παιχνιδιού. Είναι pixel font, οπότε το antialiasing
 ## και το subpixel positioning πρέπει να φύγουν — αλλιώς τα γράμματα
 ## θολώνουν και χάνουν το πλέγμα τους.
@@ -400,6 +414,11 @@ func _load_content() -> void:
 		ei += 1
 	tex_spawn_barrel = _load_tex("spawn_barrel")
 	tex_boulder = _load_tex("boulder")
+	tex_cracks = _load_tex("fx_cracks")
+	tex_emote = _load_tex("fx_emote_angry")
+	charge_frames = _load_seq("fx_charge")
+	summon_frames = _load_seq("fx_summon")
+	Block.guard_frames = _load_seq("fx_guard")
 
 
 func _load_dir(dir_path: String) -> Array:
@@ -564,6 +583,7 @@ func _start() -> void:
 	lobs.clear()
 	reserved.clear()
 	fx_anims.clear()
+	_late_banner = ""
 	level = 1
 	_apply_theme()
 
@@ -760,10 +780,84 @@ func _spawn_boss() -> void:
 		for b in grid.blocks():
 			if b.row < ch:
 				grid.erase(b)
-				b.queue_free()
+				add_sparks(b.position, 6, Color("d9d2c0"), 160.0, 4.0)
+				b.vanish()
 	var hp := maxf(10.0, round(level * area.boss_hp_mult))
 	boss = _make_block(col, 0, area.boss, hp, cw, ch, true)
-	_announce("BOSS - %s" % area.boss.display_name)
+	# είσοδος: πέφτει από τον ουρανό, και όσο πέφτει ο παίκτης περιμένει
+	var target: Vector2 = boss.position
+	boss.position.y = target.y - H * 0.5
+	var tw := create_tween()
+	tw.tween_property(boss, "position:y", target.y, MINI_DROP) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(_mini_landed.bind(boss))
+	after(MINI_DROP + 0.25, func(): pass)
+
+
+const MINI_DROP := 0.45
+const CRACKS_LIFE := 2.6
+
+
+## Ο mini-boss προσγειώθηκε: ρωγμές στο έδαφος κάτω του (διακριτικές, σβήνουν
+## σε λίγα δευτερόλεπτα), σκόνη, μικρό τράνταγμα, και ένα emote — ο βρυχηθμός
+## του και ένα συννεφάκι θυμού πάνω από το κεφάλι.
+func _mini_landed(b) -> void:
+	if b == null or not is_instance_valid(b):
+		return
+	add_shake(5.0)
+	_ground_impact(b)
+	var area := current_area()
+	# η ανακοίνωση περιμένει το emote: η πινακίδα της πέφτει ακριβώς πάνω στο
+	# κεφάλι του boss, και θα το έκρυβε
+	_announce_later("MINI-BOSS - %s" % (area.boss.display_name.to_upper() if area and area.boss else ""),
+		EMOTE_TIME)
+	var act := _act_frames(b.ability)
+	if not act.is_empty():
+		b.play_act(act, 10.0)
+	if tex_emote:
+		# μέσα στο κουτί του, πάνω δεξιά από το κεφάλι: ο mini-boss στέκεται στην
+		# πρώτη σειρά, και πιο ψηλά το συννεφάκι έβγαινε πάνω στο παραπέτο
+		play_fx([tex_emote], b.position + Vector2(b.box.x * 0.30, -b.box.y * 0.22), 2.0, 1.0,
+			EMOTE_TIME, 0.35, false, true)
+
+
+const EMOTE_TIME := 1.6
+var _late_banner := ""
+var _late_banner_t := 0.0
+
+
+## Ανακοίνωση που βγαίνει σε λίγο, χωρίς να σταματάει το παιχνίδι.
+func _announce_later(text: String, delay: float) -> void:
+	_late_banner = text
+	_late_banner_t = delay
+
+
+## Ρωγμές και σκόνη κάτω από ό,τι προσγειώθηκε βαριά (mini-boss, μεγάλος boss).
+func _ground_impact(b) -> void:
+	var base_y: float = b.position.y + b.box.y * 0.5
+	if tex_cracks:
+		# στο έδαφος γύρω από τα πόδια του, όχι κάτω από το σώμα του όπου θα
+		# κρύβονταν· x2, ακέραια κλίμακα, όπως όλο το pixel art
+		play_fx([tex_cracks], Vector2(b.position.x, base_y + 6.0), 2.0, 1.0,
+			CRACKS_LIFE, 1.0, true)
+	for i in 12:
+		var x: float = b.position.x + randf_range(-b.box.x * 0.55, b.box.x * 0.55)
+		add_sparks(Vector2(x, base_y), 2, Color("a8906a"), 170.0, 6.0)
+
+
+## Τα καρέ «δράσης» μιας ικανότητας (π.χ. ο βρυχηθμός του βασιλιά, που είναι
+## τα act_frames του καλέσματός του), ψάχνοντας και μέσα σε σύνθετες.
+func _act_frames(ab) -> Array[Texture2D]:
+	if ab == null:
+		return []
+	if "act_frames" in ab and not ab.act_frames.is_empty():
+		return ab.act_frames
+	if ab is CompositeAbility:
+		for p in ab.parts:
+			var f := _act_frames(p)
+			if not f.is_empty():
+				return f
+	return []
 
 
 func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: int, as_boss: bool):
@@ -822,7 +916,27 @@ func spawn_near(col: int, row: int, cw: int, ch: int, source_hp: float,
 		made += 1
 
 
-## Καλείται από το SummonerAbility.
+## Διπλό βήμα (καβαλάρης, τύμπανα): βελάκια ταχύτητας με άνεμο στιγμιαία
+## πάνω στο κελί που προσπέρασε, και σκόνη εκεί που ξεκίνησε. Καλείται πριν
+## μετακινηθεί, με το block ακόμα στην παλιά του σειρά.
+func _charge_fx(b, step: int) -> void:
+	for k in range(1, step):
+		var c := block_center(b.col, b.row + k, 1, 1)
+		if not charge_frames.is_empty():
+			play_fx(charge_frames, c, 2.0, 18.0, -1.0, 0.12)
+		else:
+			add_sparks(c, 6, Color(1, 1, 1, 0.8), 140.0, 4.0)
+	add_sparks(b.position + Vector2(0, cell * 0.35), 6, Color("c9b28a"), 120.0, 5.0)
+
+
+const SUMMON_DELAY := 0.5      # από το cast ως την εμφάνιση του minion
+const SUMMON_COL := Color("c77dff")
+
+
+## Καλείται από το SummonerAbility. Δεν γεννάει αμέσως: ο καλεστής βγάζει
+## μωβ σπίθες (και τα καρέ δράσης του, από την ικανότητα), στο κελί-στόχο
+## ανοίγει μαγικός κύκλος με ίδιες σπίθες, και το minion υψώνεται από μέσα
+## του μόλις κλείσει το cast. Το κελί κρατιέται ώστε να μην το πάρει άλλος.
 func summon_minion(source, minion_id: String, hp_ratio: float, min_row: int,
 		max_row: int, keep_clear: int = 0) -> void:
 	var type: EnemyType = enemy_by_id.get(minion_id)
@@ -833,14 +947,35 @@ func summon_minion(source, minion_id: String, hp_ratio: float, min_row: int,
 	var last_row := mini(max_row, death_row - 1 - maxi(keep_clear, 0))
 	if last_row < min_row:
 		return
-	var cells := grid.free_cells(min_row, last_row)
+	var cells := []
+	for c in grid.free_cells(min_row, last_row):
+		if not reserved.has(c):
+			cells.append(c)
 	if cells.is_empty():
 		return
 	var spot: Vector2i = cells[randi() % cells.size()]
 	# όσο πιο μπροστά γεννιέται, τόσο λιγότερη ζωή
 	var depth := clampf(float(spot.y) / float(maxi(death_row, 1)), 0.0, 1.0)
 	var hp := maxf(1.0, round(source.max_hp * hp_ratio * (1.0 - depth * 0.5)))
-	_make_block(spot.x, spot.y, type, hp, 1, 1, false)
+	reserved[spot] = true
+	var at := block_center(spot.x, spot.y, 1, 1)
+	if is_instance_valid(source):
+		add_sparks(source.position + Vector2(0, -source.box.y * 0.3), 10, SUMMON_COL, 170.0, 5.0)
+	if not summon_frames.is_empty():
+		play_fx(summon_frames, at, 2.2, float(summon_frames.size()) / SUMMON_DELAY,
+			SUMMON_DELAY + 0.35, 0.35, true)
+	add_sparks(at, 8, SUMMON_COL, 110.0, 4.0)
+	after(SUMMON_DELAY, _summon_land.bind(spot, type, hp))
+
+
+func _summon_land(spot: Vector2i, type: EnemyType, hp: float) -> void:
+	reserved.erase(spot)
+	if phase == "over" or not grid.is_free(spot.x, spot.y):
+		return
+	var at := block_center(spot.x, spot.y, 1, 1)
+	add_sparks(at, 12, SUMMON_COL, 200.0, 5.0)
+	var b = _make_block(spot.x, spot.y, type, hp, 1, 1, false)
+	b.appear("rise")
 
 
 func _spawn_orb(col: int, kind: String) -> void:
@@ -869,8 +1004,13 @@ func _on_orb_taken(_body: Node, orb: Node) -> void:
 func _on_ball_struck(block, ball) -> void:
 	if not is_instance_valid(block):
 		return
-	add_sparks(ball.position, 5, _accent(0.82), 190.0, 4.0)
 	var dmg: float = ball.damage
+	# ασπίδα που κρατάει: τετράγωνο προστασίας στην πλευρά του χτυπήματος,
+	# αντί για τις σπίθες — μόνο όσο υπάρχει ασπίδα
+	if block.ability is ShieldAbility and block.ability.shield > 0.0:
+		block.guard_flash(ball.position - block.position)
+	else:
+		add_sparks(ball.position, 5, _accent(0.82), 190.0, 4.0)
 	# αδύναμο σημείο του μεγάλου boss (ο Grukk στην κορυφή): διπλή ζημιά,
 	# χρυσές σπίθες — ο παίκτης βλέπει ότι βρήκε το σημείο
 	if block.is_final and block.weak_rect.has_area() and not block.shield_on:
@@ -1430,6 +1570,11 @@ func _process(delta: float) -> void:
 			_update_boss_intro(delta)
 		_update_lobs(delta)
 		_update_fx_anims(delta)
+		if _late_banner != "":
+			_late_banner_t -= delta
+			if _late_banner_t <= 0.0:
+				_announce(_late_banner)
+				_late_banner = ""
 	queue_redraw()
 	if frozen() or phase != "shoot":
 		return
@@ -1562,6 +1707,8 @@ func _end_turn() -> void:
 		var step := want
 		while step > 0 and not grid.fits(b.col, b.row + step, b.cw, b.ch, b):
 			step -= 1
+		if step >= 2 and b.cw == 1:
+			_charge_fx(b, step)
 		if step > 0:
 			grid.move_to(b, b.col, b.row + step)
 			b.begin_move(ADVANCE_TIME)      # όσο κατεβαίνει, κρύβει το περίγραμμά του
@@ -1678,10 +1825,7 @@ func _boss_landed() -> void:
 	if boss == null or not is_instance_valid(boss):
 		return
 	add_shake(9.0)
-	var base_y: float = boss.position.y + boss.box.y * 0.5
-	for i in 14:
-		var x: float = boss.position.x + randf_range(-boss.box.x * 0.55, boss.box.x * 0.55)
-		add_sparks(Vector2(x, base_y), 2, Color("a8906a"), 180.0, 7.0)
+	_ground_impact(boss)
 	_announce("BOSS - %s" % boss_name())
 
 
@@ -1946,7 +2090,20 @@ func _play_explosion(pos: Vector2, scale: float) -> void:
 	if explosion_frames.is_empty():
 		add_sparks(pos, 20, Color("ff9e2c"), 280.0, 7.0)
 		return
-	fx_anims.append({"frames": explosion_frames, "pos": pos, "t": 0.0, "fps": 16.0, "scale": scale})
+	play_fx(explosion_frames, pos, scale, 16.0)
+
+
+## Εφέ σε σημείο της οθόνης. `frames` παίζουν μία φορά στα `fps`· αν δοθεί
+## `life`, το τελευταίο καρέ κρατάει ως τότε. `fade`: σβήσιμο στο τέλος.
+## `floor`: ζωγραφίζεται στο πάτωμα, ΚΑΤΩ από τους εχθρούς (ρωγμές, μαγικός
+## κύκλος)· αλλιώς από πάνω τους. `pop`: μπαίνει με μικρό φούσκωμα (emote).
+func play_fx(frames: Array, pos: Vector2, scale: float, fps: float, life := -1.0,
+		fade := 0.0, on_floor := false, pop := false) -> void:
+	if frames.is_empty():
+		return
+	var span := float(frames.size()) / fps
+	fx_anims.append({"frames": frames, "pos": pos, "t": 0.0, "fps": fps, "scale": scale,
+		"life": maxf(life, span), "fade": fade, "floor": on_floor, "pop": pop})
 
 
 func _update_fx_anims(delta: float) -> void:
@@ -1954,9 +2111,42 @@ func _update_fx_anims(delta: float) -> void:
 	while i >= 0:
 		var a: Dictionary = fx_anims[i]
 		a.t += delta
-		if a.t * a.fps >= (a.frames as Array).size():
+		if a.t >= a.life:
 			fx_anims.remove_at(i)
 		i -= 1
+
+
+## Το καρέ, η κλίμακα και η διαφάνεια ενός εφέ αυτή τη στιγμή.
+static func fx_state(a: Dictionary) -> Array:
+	var frames: Array = a.frames
+	var i := clampi(int(a.t * a.fps), 0, frames.size() - 1)
+	var s: float = a.scale
+	if a.pop:
+		var k := clampf(a.t / 0.18, 0.0, 1.0)
+		s *= lerpf(0.2, 1.0, k) + sin(k * PI) * 0.25
+	var alpha := 1.0
+	if a.fade > 0.0:
+		alpha = clampf((a.life - a.t) / a.fade, 0.0, 1.0)
+	return [frames[i], s, alpha]
+
+
+func _draw_floor_fx() -> void:
+	for a in fx_anims:
+		if not a.floor:
+			continue
+		var st := fx_state(a)
+		var tex: Texture2D = st[0]
+		var sz: Vector2 = tex.get_size() * float(st[1])
+		draw_texture_rect(tex, Rect2((a.pos as Vector2) - sz * 0.5, sz), false, Color(1, 1, 1, st[2]))
+
+
+## Καθυστέρηση μέσα στη ροή του γύρου: όσο περιμένει, ο παίκτης περιμένει
+## κι αυτός (όπως με τις ρίψεις). Ζει στην ίδια λίστα με τα βλήματα, αόρατο.
+func after(delay: float, cb: Callable) -> void:
+	lobs.append({"from": Vector2.ZERO, "to": Vector2.ZERO, "tex": null, "t": 0.0,
+		"dur": maxf(delay, 0.01), "h": 0.0, "spin": 0.0, "scale": 1.0, "cb": cb, "hidden": true})
+	if phase == "aim":
+		phase = "boss_act"
 
 
 # ---------------------------------------------------------------- αλλαγή περιοχής
@@ -2061,6 +2251,9 @@ func _game_over() -> void:
 
 func _draw() -> void:
 	_draw_field()
+	# ρωγμές, μαγικοί κύκλοι: πάνω στο πάτωμα, κάτω από τους εχθρούς (που
+	# είναι παιδιά του main και ζωγραφίζονται μετά από αυτό)
+	_draw_floor_fx()
 	_draw_frame()
 	_draw_torches()
 	_draw_ground()
