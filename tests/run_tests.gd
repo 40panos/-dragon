@@ -502,6 +502,7 @@ func _initialize() -> void:
 	# οι πρώτοι εχθροί του test έχουν ήδη βγάλει ειδοποιήσεις· άδειασμα για καθαρή αρχή
 	bk.notices.clear()
 	bk._born.clear()
+	bk._turns.clear()
 	bk.saw(bk_dummy)
 	bk.saw(bk_dummy)
 	ok("νέος εχθρός: μία ειδοποίηση και καταγραφή, όχι δεύτερη φορά",
@@ -518,6 +519,26 @@ func _initialize() -> void:
 	ok("η καρτέλα αλλάζει σελίδα", bk.book_area == 1)
 	bk.press(bk.close_rect(bk.book_rect()).get_center())
 	ok("το X κλείνει το Book", not bk.is_open() and not m.get_tree().paused)
+	# αυτόματο σβήσιμο: 4 νέοι εχθροί, οι 3 φαίνονται και ο 4ος περιμένει σειρά
+	bk._leaving.clear()     # τα tests δεν καλούν _draw(), που τα καθαρίζει
+	var bk_auto: Array[EnemyType] = []
+	for bk_k in 4:
+		var bk_t := EnemyType.new()
+		bk_t.id = "test_auto_%d" % bk_k
+		bk_auto.append(bk_t)
+		bk.saw(bk_t)
+	bk.turn_ended()
+	ok("ειδοποίηση μένει μετά από 1 γύρο", bk.notices.size() == 4)
+	bk.turn_ended()
+	ok("...και φεύγει μόνη της μετά από 2 γύρους· η ουρά ανεβαίνει",
+		bk.notices.size() == 1 and bk.notices[0] == bk_auto[3] and bk._leaving.size() == 3,
+		"(%d, %d)" % [bk.notices.size(), bk._leaving.size()])
+	ok("ο εχθρός μένει καταγεγραμμένος στο Book", bk.is_seen("test_auto_0"))
+	bk.turn_ended()
+	ok("ο 4ος μετράει από τη στιγμή που φάνηκε", bk.notices.size() == 1)
+	bk.turn_ended()
+	ok("...και φεύγει κι αυτός μετά από 2 δικούς του γύρους", bk.notices.is_empty())
+	bk._leaving.clear()
 	ok("το κουμπί του Book δεν πέφτει πάνω σε μενού ή παύση",
 		not bk.book_button_rect().intersects(m.menu_rect())
 		and not bk.book_button_rect().intersects(m.pause_rect()))

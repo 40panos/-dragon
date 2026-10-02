@@ -26,6 +26,8 @@ const HOLE := Color("16121a")       # φόντο πίσω από τον εχθρ
 const HOLE_UNSEEN := Color("6b5a47")  # ...και πίσω από σιλουέτα: αλλιώς μαύρο σε μαύρο
 
 const NOTICE_MAX := 3               # όσα φαίνονται μαζί· τα υπόλοιπα περιμένουν σειρά
+const NOTICE_TURNS := 2             # γύροι πάνω στην οθόνη χωρίς πάτημα, μετά φεύγει μόνη της
+const NOTICE_OUT := 0.3             # δευτερόλεπτα που κρατάει το ζάρωμα όταν φεύγει
 const PAGE_CORNER := 12             # art pixels της γωνίας στο book_page
 const BOOK_COLS := 3
 
@@ -33,6 +35,10 @@ var m
 ## Ειδοποιήσεις που περιμένουν πάτημα, με τη σειρά που εμφανίστηκαν οι εχθροί.
 var notices: Array[EnemyType] = []
 var _born: Array[float] = []
+## Πόσους γύρους έχει περάσει κάθε ειδοποίηση ορατή στην οθόνη (όχι στην ουρά).
+var _turns: Array[int] = []
+## Όσες έφυγαν μόνες τους και ζαρώνουν ακόμα: {"type", "rect", "t"}.
+var _leaving: Array[Dictionary] = []
 ## "" κλειστό · "card" κάρτα από ειδοποίηση · "book" η λίστα · "entry" κάρτα μέσα από το Book
 var view := ""
 var card: EnemyType
@@ -70,6 +76,28 @@ func saw(type: EnemyType) -> void:
 	SaveManager.save_data(m.save)
 	notices.append(type)
 	_born.append(m.t)
+	_turns.append(0)
+
+
+## Το καλεί το main στο τέλος κάθε γύρου. Όποια ειδοποίηση έμεινε NOTICE_TURNS
+## γύρους στην οθόνη χωρίς να πατηθεί φεύγει (ο εχθρός μένει στο Book), και
+## όσες περίμεναν στην ουρά παίρνουν τη θέση της με το δικό τους «σκάσιμο».
+func turn_ended() -> void:
+	var shown := mini(notices.size(), NOTICE_MAX)
+	for i in range(shown - 1, -1, -1):
+		_turns[i] += 1
+		if _turns[i] >= NOTICE_TURNS:
+			_leaving.append({"type": notices[i], "rect": notice_rect(i), "t": m.t})
+			_drop_notice(i)
+			shown -= 1
+	for i in range(shown, mini(notices.size(), NOTICE_MAX)):
+		_born[i] = m.t
+
+
+func _drop_notice(i: int) -> void:
+	notices.remove_at(i)
+	_born.remove_at(i)
+	_turns.remove_at(i)
 
 
 ## Σε ποια περιοχή «ανήκει» ένας εχθρός: στην πρώτη όπου εμφανίζεται. Οι
@@ -203,8 +231,7 @@ func press(p: Vector2) -> bool:
 	for i in mini(notices.size(), NOTICE_MAX):
 		if notice_rect(i).has_point(p):
 			card = notices[i]
-			notices.remove_at(i)
-			_born.remove_at(i)
+			_drop_notice(i)
 			view = "card"
 			get_tree().paused = true
 			return true
@@ -317,17 +344,30 @@ func _draw_notices() -> void:
 			s = sin(k * PI * 0.5) * 1.12 - sin(k * PI) * 0.05
 		else:
 			s = 1.0 + 0.03 * sin((m.t - _born[i]) * 4.0)
-		draw_set_transform(r.get_center(), 0.0, Vector2(s, s))
-		var local := Rect2(-r.size * 0.5, r.size)
-		draw_circle(Vector2.ZERO, r.size.x * 0.36, HOLE)
-		_draw_face(notices[i], Vector2.ZERO)
-		draw_texture_rect(MEDALLION, local, false)
-		var a := ALERT.get_size() * 2.0
-		var pulse := 1.0 + 0.08 * sin(m.t * 7.0)
-		draw_set_transform(r.get_center() + Vector2(r.size.x * 0.34, -r.size.y * 0.34), 0.0,
-			Vector2(s * pulse, s * pulse))
-		draw_texture_rect(ALERT, Rect2(-a * 0.5, a), false)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		_draw_notice(notices[i], r, s)
+	# όσες έφυγαν μόνες τους: ένα μικρό φούσκωμα και μετά ζαρώνουν ως το τίποτα
+	for k in range(_leaving.size() - 1, -1, -1):
+		var lv: Dictionary = _leaving[k]
+		var age: float = m.t - lv["t"]
+		if age >= NOTICE_OUT or age < 0.0:
+			_leaving.remove_at(k)
+			continue
+		var q := age / NOTICE_OUT
+		_draw_notice(lv["type"], lv["rect"], (1.0 + 0.1 * sin(q * PI)) * (1.0 - q * q))
+
+
+func _draw_notice(e: EnemyType, r: Rect2, s: float) -> void:
+	draw_set_transform(r.get_center(), 0.0, Vector2(s, s))
+	var local := Rect2(-r.size * 0.5, r.size)
+	draw_circle(Vector2.ZERO, r.size.x * 0.36, HOLE)
+	_draw_face(e, Vector2.ZERO)
+	draw_texture_rect(MEDALLION, local, false)
+	var a := ALERT.get_size() * 2.0
+	var pulse := 1.0 + 0.08 * sin(m.t * 7.0)
+	draw_set_transform(r.get_center() + Vector2(r.size.x * 0.34, -r.size.y * 0.34), 0.0,
+		Vector2(s * pulse, s * pulse))
+	draw_texture_rect(ALERT, Rect2(-a * 0.5, a), false)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## Σελίδα βιβλίου σε 9-slice x2: γωνίες ως έχουν, πλευρές σε επανάληψη (ποτέ

@@ -1795,6 +1795,9 @@ func _on_ball_died(x: float) -> void:
 
 func _end_turn() -> void:
 	Engine.time_scale = 1.0
+	# πριν βγουν οι νέοι εχθροί του γύρου: οι δικές τους ειδοποιήσεις ξεκινούν από 0
+	if bestiary:
+		bestiary.turn_ended()
 	# γύρος παγώματος: μετράει κανονικά, αλλά ο κόσμος δεν κουνιέται
 	var frozen_turn := freeze_rounds > 0
 	if frozen_turn:
