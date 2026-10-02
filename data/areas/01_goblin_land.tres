@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AreaDef" load_steps=184 format=3]
+[gd_resource type="Resource" script_class="AreaDef" load_steps=190 format=3]
 
 [ext_resource type="Texture2D" path="res://art/background.png" id="1_q6tll"]
 [ext_resource type="Script" path="res://scripts/abilities/enemy_ability.gd" id="2_pvyx4"]
@@ -121,6 +121,12 @@
 [ext_resource type="Texture2D" path="res://art/bat_idle_7.png" id="90_71ka6"]
 [ext_resource type="Texture2D" path="res://art/bat_idle_8.png" id="91_purs7"]
 [ext_resource type="AudioStream" path="res://audio/music_goblin_land.mp3" id="92_music"]
+[ext_resource type="Texture2D" path="res://art/warlock_cast_1.png" id="93_midg0"]
+[ext_resource type="Texture2D" path="res://art/warlock_cast_2.png" id="94_0kc4k"]
+[ext_resource type="Texture2D" path="res://art/warlock_cast_3.png" id="95_g7cg8"]
+[ext_resource type="Texture2D" path="res://art/warlock_cast_4.png" id="96_tl08y"]
+[ext_resource type="Texture2D" path="res://art/warlock_cast_5.png" id="97_c5phj"]
+[ext_resource type="Texture2D" path="res://art/warlock_cast_6.png" id="98_5esjl"]
 [ext_resource type="Script" path="res://scripts/abilities/ability_siege.gd" id="106_bh4dc"]
 [ext_resource type="Texture2D" path="res://art/siege_tower_throw_1.png" id="107_2yq2t"]
 [ext_resource type="Texture2D" path="res://art/siege_tower_throw_2.png" id="108_vhid3"]
@@ -314,8 +320,8 @@ max_row = 7
 minion_id = "bat"
 keep_clear = 2
 count = 1
-act_frames = Array[Texture2D]([])
-act_fps = 10.0
+act_frames = Array[Texture2D]([ExtResource("93_midg0"), ExtResource("94_0kc4k"), ExtResource("95_g7cg8"), ExtResource("96_tl08y"), ExtResource("97_c5phj"), ExtResource("98_5esjl")])
+act_fps = 12.0
 
 [sub_resource type="Resource" id="Resource_yx2hu"]
 script = ExtResource("3_8loov")

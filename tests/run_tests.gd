@@ -99,7 +99,19 @@ func _initialize() -> void:
 	sa.every = 1
 	ok("καλεί orc bat", sa.minion_id == "bat", "(%s)" % sa.minion_id)
 	ok("κρατάει ζώνη ασφαλείας", sa.keep_clear == 2, "(%d)" % sa.keep_clear)
+	m.fx_anims.clear()
 	sa.on_round_end(wl, m)
+	ok("το κάλεσμα δεν γεννάει αμέσως: πρώτα ο καλεστής κάνει cast",
+		m.lobs.size() > 0 and wl.cast_t < 1.0 and wl.act_playing)
+	m._update_lobs(m.SUMMON_CAST + 0.01)
+	ok("...μετά πετάει μαγικό βλήμα στο κελί", m.lobs.any(func(l): return not l.get("hidden", false)))
+	m._update_lobs(m.SUMMON_BOLT + 0.01)
+	var circle_on_floor := false
+	for fa in m.fx_anims:
+		if fa.floor:
+			circle_on_floor = true
+	ok("...που ανοίγει μαγικό κύκλο στο πάτωμα", circle_on_floor)
+	m.flush_actions()
 	await process_frame
 	var minion = null
 	for b in m.grid.blocks():
@@ -112,6 +124,7 @@ func _initialize() -> void:
 			"(%.2f)" % minion.sprite_scale)
 		ok("έχει idle animation", minion.frames_idle.size() > 1,
 			"(%d καρέ)" % minion.frames_idle.size())
+		ok("υψώνεται μέσα από τον κύκλο", minion.appear_mode == "rise")
 
 	# απαγορευμένες ζώνες: οι πρώτες σειρές και οι δύο πριν τη γραμμή θανάτου
 	print("--- ζώνες που απαγορεύονται στον καλεστή ---")
@@ -123,6 +136,7 @@ func _initialize() -> void:
 				b.queue_free()
 		await process_frame
 		sa.on_round_end(wl, m)
+		m.flush_actions()
 		await process_frame
 		for b in m.grid.blocks():
 			if b != wl and not rows_seen.has(b.row):
@@ -153,6 +167,7 @@ func _initialize() -> void:
 	for i in 60:
 		for s in summoners:
 			s.ability.on_round_end(s, m)
+		m.flush_actions()          # το κάλεσμα βγάζει το minion μετά το cast
 	await process_frame
 	# άλλο όνομα: το `deepest` υπάρχει ήδη πιο πάνω, και στο _initialize()
 	# όλες οι μεταβλητές ζουν στο ίδιο scope
@@ -279,8 +294,10 @@ func _initialize() -> void:
 		ok("ο boss έχει κάλεσμα", boss_summoner != null)
 		if boss_summoner:
 			boss_summoner.every = 1000
+		m.flush_actions()          # η πτώση του mini-boss
 		for turn in 3:
 			m._end_turn()
+			m.flush_actions()
 			await process_frame
 		ok("με ζωντανό boss ο γύρος δεν προχωράει", m.level == 10, "(%d)" % m.level)
 		ok("με ζωντανό boss η περιοχή δεν αλλάζει", m.area_index == 0, "(%d)" % m.area_index)
@@ -331,7 +348,7 @@ func _initialize() -> void:
 			== m.COLS - 3)
 		ok("ρίχνει ό,τι βγάζει — βλήματα στον αέρα, και περιμένεις", not m.lobs.is_empty()
 			and m.phase == "boss_act", "(%d, %s)" % [m.lobs.size(), m.phase])
-		m._update_lobs(5.0)
+		m.flush_actions()
 		ok("...που προσγειώνονται: goblin και οδοφράγματα", m.count_kind("goblin") >= 1
 			and m.count_kind("barricade") >= 1 and m.phase == "aim",
 			"(goblin %d, barricade %d)" % [m.count_kind("goblin"), m.count_kind("barricade")])
@@ -355,9 +372,9 @@ func _initialize() -> void:
 		# φάση 2: τύμπανα
 		fb.take_damage(fb.max_hp * 0.45)
 		ok("στο 60% η φάση 2", fb_ab.stage == 2)
-		m._update_lobs(5.0)
+		m.flush_actions()
 		m._end_turn()
-		m._update_lobs(5.0)
+		m.flush_actions()
 		await process_frame
 		ok("φάση 2: δύο τυμπανιστές δίπλα στον πύργο", m.count_kind("war_drummer") == 2,
 			"(%d)" % m.count_kind("war_drummer"))
@@ -373,14 +390,14 @@ func _initialize() -> void:
 		# φάση 3: μπαρούτι
 		fb.take_damage(fb.hp - fb.max_hp * 0.25)
 		ok("στο 30% η φάση 3", fb_ab.stage == 3)
-		m._update_lobs(5.0)
+		m.flush_actions()
 		for b in m.grid.blocks():
 			if b.kind == "barricade" or b.kind == "goblin":
 				m.grid.erase(b)
 				b.queue_free()
 		await process_frame
 		m._end_turn()
-		m._update_lobs(5.0)
+		m.flush_actions()
 		await process_frame
 		var kegs := []
 		for b in m.grid.blocks():
@@ -406,7 +423,7 @@ func _initialize() -> void:
 		var sg = m._make_block(1, 4, m.enemy_by_id["goblin"], 50.0, 1, 1, false)
 		siege_row = sg.row
 		m._end_turn()
-		m._update_lobs(5.0)
+		m.flush_actions()
 		await process_frame
 		ok("η πολιορκία ρίχνει βράχο και κατεβάζει το ταμπλό", is_instance_valid(sg)
 			and sg.row >= siege_row + 2 and fb.row == 0, "(%d -> %d)" % [siege_row, sg.row])
@@ -485,6 +502,7 @@ func _initialize() -> void:
 	# οι πρώτοι εχθροί του test έχουν ήδη βγάλει ειδοποιήσεις· άδειασμα για καθαρή αρχή
 	bk.notices.clear()
 	bk._born.clear()
+	bk._turns.clear()
 	bk.saw(bk_dummy)
 	bk.saw(bk_dummy)
 	ok("νέος εχθρός: μία ειδοποίηση και καταγραφή, όχι δεύτερη φορά",
@@ -501,6 +519,26 @@ func _initialize() -> void:
 	ok("η καρτέλα αλλάζει σελίδα", bk.book_area == 1)
 	bk.press(bk.close_rect(bk.book_rect()).get_center())
 	ok("το X κλείνει το Book", not bk.is_open() and not m.get_tree().paused)
+	# αυτόματο σβήσιμο: 4 νέοι εχθροί, οι 3 φαίνονται και ο 4ος περιμένει σειρά
+	bk._leaving.clear()     # τα tests δεν καλούν _draw(), που τα καθαρίζει
+	var bk_auto: Array[EnemyType] = []
+	for bk_k in 4:
+		var bk_t := EnemyType.new()
+		bk_t.id = "test_auto_%d" % bk_k
+		bk_auto.append(bk_t)
+		bk.saw(bk_t)
+	bk.turn_ended()
+	ok("ειδοποίηση μένει μετά από 1 γύρο", bk.notices.size() == 4)
+	bk.turn_ended()
+	ok("...και φεύγει μόνη της μετά από 2 γύρους· η ουρά ανεβαίνει",
+		bk.notices.size() == 1 and bk.notices[0] == bk_auto[3] and bk._leaving.size() == 3,
+		"(%d, %d)" % [bk.notices.size(), bk._leaving.size()])
+	ok("ο εχθρός μένει καταγεγραμμένος στο Book", bk.is_seen("test_auto_0"))
+	bk.turn_ended()
+	ok("ο 4ος μετράει από τη στιγμή που φάνηκε", bk.notices.size() == 1)
+	bk.turn_ended()
+	ok("...και φεύγει κι αυτός μετά από 2 δικούς του γύρους", bk.notices.is_empty())
+	bk._leaving.clear()
 	ok("το κουμπί του Book δεν πέφτει πάνω σε μενού ή παύση",
 		not bk.book_button_rect().intersects(m.menu_rect())
 		and not bk.book_button_rect().intersects(m.pause_rect()))
@@ -842,6 +880,20 @@ func _initialize() -> void:
 	var before_horn: Array = m.grid.blocks()
 	horn.every = 1
 	comp.on_round_end(king, m)
+	ok("ο boss καλεί με βρυχηθμό, όχι με τη μαγεία του warlock",
+		king.cast_style == "roar" and king.cast_t < 1.0)
+	m._update_lobs(m.WARCRY_TIME * 0.45 + 0.2)
+	var flyers := 0
+	var circles := 0
+	for fl in m.lobs:
+		if fl.has("frames"):
+			flyers += 1
+	for fa in m.fx_anims:
+		if fa.floor and fa.frames == m.summon_frames:
+			circles += 1
+	ok("...και τα bats έρχονται πετώντας, χωρίς μαγικό κύκλο", flyers == 2 and circles == 0,
+		"(%d πετάνε, %d κύκλοι)" % [flyers, circles])
+	m.flush_actions()
 	await process_frame
 	var spawned := 0
 	for kb in m.grid.blocks():
@@ -1119,6 +1171,13 @@ func _initialize() -> void:
 	m.area_index = 1
 	m._apply_theme()
 	ok("περιοχή χωρίς μουσική = σιωπή", m.music.stream == null)
+	m.area_index = 2
+	m._apply_theme()
+	var grave_song = m.areas[2].music
+	ok("το Graveyard έχει δικό του soundtrack", grave_song != null and grave_song != goblin_song
+		and m.music.stream == grave_song)
+	ok("...που κι αυτό κλείνει τη λούπα με crossfade, όχι στο import",
+		grave_song != null and not grave_song.loop)
 	m.area_index = 0
 	m._apply_theme()
 	var vbar: Rect2 = m.volume_bar_rect()
@@ -1139,6 +1198,99 @@ func _initialize() -> void:
 	m.save["music_volume"] = 0.8
 	m.save["music_muted"] = false
 	m._apply_music_volume()
+
+	print("--- animations ικανοτήτων ---")
+	for ab_b in m.grid.blocks():
+		m.grid.erase(ab_b)
+		ab_b.queue_free()
+	await process_frame
+	m.fx_anims.clear()
+	m.area_index = 0
+	m.level = 3
+	m.boss = null
+	m.freeze_rounds = 0
+	var ch_r = m._make_block(3, 1, m.enemy_by_id["orc"], 50.0, 1, 1, false)
+	ch_r.ability._rounds = 1                  # ο επόμενος γύρος είναι διπλό βήμα
+	m.phase = "aim"
+	var sum_wl = m._make_block(6, 1, m.enemy_by_id["warlock"], 50.0, 1, 1, false)
+	sum_wl.ability.every = 1
+	m.fx_anims.clear()
+	m._end_turn()
+	ok("πρώτα κατεβαίνουν όλοι μία σειρά, ο καβαλάρης μαζί τους",
+		ch_r.row == 2 and m.phase == "boss_act", "(σειρά %d)" % ch_r.row)
+	ok("...και κανείς δεν καλεί όσο κινούνται", sum_wl.cast_t >= 1.0)
+	m._update_lobs(m.ADVANCE_TIME + m.ABILITY_GAP + 0.01)
+	ok("μετά, χωριστά, το dash του καβαλάρη", ch_r.row == 3 and sum_wl.cast_t >= 1.0,
+		"(σειρά %d)" % ch_r.row)
+	m._update_lobs(m.CHARGE_TIME + m.ABILITY_GAP + 0.01)
+	ok("και τελευταίο το κάλεσμα", sum_wl.cast_t < 1.0)
+	m.flush_actions()
+	await process_frame
+	ok("ο καβαλάρης κάνει διπλό βήμα", ch_r.row == 3, "(σειρά %d)" % ch_r.row)
+	var arrows_on_skip := false
+	for fa in m.fx_anims:
+		if fa.frames == m.charge_frames and absf(fa.pos.y - m.block_center(3, 2, 1, 1).y) < 1.0:
+			arrows_on_skip = true
+	ok("...και στο κελί που πήδηξε φαίνονται βελάκια ταχύτητας", arrows_on_skip)
+	var kn2 = m._make_block(5, 4, m.enemy_by_id["knight"], 20.0, 1, 1, false)
+	var fake_ball := Node2D.new()
+	fake_ball.set("position", kn2.position + Vector2(-60, 0))
+	var fb_script := GDScript.new()
+	fb_script.source_code = "extends Node2D\nvar damage := 1.0\nvar splashed := {}\n"
+	fb_script.reload()
+	fake_ball.set_script(fb_script)
+	fake_ball.position = kn2.position + Vector2(-60, 0)
+	var sparks0: int = m.sparks.size()
+	m._on_ball_struck(kn2, fake_ball)
+	ok("ο knight με ασπίδα: ανάβει το περίγραμμά του αντί για σπίθες",
+		kn2.guard_t < 1.0 and kn2.guard_dir == Vector2.LEFT and m.sparks.size() == sparks0
+		and kn2.flash == 0.0)
+	kn2.ability.shield = 0.0
+	kn2.guard_t = 1.0
+	m._on_ball_struck(kn2, fake_ball)
+	ok("...χωρίς ασπίδα ξανά οι κανονικές σπίθες", kn2.guard_t >= 1.0 and m.sparks.size() > sparks0)
+	fake_ball.free()
+	for ab_b in m.grid.blocks():
+		m.grid.erase(ab_b)
+		ab_b.queue_free()
+	await process_frame
+	m.area_index = 0
+	m.level = m.MINIBOSS_ROUND
+	m.boss = null
+	m.phase = "shoot"
+	m._add_row()
+	var mb = m.boss
+	ok("ο mini-boss πέφτει από τον ουρανό", mb != null and mb.position.y
+		< m.block_center(mb.col, mb.row, mb.cw, mb.ch).y - 100.0)
+	m.fx_anims.clear()
+	m._mini_landed(mb)
+	var crack_cells := 0
+	var cracks_inside := true
+	var foot := Rect2(m.pf_left + mb.col * m.cell, m.PF_TOP + mb.row * m.cell, mb.cw * m.cell, mb.ch * m.cell)
+	for fa in m.fx_anims:
+		if fa.floor and fa.frames[0] == m.tex_cracks:
+			crack_cells += 1
+			if not fa.has("clip") or not foot.grow(0.5).encloses(fa.clip):
+				cracks_inside = false
+	ok("...στην προσγείωση ρωγμές μόνο στα κελιά του, πίσω του",
+		crack_cells == mb.cw * mb.ch and cracks_inside, "(%d κελιά)" % crack_cells)
+	var emote_now := false
+	for fa in m.fx_anims:
+		if fa.pop:
+			emote_now = true
+	ok("...το emote δεν σκάει αμέσως", not emote_now)
+	m._update_soft(m.EMOTE_DELAY + 0.01)
+	var has_emote := false
+	for fa in m.fx_anims:
+		if fa.pop:
+			has_emote = true
+	ok("...αλλά ένα δευτερόλεπτο μετά, με βρυχηθμό", has_emote and mb.act_playing)
+	mb.queue_free()
+	m.grid.erase(mb)
+	m.boss = null
+	m.lobs.clear()
+	m.phase = "aim"
+	await process_frame
 
 	print("--- test menu ---")
 	var tb: Array[Rect2] = [m.debug_rect(), m.mute_rect(), m.pause_rect(), m.menu_rect(),
@@ -1176,6 +1328,126 @@ func _initialize() -> void:
 	m.debug_open = true
 	m._debug_press(Vector2(4, m.H - 4))
 	ok("πάτημα έξω κλείνει το μενού", not m.debug_open)
+
+	print("--- μεγάλος boss: Ice Wendigo ---")
+	m._debug_do("jump", [1, "boss"])
+	m.finish_boss_intro()
+	var wd = m.boss
+	ok("ο Ice Wendigo είναι ο μεγάλος boss του Frost Marches", wd != null and wd.is_final
+		and wd.kind == "ice_wendigo" and wd.cw == 3 and wd.ch == 3)
+	var wd_ab = wd.ability
+	ok("...το HUD λέει πότε έρχονται παγόβουνα", m.boss_label().begins_with("ICEBERGS"), m.boss_label())
+	ok("...δεν κουνιέται", wd_ab.advance_rows(wd, 1) == 0)
+	wd_ab.berg_wait = 1
+	m._end_turn()
+	ok("χτυπάει το έδαφος και ο παίκτης περιμένει τα παγόβουνα", m.phase == "boss_act"
+		and wd.act_playing)
+	m.flush_actions()
+	await process_frame
+	var bergs := []
+	for wb in m.grid.blocks():
+		if wb.kind == "iceberg":
+			bergs.append(wb)
+	ok("τα παγόβουνα βγαίνουν από το πάτωμα", bergs.size() == wd_ab.icebergs
+		and bergs[0].appear_mode == "rise" and m.phase == "aim", "(%d, %s)" % [bergs.size(), m.phase])
+	wd_ab.berg_wait = 99
+	if bergs.size() >= 2:
+		var bg = bergs[0]
+		var bg_row: int = bg.row
+		bg.take_damage(bg.max_hp * 0.5)
+		ok("παγόβουνο που τρώει ζημιά ραγίζει", bg.ability.crack == 1
+			and bg.portrait_frame() == bg.ability.crack_frames[1])
+		var mobs0: int = m.count_kind("frost_imp") + m.count_kind("snow_wolf")
+		bg.take_damage(bg.hp + 1.0)
+		await process_frame
+		await process_frame
+		var mobs1: int = m.count_kind("frost_imp") + m.count_kind("snow_wolf")
+		ok("σπασμένο παγόβουνο βγάζει τέρατα από μέσα", mobs1 > mobs0, "(%d -> %d)" % [mobs0, mobs1])
+		var bg2 = bergs[1]
+		var bg2_row: int = bg2.row
+		m._end_turn()
+		m.flush_actions()
+		await process_frame
+		ok("τα παγόβουνα δεν κατεβαίνουν", is_instance_valid(bg2) and bg2.row == bg2_row,
+			"(%d)" % bg_row)
+		bg2.life_turns = 1
+		m._end_turn()
+		m.flush_actions()
+		ok("αχτύπητο παγόβουνο λιώνει μόνο του", bg2.is_vanishing())
+	# βλέμμα: η βολή παγώνει και χάνεται
+	for wb in m.grid.blocks():
+		if wb != wd:
+			m.grid.erase(wb)
+			wb.queue_free()
+	await process_frame
+	m.phase = "shoot"
+	m.live_balls = 0
+	for gb_i in 3:
+		m._make_ball(Vector2.UP)
+	m.to_fire = 5
+	wd_ab._glare_at = 1
+	wd_ab._hits = 0
+	wd.take_damage(1.0)
+	var glare_balls: Array = m.get_tree().get_nodes_in_group("ball")
+	var all_freezing: bool = not glare_balls.is_empty()
+	for gb in glare_balls:
+		if gb.freeze_in < 0.0:
+			all_freezing = false
+	ok("βλέμμα: λάμψη, οι μπάλες παγώνουν και τα υπόλοιπα δεν φεύγουν", m.glare_t >= 0.0
+		and m.to_fire == 0 and all_freezing)
+	m._shatter_balls()
+	await process_frame
+	ok("...οι μπάλες σπάνε και η βολή τελειώνει", m.get_tree().get_nodes_in_group("ball").is_empty()
+		and m.live_balls == 0 and m.phase != "shoot", "(%d, %s)" % [m.live_balls, m.phase])
+	m.flush_actions()
+	ok("...όχι δεύτερο βλέμμα στον επόμενο γύρο", wd_ab._glare_at == -1)
+	# μισή ζωή: πάγωμα, θύελλα, κύμα, γιατρειά
+	for wb in m.grid.blocks():
+		if wb != wd:
+			m.grid.erase(wb)
+			wb.queue_free()
+	await process_frame
+	wd.take_damage(wd.hp - wd.max_hp * 0.45)
+	ok("στη μισή ζωή παγώνει μέσα σε πάγο", wd_ab.stage == 2 and wd.shield_on
+		and wd.frames_idle == wd_ab.frozen_idle)
+	ok("...και πιάνει χιονοθύελλα", m.weather._storm_want == 1.0)
+	var wd_h0: float = wd.hp
+	wd.take_damage(50.0)
+	ok("...όσο είναι παγωμένος δεν τρώει ζημιά", wd.hp == wd_h0)
+	m._end_turn()
+	m.flush_actions()
+	await process_frame
+	var mist_n := 0
+	for wb in m.grid.blocks():
+		if wb.has_meta("wave") and wb.appear_mode == "mist":
+			mist_n += 1
+	ok("το κύμα βγαίνει μέσα από την ομίχλη", m.wave_left() >= 6 and mist_n == m.wave_left(),
+		"(%d)" % m.wave_left())
+	ok("...και το HUD μετράει πόσοι μένουν", m.boss_label() == "BLIZZARD - %d LEFT" % m.wave_left())
+	var wd_h1: float = wd.hp
+	m._end_turn()
+	m.flush_actions()
+	await process_frame
+	ok("όσο ζει το κύμα γιατρεύεται", wd.hp > wd_h1 and not m.heal_pops.is_empty(),
+		"(%.0f -> %.0f)" % [wd_h1, wd.hp])
+	# έξω απευθείας: οι vikings του κύματος έχουν ασπίδα που θα κρατούσε ένα χτύπημα
+	for wb in m.grid.blocks():
+		if wb.has_meta("wave"):
+			m.grid.erase(wb)
+			wb.queue_free()
+	await process_frame
+	m._end_turn()
+	m.flush_actions()
+	await process_frame
+	ok("χωρίς κύμα ο πάγος σπάει και η θύελλα περνάει", wd_ab.stage == 3 and not wd.shield_on
+		and m.weather._storm_want == 0.0)
+	ok("...και ξαναπαίρνει την κανονική του στάση",
+		wd.frames_idle == m.enemy_by_id["ice_wendigo"].frames_idle)
+	var wd_book_ids := []
+	for wd_e in bk.entries(1):
+		wd_book_ids.append(wd_e.id)
+	ok("ο Wendigo μπαίνει στο Book του Frost Marches, τα παγόβουνα όχι",
+		wd_book_ids.has("ice_wendigo") and not wd_book_ids.has("iceberg"), str(wd_book_ids))
 	m._debug_do("jump", [0, "start"])
 	await process_frame
 

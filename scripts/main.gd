@@ -108,6 +108,10 @@ var fx_anims: Array = []       # εκρήξεις: {frames, pos, t, fps, scale}
 var explosion_frames: Array[Texture2D] = []
 var tex_spawn_barrel: Texture2D
 var tex_boulder: Texture2D
+var tex_cracks: Texture2D      # ρωγμές στο έδαφος όταν προσγειώνεται boss
+var tex_emote: Texture2D       # συννεφάκι θυμού του mini-boss
+var charge_frames: Array[Texture2D] = []   # βελάκια ταχύτητας στο διπλό βήμα
+var summon_frames: Array[Texture2D] = []   # μαγικός κύκλος του καλέσματος
 var to_fire := 0
 var fire_timer := 0.0
 var shot_time := 0.0
@@ -363,6 +367,16 @@ func _load_tex(name_: String) -> Texture2D:
 	return load(p) if ResourceLoader.exists(p) else null
 
 
+## Καρέ <όνομα>_1..N, όσα υπάρχουν.
+func _load_seq(name_: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	var i := 1
+	while ResourceLoader.exists("res://art/%s_%d.png" % [name_, i]):
+		out.append(load("res://art/%s_%d.png" % [name_, i]))
+		i += 1
+	return out
+
+
 ## Η γραμματοσειρά του παιχνιδιού. Είναι pixel font, οπότε το antialiasing
 ## και το subpixel positioning πρέπει να φύγουν — αλλιώς τα γράμματα
 ## θολώνουν και χάνουν το πλέγμα τους.
@@ -400,6 +414,10 @@ func _load_content() -> void:
 		ei += 1
 	tex_spawn_barrel = _load_tex("spawn_barrel")
 	tex_boulder = _load_tex("boulder")
+	tex_cracks = _load_tex("fx_cracks")
+	tex_emote = _load_tex("fx_emote_angry")
+	charge_frames = _load_seq("fx_charge")
+	summon_frames = _load_seq("fx_summon")
 
 
 func _load_dir(dir_path: String) -> Array:
@@ -564,6 +582,8 @@ func _start() -> void:
 	lobs.clear()
 	reserved.clear()
 	fx_anims.clear()
+	_soft.clear()
+	_reset_wendigo_fx()
 	level = 1
 	_apply_theme()
 
@@ -760,10 +780,152 @@ func _spawn_boss() -> void:
 		for b in grid.blocks():
 			if b.row < ch:
 				grid.erase(b)
-				b.queue_free()
+				add_sparks(b.position, 6, Color("d9d2c0"), 160.0, 4.0)
+				b.vanish()
 	var hp := maxf(10.0, round(level * area.boss_hp_mult))
 	boss = _make_block(col, 0, area.boss, hp, cw, ch, true)
-	_announce("BOSS - %s" % area.boss.display_name)
+	# είσοδος: πέφτει από τον ουρανό, και όσο πέφτει ο παίκτης περιμένει
+	var target: Vector2 = boss.position
+	boss.position.y = target.y - H * 0.5
+	var tw := create_tween()
+	tw.tween_property(boss, "position:y", target.y, MINI_DROP) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(_mini_landed.bind(boss))
+	after(MINI_DROP + 0.25, func(): pass)
+
+
+const MINI_DROP := 0.45
+const CRACKS_LIFE := 2.6
+
+
+## Ο mini-boss προσγειώθηκε: ρωγμές στο έδαφος κάτω του (διακριτικές, σβήνουν
+## σε λίγα δευτερόλεπτα), σκόνη, μικρό τράνταγμα, και ένα emote — ο βρυχηθμός
+## του και ένα συννεφάκι θυμού πάνω από το κεφάλι.
+func _mini_landed(b) -> void:
+	if b == null or not is_instance_valid(b):
+		return
+	add_shake(5.0)
+	_ground_impact(b)
+	var area := current_area()
+	# το emote έρχεται λίγο μετά την πτώση, όταν έχει κάτσει η σκόνη· η
+	# ανακοίνωση περιμένει κι αυτή, γιατί η πινακίδα της πέφτει ακριβώς πάνω
+	# στο κεφάλι του boss και θα το έκρυβε
+	later(EMOTE_DELAY, _mini_emote.bind(b))
+	_announce_later("MINI-BOSS - %s" % (area.boss.display_name.to_upper() if area and area.boss else ""),
+		EMOTE_DELAY + EMOTE_TIME)
+
+
+func _mini_emote(b) -> void:
+	if b == null or not is_instance_valid(b) or b.is_vanishing():
+		return
+	var act := _act_frames(b.ability)
+	if not act.is_empty():
+		b.play_act(act, 10.0)
+	add_shake(2.0)
+	if tex_emote:
+		# μέσα στο κουτί του, πάνω δεξιά από το κεφάλι: ο mini-boss στέκεται στην
+		# πρώτη σειρά, και πιο ψηλά το συννεφάκι έβγαινε πάνω στο παραπέτο
+		play_fx([tex_emote], b.position + Vector2(b.box.x * 0.30, -b.box.y * 0.22), 2.0, 1.0,
+			EMOTE_TIME, 0.35, false, true)
+
+
+const EMOTE_DELAY := 1.0
+const EMOTE_TIME := 1.6
+var _soft: Array = []          # [χρόνος, callable]: καθυστερήσεις που ΔΕΝ σταματάνε το παιχνίδι
+
+
+## Κάτι που γίνεται σε λίγο, χωρίς να περιμένει ο παίκτης (σε αντίθεση με το after).
+func later(delay: float, cb: Callable) -> void:
+	_soft.append([delay, cb])
+
+
+func _update_soft(delta: float) -> void:
+	var i := _soft.size() - 1
+	while i >= 0:
+		_soft[i][0] -= delta
+		if _soft[i][0] <= 0.0:
+			var cb: Callable = _soft[i][1]
+			_soft.remove_at(i)
+			cb.call()
+		i -= 1
+
+
+## Ανακοίνωση που βγαίνει σε λίγο, χωρίς να σταματάει το παιχνίδι.
+func _announce_later(text: String, delay: float) -> void:
+	later(delay, _announce.bind(text))
+
+
+## Ρωγμές και σκόνη κάτω από ό,τι προσγειώθηκε βαριά (mini-boss, μεγάλος boss).
+func _ground_impact(b) -> void:
+	var base_y: float = b.position.y + b.box.y * 0.5
+	if tex_cracks:
+		# Ρωγμές ΜΟΝΟ στα κελιά όπου πάτησε, πίσω του: μία ανά κελί, κομμένη
+		# στα όριά του, ώστε να μη βγαίνει έξω από το αποτύπωμά του. Κάθε κελί
+		# δείχνει άλλο κομμάτι της ρωγμής (μετατοπισμένο κέντρο), και το χώμα
+		# σκουραίνει λίγο — φαίνονται εκεί όπου το σώμα του αφήνει κενό.
+		for cx in b.cw:
+			for cy in b.ch:
+				var cr := Rect2(pf_left + (b.col + cx) * cell, PF_TOP + (b.row + cy) * cell, cell, cell)
+				var jitter := Vector2(randf_range(-22.0, 22.0), randf_range(-14.0, 14.0))
+				_floor_cracks(cr, cr.get_center() + jitter, CRACKS_LIFE, 1.0)
+	for i in 12:
+		var x: float = b.position.x + randf_range(-b.box.x * 0.55, b.box.x * 0.55)
+		add_sparks(Vector2(x, base_y), 2, Color("a8906a"), 170.0, 6.0)
+
+
+## Ρωγμή στο πάτωμα, κομμένη στο κελί `cr`. Στο χιόνι (θέμα "frost") είναι
+## πάγος: η ίδια ρωγμή ξαναχρωματισμένη σε μπλε, με αχνό γαλάζιο από κάτω
+## αντί για σκούρο χώμα — το καφέ έμοιαζε με λάσπη.
+func _floor_cracks(cr: Rect2, at: Vector2, life: float, fade: float) -> void:
+	if tex_cracks == null:
+		return
+	var a := visual_area()
+	var icy: bool = a != null and a.theme == "frost"
+	play_fx([_ice_cracks() if icy else tex_cracks], at, 2.0, 1.0, life, fade, true)
+	fx_anims[-1]["clip"] = cr
+	if icy:
+		fx_anims[-1]["under"] = Color(0.55, 0.8, 1.0, 0.18)
+
+
+var _ice_cracks_tex: Texture2D
+
+
+## Η ρωγμή του χώματος σε πάγο: η φωτεινότητα κάθε pixel κρατιέται και
+## ξαναβάφεται από βαθύ μπλε (σκοτάδι της ρωγμής) ως σχεδόν λευκό (άκρες).
+func _ice_cracks() -> Texture2D:
+	if _ice_cracks_tex:
+		return _ice_cracks_tex
+	var im := tex_cracks.get_image()
+	im.decompress()
+	im.convert(Image.FORMAT_RGBA8)
+	var deep := Color("1d4f8f")
+	var light := Color("d8f0ff")
+	for y in im.get_height():
+		for x in im.get_width():
+			var c := im.get_pixel(x, y)
+			if c.a <= 0.0:
+				continue
+			var l := clampf(c.get_luminance() * 2.2, 0.0, 1.0)
+			var nc := deep.lerp(light, l)
+			nc.a = c.a
+			im.set_pixel(x, y, nc)
+	_ice_cracks_tex = ImageTexture.create_from_image(im)
+	return _ice_cracks_tex
+
+
+## Τα καρέ «δράσης» μιας ικανότητας (π.χ. ο βρυχηθμός του βασιλιά, που είναι
+## τα act_frames του καλέσματός του), ψάχνοντας και μέσα σε σύνθετες.
+func _act_frames(ab) -> Array[Texture2D]:
+	if ab == null:
+		return []
+	if "act_frames" in ab and not ab.act_frames.is_empty():
+		return ab.act_frames
+	if ab is CompositeAbility:
+		for p in ab.parts:
+			var f := _act_frames(p)
+			if not f.is_empty():
+				return f
+	return []
 
 
 func _make_block(col: int, row: int, type: EnemyType, hp: float, cw: int, ch: int, as_boss: bool):
@@ -822,9 +984,110 @@ func spawn_near(col: int, row: int, cw: int, ch: int, source_hp: float,
 		made += 1
 
 
-## Καλείται από το SummonerAbility.
+const ABILITY_GAP := 0.06     # ανάσα ανάμεσα στα βήματα της σειράς ικανοτήτων
+const CHARGE_TIME := 0.24      # το dash του καβαλάρη
+var _post_charges: Array = []  # [block, έξτρα σειρές] για μετά το γενικό κατέβασμα
+var _post_summons: Array = []  # καλέσματα για μετά τα charges
+var _collecting := false       # μέσα στο τέλος γύρου: οι ικανότητες μαζεύονται σε ουρά
+
+
+## Τα έξτρα βήματα, αφού έχουν σταθεί όλοι: βελάκια ταχύτητας με άνεμο στο
+## κελί απ' όπου φεύγει, γραμμές ταχύτητας πίσω του, σκόνη και μικρό
+## τράνταγμα εκεί που πατάει. Γίνονται όλα μαζί, ώστε να μη σέρνεται ο ρυθμός.
+func _run_charges(charges: Array) -> void:
+	var tween := create_tween()
+	tween.set_parallel(true)
+	var any := false
+	# από κάτω προς τα πάνω, ώστε όποιος είναι μπροστά να ελευθερώνει χώρο
+	charges.sort_custom(func(a, c): return a[0].row > c[0].row)
+	for ch in charges:
+		var b = ch[0]
+		if not is_instance_valid(b) or b.is_vanishing() or not grid.blocks().has(b):
+			continue
+		var step: int = ch[1]
+		while step > 0 and not grid.fits(b.col, b.row + step, b.cw, b.ch, b):
+			step -= 1
+		if step <= 0:
+			continue
+		any = true
+		# από το πλέγμα, όχι από τον κόμβο: το γενικό κατέβασμα μπορεί να μην
+		# έχει τελειώσει ακόμα στην οθόνη
+		var from := block_center(b.col, b.row, b.cw, b.ch)
+		if not charge_frames.is_empty():
+			play_fx(charge_frames, from, 2.0, 18.0, -1.0, 0.12)
+		for k in 6:
+			add_sparks(from + Vector2(randf_range(-cell * 0.3, cell * 0.3), 0), 1,
+				Color(1, 1, 1, 0.9), 90.0, 4.0)
+		grid.move_to(b, b.col, b.row + step)
+		b.begin_move(CHARGE_TIME)
+		var to := block_center(b.col, b.row, b.cw, b.ch)
+		tween.tween_property(b, "position:y", to.y, CHARGE_TIME) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_callback(_charge_landed.bind(b)).set_delay(CHARGE_TIME * 0.8)
+	if not any:
+		tween.kill()
+		return
+	for b in grid.blocks():
+		if b.row + b.ch > death_row:
+			_game_over()
+			return
+
+
+func _charge_landed(b) -> void:
+	if not is_instance_valid(b):
+		return
+	add_sparks(b.position + Vector2(0, cell * 0.38), 8, Color("c9b28a"), 140.0, 5.0)
+	add_shake(1.5)
+
+
+const SUMMON_CAST := 0.28      # ο καλεστής «φορτίζει»
+const SUMMON_BOLT := 0.26      # το μαγικό βλήμα ως το κελί
+const SUMMON_RISE := 0.32      # ο κύκλος ανοίγει, το minion υψώνεται
+const SUMMON_COL := Color("c77dff")
+
+
+## Καλείται από το SummonerAbility, αλλά δεν γεννάει αμέσως: μπαίνει στην
+## ουρά και παίζει αφού σταθούν όλοι (_run_summons), ώστε το μάτι να το πιάνει.
 func summon_minion(source, minion_id: String, hp_ratio: float, min_row: int,
 		max_row: int, keep_clear: int = 0) -> void:
+	var s := [source, minion_id, hp_ratio, min_row, max_row, keep_clear]
+	if _collecting:
+		_post_summons.append(s)
+	else:
+		_run_summons([s])        # εκτός τέλους γύρου (π.χ. tests): ξεκινάει αμέσως
+
+
+## Τα καλέσματα, όλα μαζί: ο καλεστής φουσκώνει μέσα σε μωβ αύρα που
+## πάλλεται, με σπίθες που ανεβαίνουν· μετά ένα μαγικό βλήμα πετάει από αυτόν
+## στο κελί-στόχο, εκεί ανοίγει ο κύκλος, και το minion υψώνεται από μέσα του.
+func _run_summons(summons: Array) -> void:
+	var cast_done := {}
+	for s in summons:
+		var src = s[0]
+		if not is_instance_valid(src) or src.is_vanishing():
+			continue
+		var roar: bool = src.is_boss
+		if not cast_done.has(src):
+			cast_done[src] = true
+			var act := _act_frames(src.ability)
+			if roar:
+				# ο boss δεν κάνει μαγικά: βρυχάται, και το κάλεσμα είναι πολεμικό
+				src.cast_pulse(WARCRY_TIME, "roar")
+				if not act.is_empty():
+					src.play_act(act, float(act.size()) / WARCRY_TIME)
+				add_shake(3.5)
+			else:
+				src.cast_pulse(SUMMON_CAST + SUMMON_BOLT)
+				if not act.is_empty():
+					src.play_act(act, float(act.size()) / (SUMMON_CAST + SUMMON_BOLT))
+				for k in 10:
+					var off := Vector2(randf_range(-src.box.x, src.box.x) * 0.45, src.box.y * 0.4)
+					add_sparks(src.position + off, 1, SUMMON_COL, 120.0, 5.0)
+		_summon_now(src, s[1], s[2], s[3], s[4], s[5], roar)
+
+
+func _summon_now(source, minion_id: String, hp_ratio: float, min_row: int,
+		max_row: int, keep_clear: int = 0, warcry := false) -> void:
 	var type: EnemyType = enemy_by_id.get(minion_id)
 	if type == null:
 		return
@@ -833,14 +1096,78 @@ func summon_minion(source, minion_id: String, hp_ratio: float, min_row: int,
 	var last_row := mini(max_row, death_row - 1 - maxi(keep_clear, 0))
 	if last_row < min_row:
 		return
-	var cells := grid.free_cells(min_row, last_row)
+	var cells := []
+	for c in grid.free_cells(min_row, last_row):
+		if not reserved.has(c):
+			cells.append(c)
 	if cells.is_empty():
 		return
 	var spot: Vector2i = cells[randi() % cells.size()]
 	# όσο πιο μπροστά γεννιέται, τόσο λιγότερη ζωή
 	var depth := clampf(float(spot.y) / float(maxi(death_row, 1)), 0.0, 1.0)
 	var hp := maxf(1.0, round(source.max_hp * hp_ratio * (1.0 - depth * 0.5)))
-	_make_block(spot.x, spot.y, type, hp, 1, 1, false)
+	reserved[spot] = true
+	var at := block_center(spot.x, spot.y, 1, 1)
+	if warcry:
+		# έρχονται από ψηλά, πάνω από το ταμπλό, πετώντας προς το κελί τους —
+		# λίγο μετά το πρώτο κύμα του βρυχηθμού, όχι όλα μαζί
+		var sky := Vector2(clampf(at.x + randf_range(-160.0, 160.0), pf_left, pf_right), PF_TOP - 120.0)
+		after(WARCRY_TIME * 0.45 + randf_range(0.0, 0.15), _warcry_fly.bind(sky, at, spot, type, hp))
+		return
+	var from: Vector2 = source.position + Vector2(0, -source.box.y * 0.3)
+	after(SUMMON_CAST, _summon_bolt.bind(from, at, spot, type, hp))
+
+
+const WARCRY_TIME := 0.55      # ο βρυχηθμός του boss
+const WARCRY_FLY := 0.45       # η πτήση των minions προς τα κελιά τους
+
+
+## Το minion πετάει από τον ουρανό στο κελί του, με τα δικά του καρέ ηρεμίας
+## να παίζουν όσο πετάει (οι νυχτερίδες χτυπάνε φτερά), και προσγειώνεται με
+## σκόνη — χωρίς κύκλο, χωρίς μαγεία.
+func _warcry_fly(sky: Vector2, at: Vector2, spot: Vector2i, type: EnemyType, hp: float) -> void:
+	lob(sky, at, type.sprite, _warcry_land.bind(spot, type, hp), -50.0, WARCRY_FLY, 0.0,
+		2.0 * type.sprite_scale)
+	if not type.frames_idle.is_empty():
+		lobs[-1]["frames"] = type.frames_idle
+		lobs[-1]["fps"] = 16.0
+
+
+func _warcry_land(spot: Vector2i, type: EnemyType, hp: float) -> void:
+	reserved.erase(spot)
+	if phase == "over" or not grid.is_free(spot.x, spot.y):
+		return
+	var at := block_center(spot.x, spot.y, 1, 1)
+	add_sparks(at + Vector2(0, cell * 0.3), 8, Color("c9b28a"), 130.0, 5.0)
+	var b = _make_block(spot.x, spot.y, type, hp, 1, 1, false)
+	b.appear("pop")
+
+
+## Το μαγικό βλήμα: μια μικρή μωβ σφαίρα που πετάει σε χαμηλή καμπύλη
+## από τον καλεστή στο κελί, με ουρά από σπίθες.
+func _summon_bolt(from: Vector2, at: Vector2, spot: Vector2i, type: EnemyType, hp: float) -> void:
+	add_sparks(from, 12, SUMMON_COL, 180.0, 6.0)
+	var orb: Texture2D = summon_frames[2] if summon_frames.size() > 2 else null
+	lob(from, at, orb, _summon_circle.bind(at, spot, type, hp), 60.0, SUMMON_BOLT, 12.0, 1.5)
+	lobs[-1]["trail"] = SUMMON_COL
+
+
+func _summon_circle(at: Vector2, spot: Vector2i, type: EnemyType, hp: float) -> void:
+	if not summon_frames.is_empty():
+		play_fx(summon_frames, at, 2.2, float(summon_frames.size()) / SUMMON_RISE,
+			SUMMON_RISE + 0.3, 0.3, true)
+	add_sparks(at, 10, SUMMON_COL, 140.0, 5.0)
+	after(SUMMON_RISE, _summon_land.bind(spot, type, hp))
+
+
+func _summon_land(spot: Vector2i, type: EnemyType, hp: float) -> void:
+	reserved.erase(spot)
+	if phase == "over" or not grid.is_free(spot.x, spot.y):
+		return
+	var at := block_center(spot.x, spot.y, 1, 1)
+	add_sparks(at, 12, SUMMON_COL, 200.0, 5.0)
+	var b = _make_block(spot.x, spot.y, type, hp, 1, 1, false)
+	b.appear("rise")
 
 
 func _spawn_orb(col: int, kind: String) -> void:
@@ -869,8 +1196,13 @@ func _on_orb_taken(_body: Node, orb: Node) -> void:
 func _on_ball_struck(block, ball) -> void:
 	if not is_instance_valid(block):
 		return
-	add_sparks(ball.position, 5, _accent(0.82), 190.0, 4.0)
 	var dmg: float = ball.damage
+	# ασπίδα που κρατάει: τετράγωνο προστασίας στην πλευρά του χτυπήματος,
+	# αντί για τις σπίθες — μόνο όσο υπάρχει ασπίδα
+	if block.ability is ShieldAbility and block.ability.shield > 0.0:
+		block.guard_flash(ball.position - block.position)
+	else:
+		add_sparks(ball.position, 5, _accent(0.82), 190.0, 4.0)
 	# αδύναμο σημείο του μεγάλου boss (ο Grukk στην κορυφή): διπλή ζημιά,
 	# χρυσές σπίθες — ο παίκτης βλέπει ότι βρήκε το σημείο
 	if block.is_final and block.weak_rect.has_area() and not block.shield_on:
@@ -1080,6 +1412,8 @@ func debug_jump(area_i: int, which: String) -> void:
 	lobs.clear()
 	reserved.clear()
 	fx_anims.clear()
+	_soft.clear()
+	_reset_wendigo_fx()
 	transition_t = -1.0
 	boss_intro_t = -1.0
 	freeze_rounds = 0
@@ -1430,6 +1764,8 @@ func _process(delta: float) -> void:
 			_update_boss_intro(delta)
 		_update_lobs(delta)
 		_update_fx_anims(delta)
+		_update_wendigo_fx(delta)
+		_update_soft(delta)
 	queue_redraw()
 	if frozen() or phase != "shoot":
 		return
@@ -1502,6 +1838,9 @@ func _on_ball_died(x: float) -> void:
 
 func _end_turn() -> void:
 	Engine.time_scale = 1.0
+	# πριν βγουν οι νέοι εχθροί του γύρου: οι δικές τους ειδοποιήσεις ξεκινούν από 0
+	if bestiary:
+		bestiary.turn_ended()
 	# γύρος παγώματος: μετράει κανονικά, αλλά ο κόσμος δεν κουνιέται
 	var frozen_turn := freeze_rounds > 0
 	if frozen_turn:
@@ -1549,6 +1888,9 @@ func _end_turn() -> void:
 	ordered.sort_custom(func(a, b): return (a.row + a.ch) > (b.row + b.ch))
 	# πρώτα κοιτάνε όλοι γύρω τους, με το ταμπλό ακόμα ακίνητο (π.χ. η αγέλη)
 	war_drums = false
+	_post_charges.clear()
+	_post_summons.clear()
+	_collecting = true
 	for b in ordered:
 		if b.ability:
 			b.ability.before_advance(b, self)
@@ -1559,6 +1901,13 @@ func _end_turn() -> void:
 		# τα τύμπανα πολέμου σπρώχνουν όποιον κινείται μία σειρά παραπάνω
 		if war_drums and want > 0 and not b.is_boss:
 			want += 1
+		# Ό,τι κάνει παραπάνω από ένα βήμα (καβαλάρης, τύμπανα) κατεβαίνει πρώτα
+		# μία σειρά μαζί με όλους, και κάνει το υπόλοιπο ΧΩΡΙΣΤΑ μόλις σταθούν
+		# όλοι (_run_charges) — αλλιώς το διπλό βήμα χανόταν μέσα στη γενική
+		# κίνηση και ο παίκτης δεν έβλεπε ποιος έκανε τι.
+		if want >= 2 and b.cw == 1 and not b.is_boss:
+			_post_charges.append([b, want - 1])
+			want = 1
 		var step := want
 		while step > 0 and not grid.fits(b.col, b.row + step, b.cw, b.ch, b):
 			step -= 1
@@ -1580,6 +1929,7 @@ func _end_turn() -> void:
 		if b.ability and is_instance_valid(b) and not b.is_vanishing():
 			b.ability.on_round_end(b, self)
 	update_boss_shield()
+	_collecting = false
 
 	for b in grid.blocks():
 		if b.row + b.ch > death_row:
@@ -1587,6 +1937,16 @@ func _end_turn() -> void:
 			return
 
 	_add_row()
+	# Οι ικανότητες, μία-μία αφού σταθούν όλοι: πρώτα τα charges, μετά τα
+	# καλέσματα. Ο παίκτης περιμένει (after), αλλά μόνο όσο κρατάνε.
+	var at := ADVANCE_TIME + ABILITY_GAP
+	if not _post_charges.is_empty():
+		var charges := _post_charges.duplicate()
+		after(at, _run_charges.bind(charges))
+		at += CHARGE_TIME + ABILITY_GAP
+	if not _post_summons.is_empty():
+		var summons := _post_summons.duplicate()
+		after(at, _run_summons.bind(summons))
 	# ό,τι πέταξε ο boss πρέπει να προσγειωθεί πριν ξαναρίξεις
 	if phase != "boss_intro":
 		phase = "boss_act" if not lobs.is_empty() else "aim"
@@ -1678,10 +2038,7 @@ func _boss_landed() -> void:
 	if boss == null or not is_instance_valid(boss):
 		return
 	add_shake(9.0)
-	var base_y: float = boss.position.y + boss.box.y * 0.5
-	for i in 14:
-		var x: float = boss.position.x + randf_range(-boss.box.x * 0.55, boss.box.x * 0.55)
-		add_sparks(Vector2(x, base_y), 2, Color("a8906a"), 180.0, 7.0)
+	_ground_impact(boss)
 	_announce("BOSS - %s" % boss_name())
 
 
@@ -1773,6 +2130,9 @@ func _update_lobs(delta: float) -> void:
 	while i >= 0:
 		var l: Dictionary = lobs[i]
 		l.t += delta
+		# ουρά από σπίθες πίσω από ό,τι πετάει με χρώμα ουράς (μαγικό βλήμα)
+		if l.has("trail") and l.t < l.dur:
+			add_sparks(lob_pos(l), 2, l.trail, 60.0, 5.0)
 		if l.t >= l.dur:
 			lobs.remove_at(i)
 			(l.cb as Callable).call()
@@ -1942,11 +2302,335 @@ func crumble(b) -> void:
 	b.vanish()
 
 
+# ---- Ice Wendigo (ο μεγάλος boss του Frost Marches, scripts/abilities/ability_wendigo.gd)
+# Δεν ρίχνει τίποτα σε καμπύλη: ό,τι βγάζει ανεβαίνει ΑΠΟ ΤΟ ΠΑΤΩΜΑ (παγόβουνα)
+# ή βγαίνει μέσα από την ομίχλη (κύμα). Οι καθυστερήσεις ζουν στο after(), ώστε
+# ο παίκτης να περιμένει ως το τέλος τους, όπως με τις ρίψεις του Grukk.
+
+const ICE_COL := Color("bfeaff")
+const ICE_DEEP := Color("5fb4ff")
+const HEAL_COL := Color("8fffd0")
+const BERG_WARN := 0.3         # το πάτωμα ραγίζει και αχνίζει πριν βγει το παγόβουνο
+const BERG_GAP := 0.14         # ανάμεσα σε διαδοχικά παγόβουνα
+const BERG_ROWS := Vector2i(2, 7)
+const WAVE_ROWS := Vector2i(2, 6)
+const WAVE_GAP := 0.08         # ανάμεσα στα μέλη του κύματος που βγαίνουν από την ομίχλη
+const GLARE_FREEZE := 0.3      # από το άναμμα των ματιών ως το πρώτο πάγωμα
+const GLARE_SPEED := 2000.0    # px/s: το κύμα κρύου που απλώνεται από τα μάτια
+const GLARE_SHATTER := 0.6     # πόσο μένουν παγωμένες οι τελευταίες μπάλες πριν σπάσουν
+const HEAL_FLY := 0.55         # οι σταγόνες ζωής ως την καρδιά του
+var glare_t := -1.0            # >=0: η λάμψη από τα μάτια του (fx.gd)
+var glare_eyes := Vector2.ZERO
+var heal_motes: Array = []     # {from, to, t, dur, d}: σταγόνες ζωής προς τον Wendigo
+var heal_pops: Array = []      # {pos, t, text}: «+N» που ανεβαίνει
+
+
+## Χτυπάει τα νύχια στο έδαφος· τα παγόβουνα σκίζουν το πάτωμα ένα-ένα.
+func raise_icebergs(src, ab, id: String, n: int) -> void:
+	var type: EnemyType = enemy_by_id.get(id)
+	if type == null:
+		return
+	var slam := 0.0
+	if not ab.slam_frames.is_empty():
+		src.play_act(ab.slam_frames, ab.act_fps)
+		# τα νύχια βρίσκουν το έδαφος περίπου στα 2/3 της κίνησης
+		slam = ab.slam_frames.size() / ab.act_fps * 0.62
+	after(slam, _slam_impact.bind(src))
+	var hp := maxf(1.0, round(level * type.hp_mult))
+	var cells := _throw_cells(BERG_ROWS.x, BERG_ROWS.y, n)
+	for i in cells.size():
+		var c: Vector2i = cells[i]
+		reserved[c] = true
+		after(slam + i * BERG_GAP, _berg_warn.bind(c))
+		after(slam + i * BERG_GAP + BERG_WARN, _berg_rise.bind(c, type, hp))
+
+
+func _slam_impact(src) -> void:
+	if src == null or not is_instance_valid(src):
+		return
+	add_shake(5.0)
+	var base: Vector2 = src.position + Vector2(0, src.box.y * 0.45)
+	for i in 10:
+		var p := base + Vector2(randf_range(-src.box.x * 0.4, src.box.x * 0.4), 0)
+		add_sparks(p, 2, ICE_COL, 190.0, 5.0)
+
+
+## Προειδοποίηση: ρωγμή στο κελί και αχνός παγωμένος ατμός — ο παίκτης βλέπει
+## πού θα βγει, μια στιγμή πριν βγει.
+func _berg_warn(c: Vector2i) -> void:
+	var cr := Rect2(pf_left + c.x * cell, PF_TOP + c.y * cell, cell, cell)
+	_floor_cracks(cr, cr.get_center(), 1.6, 0.8)
+	add_sparks(cr.get_center() + Vector2(0, cell * 0.25), 6, ICE_COL, 70.0, 4.0)
+	add_shake(1.0)
+
+
+## Το παγόβουνο ξεπετάγεται: υψώνεται από τη βάση του, με πίδακα από
+## θραύσματα πάγου προς τα πάνω και χιόνι γύρω από τη βάση.
+func _berg_rise(c: Vector2i, type: EnemyType, hp: float) -> void:
+	reserved.erase(c)
+	if phase == "over" or not grid.is_free(c.x, c.y):
+		return
+	var b = _make_block(c.x, c.y, type, hp, 1, 1, false)
+	b.appear("rise")
+	var at := block_center(c.x, c.y, 1, 1)
+	var base := at + Vector2(0, cell * 0.38)
+	add_shake(2.5)
+	for i in 14:
+		var dir := Vector2(randf_range(-0.55, 0.55), -1.0).normalized()
+		_spark_dir(base, dir * randf_range(180.0, 340.0), ICE_COL if i % 3 else Color.WHITE, 5.0)
+	add_sparks(base, 10, Color("e8f6ff"), 110.0, 6.0)
+	add_sparks(at, 6, ICE_DEEP, 160.0, 4.0)
+
+
+## Σπίθα με δοσμένη ταχύτητα (το add_sparks τις σκορπάει προς όλες τις μεριές).
+func _spark_dir(p: Vector2, v: Vector2, col: Color, size: float) -> void:
+	if sparks.size() >= MAX_SPARKS:
+		return
+	var life := randf_range(0.35, 0.6)
+	sparks.append({"p": p, "v": v, "life": life, "max": life, "c": col, "r": size})
+
+
+func iceberg_cracked(b) -> void:
+	add_sparks(b.position, 8, ICE_COL, 200.0, 5.0)
+	add_shake(1.2)
+
+
+## Έμεινε αχτύπητο ως το τέλος: λιώνει, χωρίς να βγάλει τίποτα.
+func iceberg_melt(b) -> void:
+	grid.erase(b)
+	add_sparks(b.position + Vector2(0, cell * 0.3), 10, Color("7fc8ff"), 70.0, 5.0)
+	add_sparks(b.position, 6, Color("e8f6ff"), 50.0, 4.0)
+	b.vanish()
+
+
+## Το παγόβουνο έσπασε: θραύσματα παντού και τα τέρατα που κρατούσε
+## πετάγονται έξω — στο κελί του πρώτα, μετά στα διπλανά.
+func iceberg_burst(col: int, row: int, pos: Vector2, ids: Array) -> void:
+	add_shake(4.0)
+	for i in 16:
+		var ang := randf() * TAU
+		_spark_dir(pos, Vector2(cos(ang), sin(ang)) * randf_range(160.0, 380.0),
+			Color.WHITE if i % 4 == 0 else ICE_COL, 6.0)
+	add_sparks(pos, 8, ICE_DEEP, 200.0, 5.0)
+	if phase == "over":
+		return
+	var spots: Array[Vector2i] = [Vector2i(col, row)]
+	for d in [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		spots.append(Vector2i(col, row) + d)
+	var made := 0
+	for s in spots:
+		if made >= ids.size():
+			break
+		if s.x < 0 or s.x >= COLS or s.y < 0 or s.y >= death_row - 1:
+			continue
+		if not grid.is_free(s.x, s.y) or reserved.has(s):
+			continue
+		var type: EnemyType = enemy_by_id.get(ids[made])
+		made += 1
+		if type == null:
+			continue
+		var b = _make_block(s.x, s.y, type, maxf(1.0, round(level * type.hp_mult)), 1, 1, false)
+		b.appear("pop")
+
+
+## Μισή ζωή: κέλυφος πάγου, χιονοθύελλα. Το κύμα βγαίνει στο τέλος του γύρου.
+func wendigo_freeze(b, ab) -> void:
+	add_shake(8.0)
+	b.shield_on = true
+	b.shield_color = ICE_COL
+	b.set_idle(ab.frozen_idle, 6.0)
+	if not ab.freeze_frames.is_empty():
+		b.play_act(ab.freeze_frames, ab.act_fps)
+	for i in 24:
+		var ang := randf() * TAU
+		_spark_dir(b.position, Vector2(cos(ang), sin(ang)) * randf_range(120.0, 320.0), ICE_COL, 6.0)
+	if weather:
+		weather.set_storm(true)
+	_announce("THE WENDIGO FREEZES!")
+
+
+## Από την ομίχλη βγαίνει ο στρατός του, ένας-ένας.
+func wendigo_wave(_b, ab) -> void:
+	var cells := _throw_cells(WAVE_ROWS.x, WAVE_ROWS.y, ab.wave_count)
+	for i in cells.size():
+		var c: Vector2i = cells[i]
+		var type: EnemyType = enemy_by_id.get(ab.roll_wave())
+		if type == null:
+			continue
+		reserved[c] = true
+		var hp := maxf(1.0, round(level * type.hp_mult * ab.wave_hp))
+		after(0.2 + i * WAVE_GAP, _wave_emerge.bind(c, type, hp))
+	_announce("BLIZZARD!")
+
+
+func _wave_emerge(c: Vector2i, type: EnemyType, hp: float) -> void:
+	reserved.erase(c)
+	if phase == "over" or not grid.is_free(c.x, c.y):
+		return
+	var at := block_center(c.x, c.y, 1, 1)
+	add_sparks(at, 8, Color("e8f0f4"), 60.0, 9.0)       # πούφος ομίχλης
+	var b = _make_block(c.x, c.y, type, hp, 1, 1, false)
+	b.set_meta("wave", true)
+	b.appear("mist")
+
+
+## Πόσοι από το κύμα της θύελλας ζουν ακόμα.
+func wave_left() -> int:
+	var n := 0
+	for b in grid.blocks():
+		if b.has_meta("wave") and not b.is_vanishing():
+			n += 1
+	return n
+
+
+## Γιατρειά όσο είναι παγωμένος: σταγόνες ζωής φεύγουν από κάθε μέλος του
+## κύματος προς την καρδιά του, και η ζωή ανεβαίνει όταν φτάσουν.
+func wendigo_heal(b, amount: float) -> void:
+	var heart := wendigo_heart(b)
+	var i := 0
+	for w in grid.blocks():
+		if not w.has_meta("wave") or w.is_vanishing():
+			continue
+		for k in 3:
+			heal_motes.append({"from": w.position + Vector2(randf_range(-14, 14), randf_range(-14, 14)),
+				"to": heart, "t": -0.05 * k - 0.02 * i, "dur": HEAL_FLY})
+		i += 1
+	after(HEAL_FLY + 0.1 + 0.02 * i, _heal_land.bind(b, amount))
+
+
+func _heal_land(b, amount: float) -> void:
+	if b == null or not is_instance_valid(b):
+		return
+	var before: float = b.hp
+	b.heal(amount)
+	var got := roundi(b.hp - before)
+	var heart := wendigo_heart(b)
+	add_sparks(heart, 14, HEAL_COL, 170.0, 5.0)
+	if got > 0:
+		heal_pops.append({"pos": heart + Vector2(0, -40), "t": 0.0, "text": "+%d" % got})
+
+
+func wendigo_heart(b) -> Vector2:
+	return b.position + Vector2(0, -b.box.y * 0.08)
+
+
+## Έπεσε και ο τελευταίος της θύελλας: ο πάγος σπάει, ο ουρανός καθαρίζει.
+func wendigo_thaw(b, ab) -> void:
+	b.shield_on = false
+	var type: EnemyType = enemy_by_id.get(b.kind)
+	if type:
+		b.set_idle(type.frames_idle, type.fps_idle)
+	if not ab.freeze_frames.is_empty():
+		var back: Array[Texture2D] = ab.freeze_frames.duplicate()
+		back.reverse()
+		b.play_act(back, ab.act_fps * 1.5)
+	add_shake(9.0)
+	for i in 30:
+		var ang := randf() * TAU
+		_spark_dir(b.position, Vector2(cos(ang), sin(ang)) * randf_range(200.0, 420.0),
+			Color.WHITE if i % 3 == 0 else ICE_COL, 7.0)
+	if weather:
+		weather.set_storm(false)
+	_announce("THE ICE SHATTERS!")
+
+
+## Τα μάτια του αστράφτουν: ό,τι πετάει παγώνει — πρώτα ό,τι είναι κοντά του,
+## το κύμα κρύου απλώνεται — και μετά σπάει. Η βολή χάνεται.
+func wendigo_glare(b, ab) -> void:
+	if phase != "shoot":
+		return
+	if not ab.glare_frames.is_empty():
+		b.play_act(ab.glare_frames, ab.act_fps)
+	glare_eyes = b.position + (ab.eyes_uv - Vector2(0.5, 0.5)) * (b.box - Vector2(6, 6)) * b.sprite_scale
+	glare_t = 0.0
+	to_fire = 0                    # ό,τι δεν έχει φύγει ακόμα, δεν φεύγει
+	for ball in get_tree().get_nodes_in_group("ball"):
+		ball.freeze(GLARE_FREEZE, glare_eyes, GLARE_SPEED)
+	add_shake(3.0)
+	_announce("FROZEN GAZE!")
+	# ως εκεί έχει περάσει όλη την πίστα, ως και τη γωνία του δράκου
+	var far := maxf(glare_eyes.distance_to(Vector2(pf_left, floor_y)),
+		glare_eyes.distance_to(Vector2(pf_right, floor_y)))
+	later(GLARE_FREEZE + far / GLARE_SPEED + GLARE_SHATTER, _shatter_balls)
+
+
+func _shatter_balls() -> void:
+	var balls := get_tree().get_nodes_in_group("ball")
+	var each := clampi(60 / maxi(balls.size(), 1), 1, 6)
+	for ball in balls:
+		if not (ball.frozen or ball.freeze_in >= 0.0) or ball.is_queued_for_deletion():
+			continue
+		for i in each:
+			var ang := randf() * TAU
+			_spark_dir(ball.position, Vector2(cos(ang), sin(ang)) * randf_range(90.0, 220.0),
+				Color.WHITE if i % 2 else ICE_COL, 4.0)
+		ball.remove_from_group("ball")
+		ball.queue_free()
+		# ο δράκος μένει όπου ήταν: η μπάλα δεν έφτασε ποτέ στο έδαφος
+		ball.died.emit(launch_x)
+	add_shake(2.5)
+
+
+func _reset_wendigo_fx() -> void:
+	glare_t = -1.0
+	heal_motes.clear()
+	heal_pops.clear()
+	if weather:
+		weather.set_storm(false, true)
+
+
+func _update_wendigo_fx(delta: float) -> void:
+	if glare_t >= 0.0:
+		glare_t += delta
+		if glare_t > 1.2:
+			glare_t = -1.0
+	var i := heal_motes.size() - 1
+	while i >= 0:
+		heal_motes[i].t += delta
+		if heal_motes[i].t >= heal_motes[i].dur:
+			heal_motes.remove_at(i)
+		i -= 1
+	i = heal_pops.size() - 1
+	while i >= 0:
+		heal_pops[i].t += delta
+		if heal_pops[i].t >= 1.2:
+			heal_pops.remove_at(i)
+		i -= 1
+
+
+## Ένδειξη του HUD κάτω από τη ζωή του μεγάλου boss ("" = καμία δική του).
+func boss_label() -> String:
+	if not boss_alive() or not boss.is_final or boss.ability == null:
+		return ""
+	var ab = boss.ability
+	if ab is WendigoAbility:
+		if ab.frozen():
+			if not ab.wave_out:
+				return "BLIZZARD COMING!"
+			return "BLIZZARD - %d LEFT" % wave_left()
+		var n: int = ab.icebergs_in()
+		return "ICEBERGS IN %d" % n if n > 1 else "ICEBERGS NEXT!"
+	return ""
+
+
 func _play_explosion(pos: Vector2, scale: float) -> void:
 	if explosion_frames.is_empty():
 		add_sparks(pos, 20, Color("ff9e2c"), 280.0, 7.0)
 		return
-	fx_anims.append({"frames": explosion_frames, "pos": pos, "t": 0.0, "fps": 16.0, "scale": scale})
+	play_fx(explosion_frames, pos, scale, 16.0)
+
+
+## Εφέ σε σημείο της οθόνης. `frames` παίζουν μία φορά στα `fps`· αν δοθεί
+## `life`, το τελευταίο καρέ κρατάει ως τότε. `fade`: σβήσιμο στο τέλος.
+## `floor`: ζωγραφίζεται στο πάτωμα, ΚΑΤΩ από τους εχθρούς (ρωγμές, μαγικός
+## κύκλος)· αλλιώς από πάνω τους. `pop`: μπαίνει με μικρό φούσκωμα (emote).
+func play_fx(frames: Array, pos: Vector2, scale: float, fps: float, life := -1.0,
+		fade := 0.0, on_floor := false, pop := false) -> void:
+	if frames.is_empty():
+		return
+	var span := float(frames.size()) / fps
+	fx_anims.append({"frames": frames, "pos": pos, "t": 0.0, "fps": fps, "scale": scale,
+		"life": maxf(life, span), "fade": fade, "floor": on_floor, "pop": pop})
 
 
 func _update_fx_anims(delta: float) -> void:
@@ -1954,9 +2638,65 @@ func _update_fx_anims(delta: float) -> void:
 	while i >= 0:
 		var a: Dictionary = fx_anims[i]
 		a.t += delta
-		if a.t * a.fps >= (a.frames as Array).size():
+		if a.t >= a.life:
 			fx_anims.remove_at(i)
 		i -= 1
+
+
+## Το καρέ, η κλίμακα και η διαφάνεια ενός εφέ αυτή τη στιγμή.
+static func fx_state(a: Dictionary) -> Array:
+	var frames: Array = a.frames
+	var i := clampi(int(a.t * a.fps), 0, frames.size() - 1)
+	var s: float = a.scale
+	if a.pop:
+		var k := clampf(a.t / 0.18, 0.0, 1.0)
+		s *= lerpf(0.2, 1.0, k) + sin(k * PI) * 0.25
+	var alpha := 1.0
+	if a.fade > 0.0:
+		alpha = clampf((a.life - a.t) / a.fade, 0.0, 1.0)
+	return [frames[i], s, alpha]
+
+
+func _draw_floor_fx() -> void:
+	for a in fx_anims:
+		if not a.floor:
+			continue
+		var st := fx_state(a)
+		var tex: Texture2D = st[0]
+		var sc: float = st[1]
+		var sz: Vector2 = tex.get_size() * sc
+		var dst := Rect2((a.pos as Vector2) - sz * 0.5, sz)
+		var col := Color(1, 1, 1, st[2])
+		if a.has("clip"):
+			# κομμένο σε ένα κελί: σκούρο χώμα από κάτω, και μόνο το κομμάτι
+			# της εικόνας που πέφτει μέσα στο κελί
+			var clip: Rect2 = a.clip
+			var under: Color = a.get("under", Color(0.08, 0.05, 0.03, 0.22))
+			draw_rect(clip, Color(under, under.a * float(st[2])))
+			var inter := dst.intersection(clip)
+			if inter.has_area():
+				var src := Rect2((inter.position - dst.position) / sc, inter.size / sc)
+				draw_texture_rect_region(tex, inter, src, col)
+			continue
+		draw_texture_rect(tex, dst, false, col)
+
+
+## Τρέχει ως το τέλος ό,τι περιμένει στη ροή του γύρου (ρίψεις, καλέσματα,
+## charges) — και όσα γεννάει το ένα για το άλλο. Για tests.
+func flush_actions() -> void:
+	for i in 30:
+		if lobs.is_empty():
+			return
+		_update_lobs(5.0)
+
+
+## Καθυστέρηση μέσα στη ροή του γύρου: όσο περιμένει, ο παίκτης περιμένει
+## κι αυτός (όπως με τις ρίψεις). Ζει στην ίδια λίστα με τα βλήματα, αόρατο.
+func after(delay: float, cb: Callable) -> void:
+	lobs.append({"from": Vector2.ZERO, "to": Vector2.ZERO, "tex": null, "t": 0.0,
+		"dur": maxf(delay, 0.01), "h": 0.0, "spin": 0.0, "scale": 1.0, "cb": cb, "hidden": true})
+	if phase == "aim":
+		phase = "boss_act"
 
 
 # ---------------------------------------------------------------- αλλαγή περιοχής
@@ -2061,6 +2801,9 @@ func _game_over() -> void:
 
 func _draw() -> void:
 	_draw_field()
+	# ρωγμές, μαγικοί κύκλοι: πάνω στο πάτωμα, κάτω από τους εχθρούς (που
+	# είναι παιδιά του main και ζωγραφίζονται μετά από αυτό)
+	_draw_floor_fx()
 	_draw_frame()
 	_draw_torches()
 	_draw_ground()

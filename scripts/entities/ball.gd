@@ -35,10 +35,48 @@ var trail_color := Color(1.0, 0.5, 0.1)
 ## Ποια blocks έχει ήδη πιτσιλίσει αυτή η μπάλα — το splash μετράει μία φορά ανά μπάλα.
 var splashed := {}
 
+## Παγωμένη από το βλέμμα του Wendigo: στέκεται στον αέρα μέσα σε κρύσταλλο
+## που ραγίζει, ώσπου το main τη σπάει (shatter). Δεν χτυπάει τίποτα πια.
+var frozen := false
+var frozen_t := 0.0
+## Το κύμα κρύου: ξεκινάει από τα μάτια του (`ring_at`) μετά από `freeze_in`
+## δευτερόλεπτα και ανοίγει με `ring_speed`. Η μπάλα παγώνει τη στιγμή που
+## το κύμα φτάνει εκεί όπου βρίσκεται ΤΟΤΕ — όχι εκεί που ήταν στο βλέμμα,
+## αλλιώς όσες πετούσαν προς τα πάνω πρόφταιναν το κύμα και πάγωναν αργότερα.
+var freeze_in := -1.0
+const CHILL := 0.12
+var ring_at := Vector2.ZERO
+var ring_speed := 0.0
+var _ring_t := 0.0
+
+
+func freeze(start: float, from: Vector2, speed: float) -> void:
+	if frozen or freeze_in >= 0.0:
+		return
+	freeze_in = maxf(start, 0.0)
+	ring_at = from
+	ring_speed = speed
+	_ring_t = 0.0
+
 
 func _physics_process(delta: float) -> void:
+	if freeze_in >= 0.0 and not frozen:
+		_ring_t += delta
+		var reach := (_ring_t - freeze_in) * ring_speed
+		if reach >= 0.0 and reach >= global_position.distance_to(ring_at):
+			frozen = true
+			trail.clear()
+	if frozen:
+		frozen_t += delta
+		queue_redraw()
+		return
 	spin_t += delta
-	var motion := velocity * delta
+	# Από τη στιγμή που ανάβουν τα μάτια, το κρύο την πιάνει: σέρνεται στο
+	# CHILL της ταχύτητας ώσπου να τη βρει το κύμα. Αλλιώς όσες κατέβαιναν
+	# προς το δάπεδο προλάβαιναν να «προσγειωθούν» και γλίτωναν. Και δεν
+	# χτυπάει τίποτα πια: η βολή έχει ήδη χαθεί.
+	var chilled := freeze_in >= 0.0
+	var motion := velocity * delta * (CHILL if chilled else 1.0)
 
 	for i in 4:
 		var col := move_and_collide(motion)
@@ -46,7 +84,7 @@ func _physics_process(delta: float) -> void:
 			break
 		velocity = velocity.bounce(col.get_normal())
 		var other := col.get_collider()
-		if other and other.is_in_group("block"):
+		if other and other.is_in_group("block") and not chilled:
 			struck.emit(other, self)
 		motion = velocity.normalized() * col.get_remainder().length()
 
@@ -85,7 +123,58 @@ static func dot_tex() -> Texture2D:
 	return _dot
 
 
+## Κρύσταλλος γύρω από παγωμένη μπάλα: ρόμβος στο πλέγμα των 2px (1 art
+## pixel), γαλάζιο σώμα, σκούρο περίγραμμα, λευκή γυαλάδα πάνω αριστερά — και
+## ρωγμές που απλώνονται από το κέντρο όσο πλησιάζει το σπάσιμο.
+const ICE_EDGE := Color("163a63")
+const ICE_BODY := Color(0.62, 0.88, 1.0, 0.78)
+const ICE_HI := Color(1, 1, 1, 0.95)
+const ICE_R := 10                  # ακτίνα σε κουτάκια των 2px
+
+
+func _draw_ice() -> void:
+	var k := clampf(frozen_t / 0.12, 0.0, 1.0)      # ο πάγος «κλείνει» γρήγορα
+	var r := int(ceil(ICE_R * k))
+	var px := 2.0
+	if sprite:
+		var w := 30.0 * draw_scale
+		draw_texture_rect(sprite, Rect2(-w * 0.5, -w * 0.5, w, w), false, Color(0.55, 0.8, 1.2, 1.0))
+	for gy in range(-r - 1, r + 2):
+		for gx in range(-r - 1, r + 2):
+			var d := absi(gx) + absi(gy)           # ρόμβος: απόσταση Manhattan
+			if d > r + 1:
+				continue
+			var q := Rect2(gx * px - 1.0, gy * px - 1.0, px, px)
+			if d == r + 1:
+				draw_rect(q, ICE_EDGE)
+			elif d >= r - 1:
+				draw_rect(q, Color(0.85, 0.96, 1.0, 0.95))
+			else:
+				draw_rect(q, ICE_BODY)
+	if k < 1.0:
+		return
+	# γυαλάδα: μικρή διαγώνιος πάνω αριστερά
+	for i in 3:
+		draw_rect(Rect2((-r + 3 + i) * px - 1.0, (-2 - i) * px - 1.0, px, px), ICE_HI)
+	# ρωγμές: τέσσερις ζιγκ-ζαγκ γραμμές από το κέντρο, όλο και πιο μακριές
+	var crack := clampf((frozen_t - 0.15) / 0.35, 0.0, 1.0)
+	if crack <= 0.0:
+		return
+	var dirs := [Vector2i(1, -1), Vector2i(-1, -1), Vector2i(1, 1), Vector2i(-1, 1)]
+	for j in dirs.size():
+		var dv: Vector2i = dirs[j]
+		var steps := int(round(crack * (r - 1)))
+		var p := Vector2i.ZERO
+		for s in steps:
+			# ζιγκ-ζαγκ: εναλλάξ οριζόντιο και κάθετο βήμα
+			p += Vector2i(dv.x, 0) if (s + j) % 2 == 0 else Vector2i(0, dv.y)
+			draw_rect(Rect2(p.x * px - 1.0, p.y * px - 1.0, px, px), ICE_EDGE)
+
+
 func _draw() -> void:
+	if frozen:
+		_draw_ice()
+		return
 	var dot := dot_tex()
 	for i in trail.size():
 		var p := to_local(trail[i])

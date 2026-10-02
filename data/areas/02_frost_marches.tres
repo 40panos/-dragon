@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AreaDef" load_steps=105 format=3]
+[gd_resource type="Resource" script_class="AreaDef" load_steps=149 format=3]
 
 [ext_resource type="Texture2D" path="res://art/background_frost.png" id="1_tmhq6"]
 [ext_resource type="Script" path="res://scripts/abilities/enemy_ability.gd" id="2_232pq"]
@@ -79,19 +79,59 @@
 [ext_resource type="Texture2D" path="res://art/crystal_golem_idle_7.png" id="76_2ekun"]
 [ext_resource type="Texture2D" path="res://art/crystal_golem_idle_8.png" id="77_8muim"]
 [ext_resource type="Texture2D" path="res://art/shardling_hit_1.png" id="78_2r3bh"]
+[ext_resource type="Texture2D" path="res://art/wendigo_freeze_1.png" id="78_05yu8"]
+[ext_resource type="Texture2D" path="res://art/wendigo_freeze_2.png" id="79_3elc5"]
 [ext_resource type="Texture2D" path="res://art/shardling_hit_2.png" id="79_pa8cr"]
 [ext_resource type="Texture2D" path="res://art/shardling_hit_3.png" id="80_2wmej"]
+[ext_resource type="Texture2D" path="res://art/wendigo_freeze_3.png" id="80_b7nfp"]
+[ext_resource type="Texture2D" path="res://art/wendigo_freeze_4.png" id="81_qqodv"]
 [ext_resource type="Texture2D" path="res://art/shardling_hit_4.png" id="81_wrb5n"]
+[ext_resource type="Texture2D" path="res://art/wendigo_freeze_5.png" id="82_0jpgt"]
 [ext_resource type="Texture2D" path="res://art/shardling_hit_5.png" id="82_hm50o"]
 [ext_resource type="Texture2D" path="res://art/shardling_hit_6.png" id="83_irw2x"]
+[ext_resource type="Texture2D" path="res://art/wendigo_freeze_6.png" id="83_rkoo7"]
 [ext_resource type="Texture2D" path="res://art/shardling_idle_1.png" id="84_to03f"]
+[ext_resource type="Texture2D" path="res://art/wendigo_frozen_1.png" id="84_w68xd"]
 [ext_resource type="Texture2D" path="res://art/shardling_idle_2.png" id="85_3jqat"]
+[ext_resource type="Texture2D" path="res://art/wendigo_frozen_2.png" id="85_gyftq"]
+[ext_resource type="Texture2D" path="res://art/wendigo_frozen_3.png" id="86_fjo75"]
 [ext_resource type="Texture2D" path="res://art/shardling_idle_3.png" id="86_u4w0f"]
 [ext_resource type="Texture2D" path="res://art/shardling_idle_4.png" id="87_hre38"]
+[ext_resource type="Texture2D" path="res://art/wendigo_frozen_4.png" id="87_jrlne"]
 [ext_resource type="Texture2D" path="res://art/shardling_idle_5.png" id="88_7sric"]
+[ext_resource type="Texture2D" path="res://art/wendigo_frozen_5.png" id="88_om3g3"]
 [ext_resource type="Texture2D" path="res://art/shardling_idle_6.png" id="89_a8w35"]
+[ext_resource type="Texture2D" path="res://art/wendigo_frozen_6.png" id="89_qg7pd"]
 [ext_resource type="Texture2D" path="res://art/shardling_idle_7.png" id="90_aaqu5"]
+[ext_resource type="Texture2D" path="res://art/wendigo_glare_1.png" id="90_q66m6"]
+[ext_resource type="Texture2D" path="res://art/wendigo_glare_2.png" id="91_nmu6x"]
 [ext_resource type="Texture2D" path="res://art/shardling_idle_8.png" id="91_w6l5x"]
+[ext_resource type="Texture2D" path="res://art/wendigo_glare_3.png" id="92_jh37h"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_wendigo.gd" id="93_ej325"]
+[ext_resource type="Texture2D" path="res://art/wendigo_slam_1.png" id="94_ci0i3"]
+[ext_resource type="Texture2D" path="res://art/wendigo_slam_2.png" id="95_6ev5j"]
+[ext_resource type="Texture2D" path="res://art/wendigo_slam_3.png" id="96_3svr2"]
+[ext_resource type="Texture2D" path="res://art/wendigo_slam_4.png" id="97_qatiw"]
+[ext_resource type="Texture2D" path="res://art/wendigo_slam_5.png" id="98_uwnpx"]
+[ext_resource type="Texture2D" path="res://art/wendigo_slam_6.png" id="99_cfyw8"]
+[ext_resource type="Texture2D" path="res://art/wendigo_slam_7.png" id="100_4ohgk"]
+[ext_resource type="Texture2D" path="res://art/wendigo_hit_1.png" id="101_6e78s"]
+[ext_resource type="Texture2D" path="res://art/wendigo_hit_2.png" id="102_eu3m3"]
+[ext_resource type="Texture2D" path="res://art/wendigo_hit_3.png" id="103_7ckf5"]
+[ext_resource type="Texture2D" path="res://art/wendigo_hit_4.png" id="104_ow2nt"]
+[ext_resource type="Texture2D" path="res://art/wendigo_hit_5.png" id="105_rvtos"]
+[ext_resource type="Texture2D" path="res://art/wendigo_idle_1.png" id="106_4f37u"]
+[ext_resource type="Texture2D" path="res://art/wendigo_idle_2.png" id="107_wr8dd"]
+[ext_resource type="Texture2D" path="res://art/wendigo_idle_3.png" id="108_neqyu"]
+[ext_resource type="Texture2D" path="res://art/wendigo_idle_4.png" id="109_bjcu8"]
+[ext_resource type="Texture2D" path="res://art/wendigo_idle_5.png" id="110_i5jig"]
+[ext_resource type="Texture2D" path="res://art/wendigo_idle_6.png" id="111_7vjop"]
+[ext_resource type="Texture2D" path="res://art/wendigo_idle_7.png" id="112_t551m"]
+[ext_resource type="Texture2D" path="res://art/wendigo_idle_8.png" id="113_tckku"]
+[ext_resource type="Texture2D" path="res://art/iceberg.png" id="129_omy2i"]
+[ext_resource type="Texture2D" path="res://art/iceberg_crack_1.png" id="130_d6utf"]
+[ext_resource type="Texture2D" path="res://art/iceberg_crack_2.png" id="131_2tmic"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_iceberg.gd" id="132_jb4g1"]
 
 [sub_resource type="Resource" id="Resource_ckldn"]
 script = ExtResource("3_1cbmq")
@@ -129,6 +169,10 @@ min_round = 1
 weight = 1.0
 ability = SubResource("Resource_ubg5l")
 description = "The white terror of the Marches. Its wounds close if you let it rest, and its howl calls the wolves."
+face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
 
 [sub_resource type="Resource" id="Resource_16q1c"]
 script = ExtResource("3_j4m42")
@@ -145,6 +189,10 @@ tier = 0
 min_round = 1
 weight = 40.0
 description = "Born in snowdrifts, sharp as the ice it carries. Harmless alone, never alone for long."
+face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
 
 [sub_resource type="Resource" id="Resource_gfvfr"]
 script = ExtResource("9_bxuds")
@@ -166,6 +214,10 @@ min_round = 4
 weight = 22.0
 ability = SubResource("Resource_gfvfr")
 description = "Hunts in pairs. Next to another wolf it runs faster, so break up the pack first."
+face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
 
 [sub_resource type="Resource" id="Resource_07imw"]
 script = ExtResource("8_5ttue")
@@ -187,6 +239,10 @@ min_round = 7
 weight = 14.0
 ability = SubResource("Resource_07imw")
 description = "A raider from the north behind a painted shield. The shield takes every blow until it splits."
+face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
 
 [sub_resource type="Resource" id="Resource_735ak"]
 script = ExtResource("13_bjdxh")
@@ -210,6 +266,59 @@ min_round = 9
 weight = 12.0
 ability = SubResource("Resource_735ak")
 description = "A walking cliff of blue crystal. Break it and the shards keep fighting."
+face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
+
+[sub_resource type="Resource" id="Resource_emyq5"]
+script = ExtResource("93_ej325")
+iceberg_id = "iceberg"
+iceberg_every = 2
+iceberg_every_rage = 1
+icebergs = 2
+icebergs_rage = 3
+max_icebergs = 6
+freeze_at = 0.5
+heal_ratio = 0.05
+wave = {
+"frost_imp": 5.0,
+"snow_wolf": 3.0,
+"viking": 2.0
+}
+wave_count = 10
+wave_hp = 0.7
+glare_chance = 0.35
+glare_chance_rage = 0.5
+glare_hits = Vector2i(6, 28)
+slam_frames = Array[Texture2D]([ExtResource("94_ci0i3"), ExtResource("95_6ev5j"), ExtResource("96_3svr2"), ExtResource("97_qatiw"), ExtResource("98_uwnpx"), ExtResource("99_cfyw8"), ExtResource("100_4ohgk")])
+glare_frames = Array[Texture2D]([ExtResource("90_q66m6"), ExtResource("91_nmu6x"), ExtResource("92_jh37h"), ExtResource("92_jh37h"), ExtResource("92_jh37h"), ExtResource("92_jh37h"), ExtResource("92_jh37h"), ExtResource("90_q66m6")])
+freeze_frames = Array[Texture2D]([ExtResource("78_05yu8"), ExtResource("79_3elc5"), ExtResource("80_b7nfp"), ExtResource("81_qqodv"), ExtResource("82_0jpgt"), ExtResource("83_rkoo7")])
+frozen_idle = Array[Texture2D]([ExtResource("84_w68xd"), ExtResource("85_gyftq"), ExtResource("86_fjo75"), ExtResource("87_jrlne"), ExtResource("88_om3g3"), ExtResource("89_qg7pd")])
+act_fps = 10.0
+eyes_uv = Vector2(0.495, 0.245)
+eyes_gap = 0.09
+
+[sub_resource type="Resource" id="Resource_26muy"]
+script = ExtResource("3_j4m42")
+id = "ice_wendigo"
+display_name = "Ice Wendigo"
+sprite = ExtResource("106_4f37u")
+frames_idle = Array[Texture2D]([ExtResource("106_4f37u"), ExtResource("107_wr8dd"), ExtResource("108_neqyu"), ExtResource("109_bjcu8"), ExtResource("110_i5jig"), ExtResource("111_7vjop"), ExtResource("112_t551m"), ExtResource("113_tckku")])
+fps_idle = 6.0
+frames_hit = Array[Texture2D]([ExtResource("101_6e78s"), ExtResource("102_eu3m3"), ExtResource("103_7ckf5"), ExtResource("104_ow2nt"), ExtResource("105_rvtos")])
+fps_hit = 12.0
+sprite_scale = 1.0
+hp_mult = 1.0
+tier = 5
+min_round = 1
+weight = 1.0
+ability = SubResource("Resource_emyq5")
+description = "The hunger of the frozen north. It tears icebergs from the ground, and anything that breaks them frees what sleeps inside. Wound it deep and it hides in ice while a blizzard brings its army. Never meet its gaze."
+face_center = Vector2(48, 24)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
 
 [sub_resource type="Resource" id="Resource_5541e"]
 script = ExtResource("3_j4m42")
@@ -226,6 +335,41 @@ tier = 0
 min_round = 1
 weight = 1.0
 description = "A living splinter of a fallen golem. Small, but it still wants you gone."
+face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
+
+[sub_resource type="Resource" id="Resource_8hkc4"]
+script = ExtResource("132_jb4g1")
+turns = 5
+inside = {
+"frost_imp": 3.0,
+"snow_wolf": 2.0
+}
+count = 2
+crack_frames = Array[Texture2D]([ExtResource("129_omy2i"), ExtResource("130_d6utf"), ExtResource("131_2tmic")])
+
+[sub_resource type="Resource" id="Resource_fa4q1"]
+script = ExtResource("3_j4m42")
+id = "iceberg"
+display_name = "Iceberg"
+sprite = ExtResource("129_omy2i")
+frames_idle = Array[Texture2D]([])
+fps_idle = 6.0
+frames_hit = Array[Texture2D]([])
+fps_hit = 12.0
+sprite_scale = 1.0
+hp_mult = 2.0
+tier = 0
+min_round = 1
+weight = 1.0
+ability = SubResource("Resource_8hkc4")
+description = ""
+face_center = Vector2(-1, -1)
+hidden_in_book = true
+show_hp = true
+invulnerable = false
 
 [resource]
 script = ExtResource("11_j18ks")
@@ -241,3 +385,8 @@ boss = SubResource("Resource_4ao7q")
 boss_cols = 3
 boss_rows = 2
 boss_hp_mult = 16.0
+final_boss = SubResource("Resource_26muy")
+final_cols = 3
+final_rows = 3
+final_hp_mult = 30.0
+specials = Array[ExtResource("3_j4m42")]([SubResource("Resource_fa4q1")])
