@@ -1328,6 +1328,126 @@ func _initialize() -> void:
 	m.debug_open = true
 	m._debug_press(Vector2(4, m.H - 4))
 	ok("πάτημα έξω κλείνει το μενού", not m.debug_open)
+
+	print("--- μεγάλος boss: Ice Wendigo ---")
+	m._debug_do("jump", [1, "boss"])
+	m.finish_boss_intro()
+	var wd = m.boss
+	ok("ο Ice Wendigo είναι ο μεγάλος boss του Frost Marches", wd != null and wd.is_final
+		and wd.kind == "ice_wendigo" and wd.cw == 3 and wd.ch == 3)
+	var wd_ab = wd.ability
+	ok("...το HUD λέει πότε έρχονται παγόβουνα", m.boss_label().begins_with("ICEBERGS"), m.boss_label())
+	ok("...δεν κουνιέται", wd_ab.advance_rows(wd, 1) == 0)
+	wd_ab.berg_wait = 1
+	m._end_turn()
+	ok("χτυπάει το έδαφος και ο παίκτης περιμένει τα παγόβουνα", m.phase == "boss_act"
+		and wd.act_playing)
+	m.flush_actions()
+	await process_frame
+	var bergs := []
+	for wb in m.grid.blocks():
+		if wb.kind == "iceberg":
+			bergs.append(wb)
+	ok("τα παγόβουνα βγαίνουν από το πάτωμα", bergs.size() == wd_ab.icebergs
+		and bergs[0].appear_mode == "rise" and m.phase == "aim", "(%d, %s)" % [bergs.size(), m.phase])
+	wd_ab.berg_wait = 99
+	if bergs.size() >= 2:
+		var bg = bergs[0]
+		var bg_row: int = bg.row
+		bg.take_damage(bg.max_hp * 0.5)
+		ok("παγόβουνο που τρώει ζημιά ραγίζει", bg.ability.crack == 1
+			and bg.portrait_frame() == bg.ability.crack_frames[1])
+		var mobs0: int = m.count_kind("frost_imp") + m.count_kind("snow_wolf")
+		bg.take_damage(bg.hp + 1.0)
+		await process_frame
+		await process_frame
+		var mobs1: int = m.count_kind("frost_imp") + m.count_kind("snow_wolf")
+		ok("σπασμένο παγόβουνο βγάζει τέρατα από μέσα", mobs1 > mobs0, "(%d -> %d)" % [mobs0, mobs1])
+		var bg2 = bergs[1]
+		var bg2_row: int = bg2.row
+		m._end_turn()
+		m.flush_actions()
+		await process_frame
+		ok("τα παγόβουνα δεν κατεβαίνουν", is_instance_valid(bg2) and bg2.row == bg2_row,
+			"(%d)" % bg_row)
+		bg2.life_turns = 1
+		m._end_turn()
+		m.flush_actions()
+		ok("αχτύπητο παγόβουνο λιώνει μόνο του", bg2.is_vanishing())
+	# βλέμμα: η βολή παγώνει και χάνεται
+	for wb in m.grid.blocks():
+		if wb != wd:
+			m.grid.erase(wb)
+			wb.queue_free()
+	await process_frame
+	m.phase = "shoot"
+	m.live_balls = 0
+	for gb_i in 3:
+		m._make_ball(Vector2.UP)
+	m.to_fire = 5
+	wd_ab._glare_at = 1
+	wd_ab._hits = 0
+	wd.take_damage(1.0)
+	var glare_balls: Array = m.get_tree().get_nodes_in_group("ball")
+	var all_freezing: bool = not glare_balls.is_empty()
+	for gb in glare_balls:
+		if gb.freeze_in < 0.0:
+			all_freezing = false
+	ok("βλέμμα: λάμψη, οι μπάλες παγώνουν και τα υπόλοιπα δεν φεύγουν", m.glare_t >= 0.0
+		and m.to_fire == 0 and all_freezing)
+	m._shatter_balls()
+	await process_frame
+	ok("...οι μπάλες σπάνε και η βολή τελειώνει", m.get_tree().get_nodes_in_group("ball").is_empty()
+		and m.live_balls == 0 and m.phase != "shoot", "(%d, %s)" % [m.live_balls, m.phase])
+	m.flush_actions()
+	ok("...όχι δεύτερο βλέμμα στον επόμενο γύρο", wd_ab._glare_at == -1)
+	# μισή ζωή: πάγωμα, θύελλα, κύμα, γιατρειά
+	for wb in m.grid.blocks():
+		if wb != wd:
+			m.grid.erase(wb)
+			wb.queue_free()
+	await process_frame
+	wd.take_damage(wd.hp - wd.max_hp * 0.45)
+	ok("στη μισή ζωή παγώνει μέσα σε πάγο", wd_ab.stage == 2 and wd.shield_on
+		and wd.frames_idle == wd_ab.frozen_idle)
+	ok("...και πιάνει χιονοθύελλα", m.weather._storm_want == 1.0)
+	var wd_h0: float = wd.hp
+	wd.take_damage(50.0)
+	ok("...όσο είναι παγωμένος δεν τρώει ζημιά", wd.hp == wd_h0)
+	m._end_turn()
+	m.flush_actions()
+	await process_frame
+	var mist_n := 0
+	for wb in m.grid.blocks():
+		if wb.has_meta("wave") and wb.appear_mode == "mist":
+			mist_n += 1
+	ok("το κύμα βγαίνει μέσα από την ομίχλη", m.wave_left() >= 6 and mist_n == m.wave_left(),
+		"(%d)" % m.wave_left())
+	ok("...και το HUD μετράει πόσοι μένουν", m.boss_label() == "BLIZZARD - %d LEFT" % m.wave_left())
+	var wd_h1: float = wd.hp
+	m._end_turn()
+	m.flush_actions()
+	await process_frame
+	ok("όσο ζει το κύμα γιατρεύεται", wd.hp > wd_h1 and not m.heal_pops.is_empty(),
+		"(%.0f -> %.0f)" % [wd_h1, wd.hp])
+	# έξω απευθείας: οι vikings του κύματος έχουν ασπίδα που θα κρατούσε ένα χτύπημα
+	for wb in m.grid.blocks():
+		if wb.has_meta("wave"):
+			m.grid.erase(wb)
+			wb.queue_free()
+	await process_frame
+	m._end_turn()
+	m.flush_actions()
+	await process_frame
+	ok("χωρίς κύμα ο πάγος σπάει και η θύελλα περνάει", wd_ab.stage == 3 and not wd.shield_on
+		and m.weather._storm_want == 0.0)
+	ok("...και ξαναπαίρνει την κανονική του στάση",
+		wd.frames_idle == m.enemy_by_id["ice_wendigo"].frames_idle)
+	var wd_book_ids := []
+	for wd_e in bk.entries(1):
+		wd_book_ids.append(wd_e.id)
+	ok("ο Wendigo μπαίνει στο Book του Frost Marches, τα παγόβουνα όχι",
+		wd_book_ids.has("ice_wendigo") and not wd_book_ids.has("iceberg"), str(wd_book_ids))
 	m._debug_do("jump", [0, "start"])
 	await process_frame
 

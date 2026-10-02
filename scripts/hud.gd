@@ -253,12 +253,20 @@ func _draw_top() -> void:
 		var label := "BOSS"
 		var lcol := Color("ffd7c2")
 		var doom: int = m.boss_doom()
-		if doom >= 0:
+		var own: String = m.boss_label()
+		if own != "":
+			# ο μεγάλος boss λέει μόνος του τι έρχεται (π.χ. παγόβουνα, θύελλα)
+			label = own
+			if own.ends_with("!"):
+				lcol = Color("8fd3ff").lerp(Color.WHITE, 0.5 + 0.5 * sin(m.t * 10.0))
+			elif own.begins_with("BLIZZARD"):
+				lcol = Color("bfeaff")
+		elif doom >= 0:
 			# ο μεγάλος boss: πόσοι γύροι ως την επόμενη πολιορκία
 			label = "SIEGE IN %d" % doom if doom > 1 else "SIEGE NEXT!"
 			if doom <= 1:
 				lcol = Color("ff7a5a").lerp(Color.WHITE, 0.5 + 0.5 * sin(m.t * 10.0))
-		elif m.boss.is_boss and m.current_area() and m.current_area().final_boss:
+		elif m.boss.is_boss and not m.boss.is_final and m.current_area() and m.current_area().final_boss:
 			label = "MINI-BOSS"
 		_text(Vector2(br.position.x, br.end.y + 30.0), br.size.x, label, 20, lcol, true)
 		return

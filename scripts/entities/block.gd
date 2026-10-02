@@ -87,6 +87,7 @@ var life_turns := -1            # οδόφραγμα: γύροι ως το γκ�
 var life_max := 0
 var is_final := false           # ο μεγάλος boss της περιοχής
 var shield_on := false          # ο μεγάλος boss προστατεύεται (π.χ. από τύμπανα)
+var shield_color := Color("ffcf5a")   # χρυσή στα τύμπανα, παγωμένη στον Wendigo
 var shield_hit_t := 1.0         # χρόνος από το τελευταίο χτύπημα στην ασπίδα
 var weak_rect := Rect2()        # αδύναμο σημείο σε τοπικές συντεταγμένες (μέγεθος 0 = κανένα)
 var bump_t := 1.0               # τράνταγμα όταν χτυπιέται κάτι άθραυστο
@@ -109,7 +110,10 @@ var cast_style := "magic"       # "magic": μωβ αύρα (warlock) · "roar": 
 # ---- εμφάνιση / εξαφάνιση: τίποτα δεν πετάγεται ούτε χάνεται σε ένα καρέ
 const APPEAR_TIME := 0.38
 const VANISH_TIME := 0.45
-var appear_mode := ""           # "" τίποτα, "pop" βγαίνει από βαρέλι, "rise" υψώνεται από το έδαφος
+const MIST_TIME := 0.7          # πιο αργό: βγαίνει μέσα από την ομίχλη
+## "" τίποτα, "pop" βγαίνει από βαρέλι, "rise" υψώνεται από το έδαφος,
+## "mist" ξεπροβάλλει από την ομίχλη (ξεθωριάζει και ανεβαίνει λίγο)
+var appear_mode := ""
 var appear_t := 1.0
 var vanish_t := -1.0            # >=0: σβήνει και μετά φεύγει
 
@@ -283,7 +287,12 @@ func _process(delta: float) -> void:
 		frozen_t += delta
 		queue_redraw()
 	if appear_t < 1.0:
-		appear_t = minf(1.0, appear_t + delta / APPEAR_TIME)
+		var dur := MIST_TIME if appear_mode == "mist" else APPEAR_TIME
+		appear_t = minf(1.0, appear_t + delta / dur)
+		if appear_mode == "mist":
+			# ξεθωριάζει μέσα από την ομίχλη: σε σκαλοπάτια, όπως η ομίχλη του
+			# καιρού, όχι ομαλά
+			modulate.a = floorf(appear_t * 4.0) / 4.0 if appear_t < 1.0 else 1.0
 		queue_redraw()
 	if guard_t < 1.0:
 		guard_t = minf(1.0, guard_t + delta / GUARD_TIME)
@@ -447,6 +456,8 @@ func _appear_xform() -> Transform2D:
 			var e := 1.0 - pow(1.0 - k, 3.0)
 			s = Vector2(1.0 + (1.0 - e) * 0.15, maxf(e, 0.02))
 			off.y = box.y * 0.5 * (1.0 - s.y)       # η βάση μένει στο έδαφος
+		elif appear_mode == "mist":
+			off.y = (1.0 - (1.0 - pow(1.0 - k, 2.0))) * box.y * 0.18
 		else:
 			# μικρό άλμα με υπερακόντιση: 0.35 -> 1.15 -> 1.0
 			var e := 1.0 - pow(1.0 - k, 2.0)
@@ -811,7 +822,7 @@ func _draw_shield() -> void:
 	if a <= 0.01:
 		return
 	var r := box * 0.5 + Vector2(12, 12)
-	var col := SHIELD_COL.lerp(Color.WHITE, flash * 0.8)
+	var col := shield_color.lerp(Color.WHITE, flash * 0.8)
 	# θόλος: απαλή χρυσή μάζα πίσω από τον πύργο
 	draw_texture_rect(Ball.dot_tex(), Rect2(-r, r * 2.0), false, Color(col, 0.10 + 0.10 * beat + flash * 0.2))
 	# χείλος: τετράγωνα 6x6/4x4 στο πλέγμα των 2 art pixels, που γυρίζουν αργά

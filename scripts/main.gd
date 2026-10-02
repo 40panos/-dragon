@@ -583,6 +583,7 @@ func _start() -> void:
 	reserved.clear()
 	fx_anims.clear()
 	_soft.clear()
+	_reset_wendigo_fx()
 	level = 1
 	_apply_theme()
 
@@ -866,11 +867,50 @@ func _ground_impact(b) -> void:
 			for cy in b.ch:
 				var cr := Rect2(pf_left + (b.col + cx) * cell, PF_TOP + (b.row + cy) * cell, cell, cell)
 				var jitter := Vector2(randf_range(-22.0, 22.0), randf_range(-14.0, 14.0))
-				play_fx([tex_cracks], cr.get_center() + jitter, 2.0, 1.0, CRACKS_LIFE, 1.0, true)
-				fx_anims[-1]["clip"] = cr
+				_floor_cracks(cr, cr.get_center() + jitter, CRACKS_LIFE, 1.0)
 	for i in 12:
 		var x: float = b.position.x + randf_range(-b.box.x * 0.55, b.box.x * 0.55)
 		add_sparks(Vector2(x, base_y), 2, Color("a8906a"), 170.0, 6.0)
+
+
+## Ρωγμή στο πάτωμα, κομμένη στο κελί `cr`. Στο χιόνι (θέμα "frost") είναι
+## πάγος: η ίδια ρωγμή ξαναχρωματισμένη σε μπλε, με αχνό γαλάζιο από κάτω
+## αντί για σκούρο χώμα — το καφέ έμοιαζε με λάσπη.
+func _floor_cracks(cr: Rect2, at: Vector2, life: float, fade: float) -> void:
+	if tex_cracks == null:
+		return
+	var a := visual_area()
+	var icy: bool = a != null and a.theme == "frost"
+	play_fx([_ice_cracks() if icy else tex_cracks], at, 2.0, 1.0, life, fade, true)
+	fx_anims[-1]["clip"] = cr
+	if icy:
+		fx_anims[-1]["under"] = Color(0.55, 0.8, 1.0, 0.18)
+
+
+var _ice_cracks_tex: Texture2D
+
+
+## Η ρωγμή του χώματος σε πάγο: η φωτεινότητα κάθε pixel κρατιέται και
+## ξαναβάφεται από βαθύ μπλε (σκοτάδι της ρωγμής) ως σχεδόν λευκό (άκρες).
+func _ice_cracks() -> Texture2D:
+	if _ice_cracks_tex:
+		return _ice_cracks_tex
+	var im := tex_cracks.get_image()
+	im.decompress()
+	im.convert(Image.FORMAT_RGBA8)
+	var deep := Color("1d4f8f")
+	var light := Color("d8f0ff")
+	for y in im.get_height():
+		for x in im.get_width():
+			var c := im.get_pixel(x, y)
+			if c.a <= 0.0:
+				continue
+			var l := clampf(c.get_luminance() * 2.2, 0.0, 1.0)
+			var nc := deep.lerp(light, l)
+			nc.a = c.a
+			im.set_pixel(x, y, nc)
+	_ice_cracks_tex = ImageTexture.create_from_image(im)
+	return _ice_cracks_tex
 
 
 ## Τα καρέ «δράσης» μιας ικανότητας (π.χ. ο βρυχηθμός του βασιλιά, που είναι
@@ -1372,6 +1412,8 @@ func debug_jump(area_i: int, which: String) -> void:
 	lobs.clear()
 	reserved.clear()
 	fx_anims.clear()
+	_soft.clear()
+	_reset_wendigo_fx()
 	transition_t = -1.0
 	boss_intro_t = -1.0
 	freeze_rounds = 0
@@ -1722,6 +1764,7 @@ func _process(delta: float) -> void:
 			_update_boss_intro(delta)
 		_update_lobs(delta)
 		_update_fx_anims(delta)
+		_update_wendigo_fx(delta)
 		_update_soft(delta)
 	queue_redraw()
 	if frozen() or phase != "shoot":
@@ -2259,6 +2302,317 @@ func crumble(b) -> void:
 	b.vanish()
 
 
+# ---- Ice Wendigo (ο μεγάλος boss του Frost Marches, scripts/abilities/ability_wendigo.gd)
+# Δεν ρίχνει τίποτα σε καμπύλη: ό,τι βγάζει ανεβαίνει ΑΠΟ ΤΟ ΠΑΤΩΜΑ (παγόβουνα)
+# ή βγαίνει μέσα από την ομίχλη (κύμα). Οι καθυστερήσεις ζουν στο after(), ώστε
+# ο παίκτης να περιμένει ως το τέλος τους, όπως με τις ρίψεις του Grukk.
+
+const ICE_COL := Color("bfeaff")
+const ICE_DEEP := Color("5fb4ff")
+const HEAL_COL := Color("8fffd0")
+const BERG_WARN := 0.3         # το πάτωμα ραγίζει και αχνίζει πριν βγει το παγόβουνο
+const BERG_GAP := 0.14         # ανάμεσα σε διαδοχικά παγόβουνα
+const BERG_ROWS := Vector2i(2, 7)
+const WAVE_ROWS := Vector2i(2, 6)
+const WAVE_GAP := 0.08         # ανάμεσα στα μέλη του κύματος που βγαίνουν από την ομίχλη
+const GLARE_FREEZE := 0.3      # από το άναμμα των ματιών ως το πρώτο πάγωμα
+const GLARE_SPEED := 2000.0    # px/s: το κύμα κρύου που απλώνεται από τα μάτια
+const GLARE_SHATTER := 0.6     # πόσο μένουν παγωμένες οι τελευταίες μπάλες πριν σπάσουν
+const HEAL_FLY := 0.55         # οι σταγόνες ζωής ως την καρδιά του
+var glare_t := -1.0            # >=0: η λάμψη από τα μάτια του (fx.gd)
+var glare_eyes := Vector2.ZERO
+var heal_motes: Array = []     # {from, to, t, dur, d}: σταγόνες ζωής προς τον Wendigo
+var heal_pops: Array = []      # {pos, t, text}: «+N» που ανεβαίνει
+
+
+## Χτυπάει τα νύχια στο έδαφος· τα παγόβουνα σκίζουν το πάτωμα ένα-ένα.
+func raise_icebergs(src, ab, id: String, n: int) -> void:
+	var type: EnemyType = enemy_by_id.get(id)
+	if type == null:
+		return
+	var slam := 0.0
+	if not ab.slam_frames.is_empty():
+		src.play_act(ab.slam_frames, ab.act_fps)
+		# τα νύχια βρίσκουν το έδαφος περίπου στα 2/3 της κίνησης
+		slam = ab.slam_frames.size() / ab.act_fps * 0.62
+	after(slam, _slam_impact.bind(src))
+	var hp := maxf(1.0, round(level * type.hp_mult))
+	var cells := _throw_cells(BERG_ROWS.x, BERG_ROWS.y, n)
+	for i in cells.size():
+		var c: Vector2i = cells[i]
+		reserved[c] = true
+		after(slam + i * BERG_GAP, _berg_warn.bind(c))
+		after(slam + i * BERG_GAP + BERG_WARN, _berg_rise.bind(c, type, hp))
+
+
+func _slam_impact(src) -> void:
+	if src == null or not is_instance_valid(src):
+		return
+	add_shake(5.0)
+	var base: Vector2 = src.position + Vector2(0, src.box.y * 0.45)
+	for i in 10:
+		var p := base + Vector2(randf_range(-src.box.x * 0.4, src.box.x * 0.4), 0)
+		add_sparks(p, 2, ICE_COL, 190.0, 5.0)
+
+
+## Προειδοποίηση: ρωγμή στο κελί και αχνός παγωμένος ατμός — ο παίκτης βλέπει
+## πού θα βγει, μια στιγμή πριν βγει.
+func _berg_warn(c: Vector2i) -> void:
+	var cr := Rect2(pf_left + c.x * cell, PF_TOP + c.y * cell, cell, cell)
+	_floor_cracks(cr, cr.get_center(), 1.6, 0.8)
+	add_sparks(cr.get_center() + Vector2(0, cell * 0.25), 6, ICE_COL, 70.0, 4.0)
+	add_shake(1.0)
+
+
+## Το παγόβουνο ξεπετάγεται: υψώνεται από τη βάση του, με πίδακα από
+## θραύσματα πάγου προς τα πάνω και χιόνι γύρω από τη βάση.
+func _berg_rise(c: Vector2i, type: EnemyType, hp: float) -> void:
+	reserved.erase(c)
+	if phase == "over" or not grid.is_free(c.x, c.y):
+		return
+	var b = _make_block(c.x, c.y, type, hp, 1, 1, false)
+	b.appear("rise")
+	var at := block_center(c.x, c.y, 1, 1)
+	var base := at + Vector2(0, cell * 0.38)
+	add_shake(2.5)
+	for i in 14:
+		var dir := Vector2(randf_range(-0.55, 0.55), -1.0).normalized()
+		_spark_dir(base, dir * randf_range(180.0, 340.0), ICE_COL if i % 3 else Color.WHITE, 5.0)
+	add_sparks(base, 10, Color("e8f6ff"), 110.0, 6.0)
+	add_sparks(at, 6, ICE_DEEP, 160.0, 4.0)
+
+
+## Σπίθα με δοσμένη ταχύτητα (το add_sparks τις σκορπάει προς όλες τις μεριές).
+func _spark_dir(p: Vector2, v: Vector2, col: Color, size: float) -> void:
+	if sparks.size() >= MAX_SPARKS:
+		return
+	var life := randf_range(0.35, 0.6)
+	sparks.append({"p": p, "v": v, "life": life, "max": life, "c": col, "r": size})
+
+
+func iceberg_cracked(b) -> void:
+	add_sparks(b.position, 8, ICE_COL, 200.0, 5.0)
+	add_shake(1.2)
+
+
+## Έμεινε αχτύπητο ως το τέλος: λιώνει, χωρίς να βγάλει τίποτα.
+func iceberg_melt(b) -> void:
+	grid.erase(b)
+	add_sparks(b.position + Vector2(0, cell * 0.3), 10, Color("7fc8ff"), 70.0, 5.0)
+	add_sparks(b.position, 6, Color("e8f6ff"), 50.0, 4.0)
+	b.vanish()
+
+
+## Το παγόβουνο έσπασε: θραύσματα παντού και τα τέρατα που κρατούσε
+## πετάγονται έξω — στο κελί του πρώτα, μετά στα διπλανά.
+func iceberg_burst(col: int, row: int, pos: Vector2, ids: Array) -> void:
+	add_shake(4.0)
+	for i in 16:
+		var ang := randf() * TAU
+		_spark_dir(pos, Vector2(cos(ang), sin(ang)) * randf_range(160.0, 380.0),
+			Color.WHITE if i % 4 == 0 else ICE_COL, 6.0)
+	add_sparks(pos, 8, ICE_DEEP, 200.0, 5.0)
+	if phase == "over":
+		return
+	var spots: Array[Vector2i] = [Vector2i(col, row)]
+	for d in [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		spots.append(Vector2i(col, row) + d)
+	var made := 0
+	for s in spots:
+		if made >= ids.size():
+			break
+		if s.x < 0 or s.x >= COLS or s.y < 0 or s.y >= death_row - 1:
+			continue
+		if not grid.is_free(s.x, s.y) or reserved.has(s):
+			continue
+		var type: EnemyType = enemy_by_id.get(ids[made])
+		made += 1
+		if type == null:
+			continue
+		var b = _make_block(s.x, s.y, type, maxf(1.0, round(level * type.hp_mult)), 1, 1, false)
+		b.appear("pop")
+
+
+## Μισή ζωή: κέλυφος πάγου, χιονοθύελλα. Το κύμα βγαίνει στο τέλος του γύρου.
+func wendigo_freeze(b, ab) -> void:
+	add_shake(8.0)
+	b.shield_on = true
+	b.shield_color = ICE_COL
+	b.set_idle(ab.frozen_idle, 6.0)
+	if not ab.freeze_frames.is_empty():
+		b.play_act(ab.freeze_frames, ab.act_fps)
+	for i in 24:
+		var ang := randf() * TAU
+		_spark_dir(b.position, Vector2(cos(ang), sin(ang)) * randf_range(120.0, 320.0), ICE_COL, 6.0)
+	if weather:
+		weather.set_storm(true)
+	_announce("THE WENDIGO FREEZES!")
+
+
+## Από την ομίχλη βγαίνει ο στρατός του, ένας-ένας.
+func wendigo_wave(_b, ab) -> void:
+	var cells := _throw_cells(WAVE_ROWS.x, WAVE_ROWS.y, ab.wave_count)
+	for i in cells.size():
+		var c: Vector2i = cells[i]
+		var type: EnemyType = enemy_by_id.get(ab.roll_wave())
+		if type == null:
+			continue
+		reserved[c] = true
+		var hp := maxf(1.0, round(level * type.hp_mult * ab.wave_hp))
+		after(0.2 + i * WAVE_GAP, _wave_emerge.bind(c, type, hp))
+	_announce("BLIZZARD!")
+
+
+func _wave_emerge(c: Vector2i, type: EnemyType, hp: float) -> void:
+	reserved.erase(c)
+	if phase == "over" or not grid.is_free(c.x, c.y):
+		return
+	var at := block_center(c.x, c.y, 1, 1)
+	add_sparks(at, 8, Color("e8f0f4"), 60.0, 9.0)       # πούφος ομίχλης
+	var b = _make_block(c.x, c.y, type, hp, 1, 1, false)
+	b.set_meta("wave", true)
+	b.appear("mist")
+
+
+## Πόσοι από το κύμα της θύελλας ζουν ακόμα.
+func wave_left() -> int:
+	var n := 0
+	for b in grid.blocks():
+		if b.has_meta("wave") and not b.is_vanishing():
+			n += 1
+	return n
+
+
+## Γιατρειά όσο είναι παγωμένος: σταγόνες ζωής φεύγουν από κάθε μέλος του
+## κύματος προς την καρδιά του, και η ζωή ανεβαίνει όταν φτάσουν.
+func wendigo_heal(b, amount: float) -> void:
+	var heart := wendigo_heart(b)
+	var i := 0
+	for w in grid.blocks():
+		if not w.has_meta("wave") or w.is_vanishing():
+			continue
+		for k in 3:
+			heal_motes.append({"from": w.position + Vector2(randf_range(-14, 14), randf_range(-14, 14)),
+				"to": heart, "t": -0.05 * k - 0.02 * i, "dur": HEAL_FLY})
+		i += 1
+	after(HEAL_FLY + 0.1 + 0.02 * i, _heal_land.bind(b, amount))
+
+
+func _heal_land(b, amount: float) -> void:
+	if b == null or not is_instance_valid(b):
+		return
+	var before: float = b.hp
+	b.heal(amount)
+	var got := roundi(b.hp - before)
+	var heart := wendigo_heart(b)
+	add_sparks(heart, 14, HEAL_COL, 170.0, 5.0)
+	if got > 0:
+		heal_pops.append({"pos": heart + Vector2(0, -40), "t": 0.0, "text": "+%d" % got})
+
+
+func wendigo_heart(b) -> Vector2:
+	return b.position + Vector2(0, -b.box.y * 0.08)
+
+
+## Έπεσε και ο τελευταίος της θύελλας: ο πάγος σπάει, ο ουρανός καθαρίζει.
+func wendigo_thaw(b, ab) -> void:
+	b.shield_on = false
+	var type: EnemyType = enemy_by_id.get(b.kind)
+	if type:
+		b.set_idle(type.frames_idle, type.fps_idle)
+	if not ab.freeze_frames.is_empty():
+		var back: Array[Texture2D] = ab.freeze_frames.duplicate()
+		back.reverse()
+		b.play_act(back, ab.act_fps * 1.5)
+	add_shake(9.0)
+	for i in 30:
+		var ang := randf() * TAU
+		_spark_dir(b.position, Vector2(cos(ang), sin(ang)) * randf_range(200.0, 420.0),
+			Color.WHITE if i % 3 == 0 else ICE_COL, 7.0)
+	if weather:
+		weather.set_storm(false)
+	_announce("THE ICE SHATTERS!")
+
+
+## Τα μάτια του αστράφτουν: ό,τι πετάει παγώνει — πρώτα ό,τι είναι κοντά του,
+## το κύμα κρύου απλώνεται — και μετά σπάει. Η βολή χάνεται.
+func wendigo_glare(b, ab) -> void:
+	if phase != "shoot":
+		return
+	if not ab.glare_frames.is_empty():
+		b.play_act(ab.glare_frames, ab.act_fps)
+	glare_eyes = b.position + (ab.eyes_uv - Vector2(0.5, 0.5)) * (b.box - Vector2(6, 6)) * b.sprite_scale
+	glare_t = 0.0
+	to_fire = 0                    # ό,τι δεν έχει φύγει ακόμα, δεν φεύγει
+	for ball in get_tree().get_nodes_in_group("ball"):
+		ball.freeze(GLARE_FREEZE, glare_eyes, GLARE_SPEED)
+	add_shake(3.0)
+	_announce("FROZEN GAZE!")
+	# ως εκεί έχει περάσει όλη την πίστα, ως και τη γωνία του δράκου
+	var far := maxf(glare_eyes.distance_to(Vector2(pf_left, floor_y)),
+		glare_eyes.distance_to(Vector2(pf_right, floor_y)))
+	later(GLARE_FREEZE + far / GLARE_SPEED + GLARE_SHATTER, _shatter_balls)
+
+
+func _shatter_balls() -> void:
+	var balls := get_tree().get_nodes_in_group("ball")
+	var each := clampi(60 / maxi(balls.size(), 1), 1, 6)
+	for ball in balls:
+		if not (ball.frozen or ball.freeze_in >= 0.0) or ball.is_queued_for_deletion():
+			continue
+		for i in each:
+			var ang := randf() * TAU
+			_spark_dir(ball.position, Vector2(cos(ang), sin(ang)) * randf_range(90.0, 220.0),
+				Color.WHITE if i % 2 else ICE_COL, 4.0)
+		ball.remove_from_group("ball")
+		ball.queue_free()
+		# ο δράκος μένει όπου ήταν: η μπάλα δεν έφτασε ποτέ στο έδαφος
+		ball.died.emit(launch_x)
+	add_shake(2.5)
+
+
+func _reset_wendigo_fx() -> void:
+	glare_t = -1.0
+	heal_motes.clear()
+	heal_pops.clear()
+	if weather:
+		weather.set_storm(false, true)
+
+
+func _update_wendigo_fx(delta: float) -> void:
+	if glare_t >= 0.0:
+		glare_t += delta
+		if glare_t > 1.2:
+			glare_t = -1.0
+	var i := heal_motes.size() - 1
+	while i >= 0:
+		heal_motes[i].t += delta
+		if heal_motes[i].t >= heal_motes[i].dur:
+			heal_motes.remove_at(i)
+		i -= 1
+	i = heal_pops.size() - 1
+	while i >= 0:
+		heal_pops[i].t += delta
+		if heal_pops[i].t >= 1.2:
+			heal_pops.remove_at(i)
+		i -= 1
+
+
+## Ένδειξη του HUD κάτω από τη ζωή του μεγάλου boss ("" = καμία δική του).
+func boss_label() -> String:
+	if not boss_alive() or not boss.is_final or boss.ability == null:
+		return ""
+	var ab = boss.ability
+	if ab is WendigoAbility:
+		if ab.frozen():
+			if not ab.wave_out:
+				return "BLIZZARD COMING!"
+			return "BLIZZARD - %d LEFT" % wave_left()
+		var n: int = ab.icebergs_in()
+		return "ICEBERGS IN %d" % n if n > 1 else "ICEBERGS NEXT!"
+	return ""
+
+
 func _play_explosion(pos: Vector2, scale: float) -> void:
 	if explosion_frames.is_empty():
 		add_sparks(pos, 20, Color("ff9e2c"), 280.0, 7.0)
@@ -2317,7 +2671,8 @@ func _draw_floor_fx() -> void:
 			# κομμένο σε ένα κελί: σκούρο χώμα από κάτω, και μόνο το κομμάτι
 			# της εικόνας που πέφτει μέσα στο κελί
 			var clip: Rect2 = a.clip
-			draw_rect(clip, Color(0.08, 0.05, 0.03, 0.22 * float(st[2])))
+			var under: Color = a.get("under", Color(0.08, 0.05, 0.03, 0.22))
+			draw_rect(clip, Color(under, under.a * float(st[2])))
 			var inter := dst.intersection(clip)
 			if inter.has_area():
 				var src := Rect2((inter.position - dst.position) / sc, inter.size / sc)
