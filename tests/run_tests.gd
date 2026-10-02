@@ -1143,7 +1143,7 @@ func _initialize() -> void:
 	var fi: DragonType = m.dragon_by_id("fisher")
 	ok("υπάρχει ο δράκος ψαράς", fi != null and fi.special == "harpoon"
 		and fi.special_name() == "HARPOON")
-	ok("...με 3 καρέ ανά κατάσταση, ίδιου καμβά", fi != null and fi.frames_idle.size() == 3
+	ok("...με βρόχο idle και 3 καρέ στο ready/fire, ίδιου καμβά", fi != null and fi.frames_idle.size() >= 6 and fi.idle_loop
 		and fi.frames_ready.size() == 3 and fi.frames_fire.size() == 3
 		and fi.frames_fire[0].get_size() == fi.frames_idle[0].get_size())
 	ok("...καμάκι και αγκίστρια για βλήματα", fi != null and fi.ball_sprite != null
@@ -1191,7 +1191,7 @@ func _initialize() -> void:
 	var fe: DragonType = fi.awakened if fi else null
 	ok("ο ψαράς έχει εξελιγμένη μορφή, διπλάσια", fe != null
 		and fe.draw_width == fi.draw_width * 2.0)
-	ok("...με 3 καρέ ανά κατάσταση στα 128x128", fe != null and fe.frames_idle.size() == 3
+	ok("...με βρόχο idle και 3 καρέ στο ready/fire, στα 128x128", fe != null and fe.frames_idle.size() >= 6 and fe.idle_loop
 		and fe.frames_ready.size() == 3 and fe.frames_fire.size() == 3
 		and fe.frames_fire[2].get_size() == Vector2(128, 128))
 	ok("...κρατάει καμάκια και αγκίστρια", fe != null and fe.ball_sprite == fi.ball_sprite

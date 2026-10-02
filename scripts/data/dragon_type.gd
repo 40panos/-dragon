@@ -80,6 +80,11 @@ func eyes_for(tex: Texture2D) -> Vector2:
 ## ρούνες που ανεβαίνουν, παγωμένη σκόνη, και έκρηξη ρουνών στη βολή.
 @export var glyph_aura := false
 
+## Το idle είναι κλειστός βρόχος (το τελευταίο καρέ οδηγεί πίσω στο πρώτο,
+## όπως βγαίνει από το animate_image): παίζει ευθύς 0,1,..,n-1,0 αντί για
+## ping-pong, που θα έκανε την κίνηση να «γυρίζει πίσω» στη μέση.
+@export var idle_loop := false
+
 @export var fps_idle := 3.0
 @export var fps_ready := 7.0
 @export var fps_fire := 11.0
@@ -111,6 +116,8 @@ func frame_for(phase: String, aiming: bool, time: float) -> Texture2D:
 		return sprite_for(phase, aiming)
 	if arr.size() == 1:
 		return arr[0]
+	if idle_loop and arr == frames_idle:
+		return arr[int(time * fps) % arr.size()]
 
 	var period := arr.size() * 2 - 2
 	var i := int(time * fps) % period

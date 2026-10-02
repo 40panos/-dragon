@@ -3137,16 +3137,19 @@ func _draw_awaken_skull(base: Vector2, dragon_w: float) -> void:
 func dragon_xform() -> Transform2D:
 	var dph := dragon_phase()
 	var bob := 0.0
-	var breathe := 1.0
 	if dph == "aim" and not aiming:
 		bob = sin(t * 2.1) * 2.5                      # ήρεμη ανάσα
-		breathe = 1.0 + sin(t * 2.1) * 0.018
 	elif dph == "aim" and aiming:
 		bob = 3.0 + sin(t * 26.0) * 0.9               # τρέμουλο έντασης
+	# Η ανάσα είναι ΜΟΝΟ μετατόπιση, σε ακέραια pixel. Παλιότερα είχε και
+	# κάθετο τέντωμα 1.8%: πάνω σε pixel art αυτό διπλασίαζε ή έτρωγε σειρές
+	# από καρέ σε καρέ, και το κεφάλι έμοιαζε να «γκλιτσάρει». Και η κλίση
+	# μετατόπισης στρογγυλεύεται, ώστε το καρέ να μη γλιστράει κατά μισό pixel.
+	bob = roundf(bob)
 	# η κλωτσιά σπρώχνει το κεφάλι αντίθετα από τη βολή
 	var kick := -aim_dir * recoil * 9.0
-	var pivot := dragon_base() + Vector2(0, bob) + kick
-	return Transform2D(tilt, Vector2(1.0, breathe), 0.0, pivot)
+	var pivot := (dragon_base() + Vector2(0, bob) + kick).round()
+	return Transform2D(tilt, Vector2.ONE, 0.0, pivot)
 
 
 ## Αύρα μεταμόρφωσης για τον ψαρά: η θάλασσα τον καταπίνει και τον ξερνάει

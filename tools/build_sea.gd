@@ -63,6 +63,19 @@ const DRAGON := {
 ## θάλασσα — πτερύγια, λέπια, δόλωμα πεσκαδρίτσας, δόντια ψαριού. Βγήκε με
 ## edit_image_pro_flash πάνω στο σχέδιό του μεγεθυμένο x2 (raw/evo_d), και τα
 ## καρέ του με edits πάνω σε αυτό. -> art/fisher_awake_<κατάσταση>_1..3.
+## Το idle και των δύο μορφών: ΟΧΙ τρία ανεξάρτητα edits (διέφεραν σε μικρές
+## λεπτομέρειες και στο παίξιμο το κεφάλι «γκλιτσάριζε»), αλλά βρόχος από το
+## animate_image με πρώτο και τελευταίο καρέ καρφωμένα στο ίδιο σχέδιο
+## (raw/anim/<όνομα>_N). Κάθε καρέ περνάει από _stabilize(). -> art/<prefix>_idle_1..N
+const IDLE_ANIM := {
+	"fisher": ["fisher_idle_anim", "fisher"],
+	"fisher_awake": ["evo_idle_anim", "evo_d"],
+}
+## Πόσο πρέπει να απέχει ένα pixel από το αρχικό για να μετρήσει ως κίνηση
+## (άθροισμα διαφορών RGB). Κάτω από αυτό είναι θόρυβος του μοντέλου.
+const STILL := 0.22
+const IDLE_SKIP := {}
+
 const EVOLVED := {
 	"idle": ["evo_d", "evo_idle_b", "evo_idle_c"],
 	"ready": ["evo_ready_a", "evo_ready_b", "evo_ready_c"],
@@ -162,8 +175,112 @@ func _enemies() -> void:
 			print("%s: %s %d καρέ" % [e, state, frames.size()])
 
 
+func _dist(a: Color, b: Color) -> float:
+	return absf(a.r - b.r) + absf(a.g - b.g) + absf(a.b - b.b)
+
+
+## Σταθεροποιεί ένα καρέ του βρόχου απέναντι στο αρχικό σχέδιο:
+##   - pixel που άλλαξαν λίγο (θόρυβος) παίρνουν πίσω ΑΚΡΙΒΩΣ το αρχικό
+##   - όσα κινήθηκαν στ' αλήθεια κουμπώνουν στο πιο κοντινό χρώμα της
+##     παλέτας του αρχικού, ώστε να μην εμφανίζονται ξένοι τόνοι
+##   - η διαφάνεια γίνεται δυαδική, όπως στο αρχικό
+func _stabilize(im: Image, base: Image, palette: Array) -> Image:
+	var out := base.duplicate()
+	for y in im.get_height():
+		for x in im.get_width():
+			var c := im.get_pixel(x, y)
+			var b := base.get_pixel(x, y)
+			var on := c.a > 0.5
+			if on == (b.a > 0.5) and (not on or _dist(c, b) < STILL):
+				continue            # ίδιο με το αρχικό
+			if not on:
+				out.set_pixel(x, y, Color(0, 0, 0, 0))
+				continue
+			var best: Color = palette[0]
+			var bd := 99.0
+			for p: Color in palette:
+				var d := _dist(c, p)
+				if d < bd:
+					bd = d
+					best = p
+			out.set_pixel(x, y, best)
+	return out
+
+
+## Το μοντέλο μετακινεί ολόκληρο το κεφάλι 1-2 pixel από καρέ σε καρέ, άλλοτε
+## ναι κι άλλοτε όχι — στο παίξιμο αυτό είναι το «γκλίτς». Βρίσκει τη
+## μετατόπιση (dx, dy) που ταιριάζει καλύτερα το καρέ πάνω στο αρχικό και το
+## γυρίζει πίσω, ώστε να μείνει μόνο η τοπική κίνηση (χάντρες, φτερά, πτερύγια).
+## Η ήρεμη ανάσα του κεφαλιού έρχεται από τον κώδικα (main.dragon_xform).
+func _align(im: Image, base: Image) -> Image:
+	var w := im.get_width()
+	var h := im.get_height()
+	var best := Vector2i.ZERO
+	var best_n := 1 << 30
+	for dy in range(-3, 4):
+		for dx in range(-3, 4):
+			var n := 0
+			for y in range(0, h, 2):
+				for x in range(0, w, 2):
+					var sx := x - dx
+					var sy := y - dy
+					var c := im.get_pixel(sx, sy) if sx >= 0 and sy >= 0 and sx < w and sy < h else Color(0, 0, 0, 0)
+					var b := base.get_pixel(x, y)
+					if (c.a > 0.5) != (b.a > 0.5) or (b.a > 0.5 and _dist(c, b) > STILL):
+						n += 1
+			if n < best_n:
+				best_n = n
+				best = Vector2i(dx, dy)
+	if best == Vector2i.ZERO:
+		return im
+	var out := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	out.blit_rect(im, Rect2i(Vector2i.ZERO, im.get_size()), best)
+	return out
+
+
+func _palette(im: Image) -> Array:
+	var seen := {}
+	for y in im.get_height():
+		for x in im.get_width():
+			var c := im.get_pixel(x, y)
+			if c.a > 0.5:
+				seen[c.to_html(false)] = Color(c, 1.0)
+	return seen.values()
+
+
+## Το idle μιας μορφής από τον βρόχο του animate_image (βλ. IDLE_ANIM).
+func _idle_loop(prefix: String, anim: String, base_name: String) -> void:
+	var base := _load(RAW + base_name + ".png")
+	var pal := _palette(base)
+	var frames: Array[Image] = []
+	var i := 0
+	while FileAccess.file_exists(RAW + "anim/%s_%d.png" % [anim, i]):
+		frames.append(_load(RAW + "anim/%s_%d.png" % [anim, i]))
+		i += 1
+	if frames.size() > 1:
+		frames.pop_back()          # καρφωμένο = ίδιο με το 0
+	var skip: Array = IDLE_SKIP.get(anim, [])
+	var kept := 0
+	for k in frames.size():
+		if skip.has(k):
+			continue
+		var im := base if k == 0 else _stabilize(_align(frames[k], base), base, pal)
+		kept += 1
+		_save(im, "%s_idle_%d" % [prefix, kept])
+	# ό,τι περίσσεψε από παλιότερο (μακρύτερο) σετ σβήνεται
+	var stale := kept + 1
+	while FileAccess.file_exists(ProjectSettings.globalize_path("res://art/%s_idle_%d.png" % [prefix, stale])):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path("res://art/%s_idle_%d.png" % [prefix, stale]))
+		DirAccess.remove_absolute(ProjectSettings.globalize_path("res://art/%s_idle_%d.png.import" % [prefix, stale]))
+		stale += 1
+	print("%s: idle βρόχος %d καρέ" % [prefix, kept])
+
+
 func _dragon() -> void:
 	for state in DRAGON:
+		if state == "idle" and FileAccess.file_exists(RAW + "anim/%s_0.png" % IDLE_ANIM["fisher"][0]):
+			_idle_loop("fisher", IDLE_ANIM["fisher"][0], IDLE_ANIM["fisher"][1])
+			continue
 		var names: Array = DRAGON[state]
 		for i in names.size():
 			var im := _load(RAW + names[i] + ".png")
@@ -173,6 +290,9 @@ func _dragon() -> void:
 				return
 			_save(im, "fisher_%s_%d" % [state, i + 1])
 	for state in EVOLVED:
+		if state == "idle" and FileAccess.file_exists(RAW + "anim/%s_0.png" % IDLE_ANIM["fisher_awake"][0]):
+			_idle_loop("fisher_awake", IDLE_ANIM["fisher_awake"][0], IDLE_ANIM["fisher_awake"][1])
+			continue
 		var evo: Array = EVOLVED[state]
 		for i in evo.size():
 			var im := _load(RAW + evo[i] + ".png")

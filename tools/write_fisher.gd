@@ -21,9 +21,16 @@ const EVO_W := 128           # η εξελιγμένη μορφή, διπλάσ�
 const EVO_SCALE := 2
 
 
+## Τα καρέ μιας κατάστασης: 3 για ready/fire, όσα υπάρχουν για το idle (ο
+## βρόχος του tools/build_sea.gd έχει 8).
 func _load_frames(prefix: String, state: String, want_w: int) -> Array[Texture2D]:
 	var out: Array[Texture2D] = []
-	for i in range(1, 4):
+	var count := 3
+	if state == "idle":
+		count = 0
+		while ResourceLoader.exists("res://art/%s_idle_%d.png" % [prefix, count + 1]):
+			count += 1
+	for i in range(1, count + 1):
 		var path := "res://art/%s_%s_%d.png" % [prefix, state, i]
 		var tex: Texture2D = load(path)
 		if tex == null:
@@ -69,7 +76,9 @@ func _make_evolved() -> DragonType:
 	a.frames_ready = ready_
 	a.frames_fire = fire
 	a.glow_frames = _glow()
-	a.fps_idle = 3.0
+	# idle: κλειστός βρόχος 8 καρέ, ~1.3s ο κύκλος — αργή, ήρεμη ανάσα
+	a.idle_loop = true
+	a.fps_idle = 6.0
 	a.fps_ready = 6.0
 	a.fps_fire = 12.0
 	a.draw_width = float(EVO_W * EVO_SCALE)   # 256 = 2x
@@ -122,7 +131,8 @@ func _initialize() -> void:
 	d.ball_heading = -PI / 4.0
 	d.ball_spin = 0.0
 
-	d.fps_idle = 3.0
+	d.idle_loop = true
+	d.fps_idle = 6.0
 	d.fps_ready = 6.0
 	d.fps_fire = 12.0
 	d.draw_width = float(FRAME_W * SCALE)   # 128 = 2x, ακέραιο πολλαπλάσιο
