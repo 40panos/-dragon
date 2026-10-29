@@ -22,13 +22,11 @@
 
 BBdragon is a **for-fun project I built to learn how far AI tools can take someone in a field they have never touched**. Before this I had never made a game — no engine experience, no pixel art, no animation. The goal was simple: use AI the way a professional would, as a set of tools I direct, review and push, and see how close I could get to a polished, *real-feeling* game.
 
-Six weeks later it has four worlds, four evolving dragons, two dozen enemy types with their own abilities, multi-phase bosses, a bestiary, a soundtrack, an automated test suite and a browser build that deploys itself on every push.
-
 **It is still very much a work in progress** — and I am enjoying every bit of it.
 
 ## The game
 
-You are a dragon at the bottom of the screen. Aim, release, and watch a volley of projectiles bounce across the board. Enemies march down one row every turn; if they reach you, the run is over. Kill to charge your dragon's special, survive 20 rounds, and face the boss of each world.
+Inspired by the popular mobile game **BBTAN**: aim, fire a volley of bouncing projectiles and clear the board before the enemies reach you — but with dragons, evolving specials and bosses that fight back.
 
 | | |
 |:--|:--|
@@ -51,8 +49,6 @@ You are a dragon at the bottom of the screen. Aim, release, and watch a volley o
 </div>
 
 ## How it was made — AI as a toolkit, me as the director
-
-The interesting part of this project is not that AI was used, but **how**. I treated it like a small studio I was running:
 
 - **Code — Claude Code (Anthropic)** as a pair programmer. I set the design, the rules and the quality bar; it wrote GDScript under them. Every feature lands with tests (339 of them), a real in-game screenshot check, and a descriptive commit — 85 commits so far.
 - **Art — PixelLab** for pixel-art generation: enemies, bosses, dragons, tiles, walls, animations. Raw AI art is never good enough on its own, so most of the work was building a **pipeline around it** (`tools/`, 30 scripts) that turns generations into game-ready assets:
