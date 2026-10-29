@@ -1,67 +1,76 @@
 <div align="center">
 
-# BBdragon
+# 🐉 BBdragon
+
+*Bounce fireballs, freeze bosses, feed the dragon.*
 
 <img src="docs/media/promo.gif" alt="BBdragon gameplay" width="360">
 
-**[Play it in the browser](https://40panos.github.io/-dragon/)** (desktop or phone, nothing to install)
+### [▶ Play it in the browser](https://40panos.github.io/-dragon/)
+
+Desktop or phone, nothing to install.
+
+![Godot 4.3](https://img.shields.io/badge/Godot-4.3-478cbf?logo=godotengine&logoColor=white)
+![Status](https://img.shields.io/badge/status-work%20in%20progress-f0883e)
 
 </div>
 
 ## About
 
-This is a for-fun project I started to learn how to use AI tools to get the best result I can in a field I had never touched. I had never made a game before. No engine experience, no pixel art, no animation. I wanted to see how far I could get if I treated the AI tools as tools: I decide what to build and how it should look, they help me build it, and I check and fix what comes out.
+I started BBdragon for fun, to learn how to use AI tools to get the best result I can in a field I had never touched. Before this I had never made a game. I didn't know Godot, I had never drawn pixel art and I had no idea how animation works.
 
-It's still ongoing and I keep adding to it.
+So I set myself a challenge: treat the AI tools like a small team. I decide what the game is, how it should look and feel, and what's good enough. They help me build it, and I review, fix and push back until it looks right.
+
+It's still ongoing, and every week it grows a bit more.
 
 ## The game
 
-It's inspired by the mobile game BBTAN. You aim, shoot a volley of bouncing projectiles and try to clear the enemies before they reach the bottom. In this version you play as a dragon, and the bosses fight back.
+If you've played **BBTAN**, you already know how it works: aim, shoot a volley of bouncing balls, and clear the blocks before they reach the bottom. BBdragon takes that idea and turns the blocks into monsters with their own tricks, and you into a dragon.
 
-What's in it so far:
+**4 worlds.** Goblin Land, Frost Marches, Graveyard and Drowned Coast. Each one has its own enemies, scenery and boss.
 
-- 4 worlds: Goblin Land, Frost Marches, Graveyard and Drowned Coast, each with its own enemies, look and boss
-- 4 dragons (fire, ice, death and a sea one), each with its own projectiles, a special move and a bigger evolved form
-- 28 enemy types with different abilities: riders that charge, knights with shields, warlocks that summon, wolves that move in packs, ghosts that ignore weak hits
-- 6 bosses, two of them big 3x3 ones with phases. The Siege Tower throws barricades, drummers and powder kegs at you, and the Ice Wendigo can freeze your shots in mid-air
+**4 dragons, and each one evolves.** Ember throws fireballs, Frost throws ice shards, Death throws spinning scythes and the Fisher throws harpoons. When you fire their special, they transform into a bigger form for that turn.
+
+**28 enemies that don't just sit there.** Orc riders charge forward two rows at once. Shield knights block until the shield breaks. Warlocks summon minions. Snow wolves move faster in packs. Ghosts shrug off weak hits.
+
+**Bosses that fight back.** Grukk's Siege Tower drops onto the board and throws barricades, war drummers and powder kegs at you. The Ice Wendigo can freeze your whole volley in mid-air and shatter it.
 
 <div align="center">
-<img src="docs/media/ember_inferno.png" width="190" alt="Ember's special">
-<img src="docs/media/goblin_wave.png" width="190" alt="Riders charging">
-<img src="docs/media/siege_tower.png" width="190" alt="Siege Tower boss">
-<img src="docs/media/wendigo_frozen_gaze.png" width="190" alt="Ice Wendigo">
+<img src="docs/media/ember_inferno.png" width="190" alt="Ember's INFERNO">
+<img src="docs/media/goblin_wave.png" width="190" alt="Orc riders charging">
+<img src="docs/media/siege_tower.png" width="190" alt="Grukk's Siege Tower">
+<img src="docs/media/wendigo_frozen_gaze.png" width="190" alt="The Ice Wendigo freezing shots">
 <br>
-<img src="docs/media/death_swarm.png" width="190" alt="Death dragon">
-<img src="docs/media/siege_boulder.png" width="190" alt="Siege boulder">
-<img src="docs/media/angler_summon.png" width="190" alt="Abyssal Angler">
-<img src="docs/media/fisher_harpoon.png" width="190" alt="Fisher dragon">
+<img src="docs/media/death_swarm.png" width="190" alt="Death, unmasked">
+<img src="docs/media/siege_boulder.png" width="190" alt="The siege boulder">
+<img src="docs/media/angler_summon.png" width="190" alt="The Abyssal Angler">
+<img src="docs/media/fisher_harpoon.png" width="190" alt="The Fisher's evolved form">
 </div>
 
 ## How I made it
 
-- **Code:** written in Godot (GDScript) with Claude Code as a coding assistant. I made the design decisions and reviewed the changes. There are 339 automated tests, and every push builds and publishes the browser version through GitHub Actions.
-- **Art:** the sprites, tiles and animations started as PixelLab generations. Most of them needed cleanup before they looked right in the game, so I built a set of scripts in `tools/` to fix them. These scripts:
-  - stop animation frames from flickering
-  - even out tile colors so the floors don't look like a chessboard
-  - recolor existing art into new themes (snow, graveyard, sea)
-- **Content:** worlds, enemies, dragons and abilities are defined as data, so adding a new enemy or ability doesn't mean rewriting the game code.
+**Code.** The game is written in Godot (GDScript), with Claude Code as my coding assistant. I made the design calls and reviewed every change. To keep things from breaking as the game grew, it has 339 automated tests, and every push builds and publishes the browser version on its own through GitHub Actions.
+
+**Art.** The sprites, tiles and animations started as PixelLab generations, but raw AI art rarely looks right in a game straight away. Animations flickered, floor tiles came back in different shades and looked like a chessboard, and some frames had random dark spots. So I built a small pipeline of scripts (`tools/`) that cleans them up. One example: the dragon's idle animation used to "glitch" because the AI shifted the whole head by a pixel between frames. A script now lines the frames back up and locks the colours to the original, and the loop went from about a third of the pixels jumping around to almost none.
+
+**Content.** Worlds, enemies, dragons and abilities are all defined as data. Adding a new monster with a new ability doesn't mean touching the core game code, and abilities can be stacked on the same enemy (a boss can have thick skin, rage and summon minions at the same time).
 
 ## What's next
 
-- Turning it into a roguelike where you combine dragons and their abilities into combos
-- Small skill trees and more projectile types
+- **Roguelike runs** where you combine dragons and their abilities. Mixing fire and ice, or souls and water, should set off combos big enough to clear the whole screen.
+- Small skill trees and new projectile types for each dragon
 - More music
 - A proper mobile release
 
-## Want to help?
+## Want to join?
 
-If you find this and want to work on it with me, I'd be really happy to hear from you, especially if you're an animator or pixel artist (real hand-made animation would make a huge difference) or a developer. Musicians and sound designers are welcome too.
+If you came across this and you'd like to help make it, I'd honestly love that. I'm especially looking for **animators and pixel artists** (real hand-made animation would change everything) and **developers**, but musicians and sound designers are welcome too.
 
 Open an [issue](https://github.com/40panos/-dragon/issues) or message me through my [GitHub profile](https://github.com/40panos).
 
 ## Credits
 
-- Music by my friend **Theodoros Vakontios**, who made the Goblin Land and Graveyard tracks. Thank you!
+- **Music** by my friend **Theodoros Vakontios**, who wrote the Goblin Land and Graveyard tracks. Thank you!
 - Pixel art generated with [PixelLab](https://pixellab.ai) and cleaned up for the game
 - Coding assistance from [Claude Code](https://claude.com/claude-code)
 - Made with [Godot](https://godotengine.org)
