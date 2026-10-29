@@ -14,3 +14,5 @@
 *.ogg binary
 *.wav binary
 *.ttf binary
+*.gif binary
+*.mp3 binary
