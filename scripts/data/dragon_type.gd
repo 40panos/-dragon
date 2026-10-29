@@ -51,14 +51,39 @@ extends Resource
 ## Πώς παίζει η αύρα της μεταμόρφωσης: "flame" = τα ζωγραφισμένα καρέ φωτιάς,
 ## "skull" = μαύρη νεκροκεφαλή που ανοίγει, φτιαγμένη από το ίδιο το κεφάλι
 ## του δράκου. Ο death δεν έχει δικά του καρέ φλόγας και δεν του ταιριάζουν.
-@export_enum("flame", "skull") var awaken_style := "flame"
+## "tide" = δίνη νερού που σηκώνεται και σκάει γύρω από το κεφάλι (ο ψαράς).
+@export_enum("flame", "skull", "tide") var awaken_style := "flame"
 
 ## Αντί για λάμψη στο στόμα, χύνεται σκοτάδι από τις κόγχες όταν ρίχνει.
 @export var dark_eyes := false
 
+## Λάμψη στα μάτια (scripts/eye_glow.gd): ανάβει στη στόχευση και φουντώνει
+## στη βολή, με αντανάκλαση και ίχνη φωτός. 0 = καθόλου, 1 = όλη η ένταση.
+@export_range(0.0, 1.5, 0.05) var eye_glow := 0.0
+## Πού είναι τα μάτια μέσα στο καρέ: x = απόσταση κάθε ματιού από το κέντρο ως
+## κλάσμα του πλάτους, y = ύψος από τη βάση του καρέ ως κλάσμα του ύψους.
+@export var eye_pos := Vector2(0.16, 0.45)
+## Στη βολή το κεφάλι συχνά τινάζεται και τα μάτια ανεβαίνουν: μία θέση ανά
+## καρέ του frames_fire. Άδειο (ή λιγότερα) = eye_pos.
+@export var eye_pos_fire: Array[Vector2] = []
+
+
+## Πού είναι τα μάτια στο συγκεκριμένο καρέ.
+func eyes_for(tex: Texture2D) -> Vector2:
+	var i := frames_fire.find(tex)
+	if i >= 0 and i < eye_pos_fire.size():
+		return eye_pos_fire[i]
+	return eye_pos
+@export var eye_color := Color("5ff4ff")
+
 ## Αύρα από παγωμένες ρούνες γύρω από το κεφάλι (scripts/glyph_aura.gd):
 ## ρούνες που ανεβαίνουν, παγωμένη σκόνη, και έκρηξη ρουνών στη βολή.
 @export var glyph_aura := false
+
+## Το idle είναι κλειστός βρόχος (το τελευταίο καρέ οδηγεί πίσω στο πρώτο,
+## όπως βγαίνει από το animate_image): παίζει ευθύς 0,1,..,n-1,0 αντί για
+## ping-pong, που θα έκανε την κίνηση να «γυρίζει πίσω» στη μέση.
+@export var idle_loop := false
 
 @export var fps_idle := 3.0
 @export var fps_ready := 7.0
@@ -91,6 +116,8 @@ func frame_for(phase: String, aiming: bool, time: float) -> Texture2D:
 		return sprite_for(phase, aiming)
 	if arr.size() == 1:
 		return arr[0]
+	if idle_loop and arr == frames_idle:
+		return arr[int(time * fps) % arr.size()]
 
 	var period := arr.size() * 2 - 2
 	var i := int(time * fps) % period
@@ -117,7 +144,8 @@ func sprite_for(phase: String, aiming: bool) -> Texture2D:
 ## inferno = η επόμενη βολή κάνει τριπλή ζημιά
 ## swarm   = ρίχνει αμέσως μια ολόκληρη έξτρα βολή
 ## freeze  = παγώνει όλους τους εχθρούς για FREEZE_ROUNDS γύρους (βλ. main)
-@export_enum("inferno", "swarm", "freeze") var special := "inferno"
+## harpoon = μία βολή όπου τα βλήματα διαπερνούν τους εχθρούς αντί να αναπηδούν
+@export_enum("inferno", "swarm", "freeze", "harpoon") var special := "inferno"
 
 ## Πόσοι σκοτωμοί χρειάζονται για να γεμίσει το special.
 @export var special_cost := 15.0
@@ -134,6 +162,7 @@ func special_name() -> String:
 	match special:
 		"swarm": return "SWARM"
 		"freeze": return "FREEZE"
+		"harpoon": return "HARPOON"
 		_: return "INFERNO"
 
 
@@ -142,6 +171,7 @@ func special_desc() -> String:
 	match special:
 		"swarm": return "extra volley"
 		"freeze": return "enemies freeze, 2 rounds"
+		"harpoon": return "spears pierce, one volley"
 		_: return "x3 damage, one volley"
 
 

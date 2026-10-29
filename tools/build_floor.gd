@@ -3,6 +3,7 @@ extends SceneTree
 ##   art/background.png        ← art/floor_01..19.png   (Goblin Land)
 ##   art/background_frost.png  ← art/ice_01..10.png     (Frost Marches)
 ##   art/background_grave.png  ← art/grave_01..09.png   (Graveyard)
+##   art/background_sea_1..4.png ← art/sea_01..10_1..4.png (Drowned Coast, κυματίζει)
 ##
 ##   godot --headless --path . --script tools/build_floor.gd
 ##
@@ -98,13 +99,39 @@ const SETS := [
 		"accents": [7, 8, 9],   # τάφος, κόκαλα με κρανίο, πεσμένος σταυρός
 		"accent_count": 3,
 	},
+	{
+		# Drowned Coast: σκούρα θάλασσα που κυματίζει. Κάθε πλακίδιο έχει
+		# `frames` καρέ (art/sea_NN_<καρέ>.png, από το tools/build_sea.gd)· το
+		# ΙΔΙΟ σχέδιο δαπέδου στρώνεται μία φορά ανά καρέ, οπότε βγαίνουν τα
+		# background_sea_1..N και κάθε κελί κυματίζει στη θέση του.
+		"prefix": "sea",
+		"count": 10,
+		"frames": 4,
+		"out": "res://art/background_sea.png",
+		"seed": 20261003,
+		"weights": {
+			1: 12,    # ήρεμο νερό — η βάση
+			2: 10,
+			3: 10,    # νερό με διαγώνια κύματα
+			4: 8,     # βαθύ, σκουρότερο νερό
+			5: 8,
+			6: 3,     # λωρίδες αφρού
+			7: 2,     # βράχια με αφρό — τραβάνε το μάτι, σπάνια
+			8: 2,     # φύκια
+		},
+		"accents": [9, 10],   # συντρίμμια ναυαγίου, σκελετός ψαριού
+		"accent_count": 2,
+	},
 ]
 
 
-func _load_tiles(prefix: String, count: int) -> Dictionary:
+## `frame` > 0: το καρέ κύματος του πλακιδίου (<prefix>_NN_<frame>.png).
+func _load_tiles(prefix: String, count: int, frame := 0) -> Dictionary:
 	var out := {}
 	for i in range(1, count + 1):
 		var path := "res://art/%s_%02d.png" % [prefix, i]
+		if frame > 0:
+			path = "res://art/%s_%02d_%d.png" % [prefix, i, frame]
 		var tex: Texture2D = load(path)
 		if tex == null:
 			push_error("λείπει το πλακίδιο: " + path)
@@ -120,7 +147,6 @@ func _load_tiles(prefix: String, count: int) -> Dictionary:
 
 
 func _build(set_: Dictionary) -> void:
-	var tiles := _load_tiles(set_.prefix, set_.count)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = set_.seed
 
@@ -151,25 +177,38 @@ func _build(set_: Dictionary) -> void:
 		spots.remove_at(pick)
 		plan[spot.y][spot.x] = accents[i % accents.size()]
 
-	var sheet := Image.create(COLS * TILE, ROWS * TILE, false, Image.FORMAT_RGBA8)
+	# στατικό δάπεδο: ένα φύλλο. Κινούμενο: ένα ανά καρέ, με το ίδιο σχέδιο,
+	# και το πρώτο γράφεται και ως σκέτο `out` (εφεδρεία, εικονίδια)
+	var frames := int(set_.get("frames", 0))
 	var used := {}
-	for r in ROWS:
-		for c in COLS:
-			var id: int = plan[r][c]
-			used[id] = int(used.get(id, 0)) + 1
-			sheet.blit_rect(tiles[id], Rect2i(0, 0, TILE, TILE), Vector2i(c * TILE, r * TILE))
-
-	var err := sheet.save_png(ProjectSettings.globalize_path(set_.out))
-	if err != OK:
-		push_error("η αποθήκευση απέτυχε: %d" % err)
-		quit(1)
+	for f in range(0, maxi(frames, 1)):
+		var frame := f + 1 if frames > 0 else 0
+		var tiles := _load_tiles(set_.prefix, set_.count, frame)
+		var sheet := Image.create(COLS * TILE, ROWS * TILE, false, Image.FORMAT_RGBA8)
+		for r in ROWS:
+			for c in COLS:
+				var id: int = plan[r][c]
+				if f == 0:
+					used[id] = int(used.get(id, 0)) + 1
+				sheet.blit_rect(tiles[id], Rect2i(0, 0, TILE, TILE), Vector2i(c * TILE, r * TILE))
+		var outs: Array[String] = [set_.out]
+		if frames > 0:
+			outs.clear()
+			outs.append(String(set_.out).replace(".png", "_%d.png" % frame))
+			if f == 0:
+				outs.append(set_.out)
+		for o in outs:
+			var err := sheet.save_png(ProjectSettings.globalize_path(o))
+			if err != OK:
+				push_error("η αποθήκευση απέτυχε: %d" % err)
+				quit(1)
+			print("γράφτηκε %s — %dx%d (%dx%d πλακίδια)"
+				% [o, sheet.get_width(), sheet.get_height(), COLS, ROWS])
 	var ids := used.keys()
 	ids.sort()
 	var report := []
 	for id in ids:
 		report.append("%d:%d" % [id, used[id]])
-	print("γράφτηκε %s — %dx%d (%dx%d πλακίδια)"
-		% [set_.out, sheet.get_width(), sheet.get_height(), COLS, ROWS])
 	print("  χρήση: ", ", ".join(report))
 
 

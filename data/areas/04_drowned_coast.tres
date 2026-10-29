@@ -1,0 +1,277 @@
+[gd_resource type="Resource" script_class="AreaDef" load_steps=110 format=3]
+
+[ext_resource type="Texture2D" path="res://art/background_sea.png" id="1_pv7w3"]
+[ext_resource type="Texture2D" path="res://art/background_sea_1.png" id="2_21hm7"]
+[ext_resource type="Texture2D" path="res://art/background_sea_2.png" id="3_lg3f2"]
+[ext_resource type="Texture2D" path="res://art/background_sea_3.png" id="4_ey80n"]
+[ext_resource type="Texture2D" path="res://art/background_sea_4.png" id="5_akrca"]
+[ext_resource type="Script" path="res://scripts/abilities/enemy_ability.gd" id="6_iqayo"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_regen.gd" id="7_htw6l"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_summoner.gd" id="8_ujgx3"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_composite.gd" id="9_kqj86"]
+[ext_resource type="Texture2D" path="res://art/angler_hit_1.png" id="10_lpucv"]
+[ext_resource type="Texture2D" path="res://art/angler_hit_2.png" id="11_xtlxc"]
+[ext_resource type="Texture2D" path="res://art/angler_hit_3.png" id="12_srr3d"]
+[ext_resource type="Texture2D" path="res://art/angler_hit_4.png" id="13_pylob"]
+[ext_resource type="Texture2D" path="res://art/angler_hit_5.png" id="14_4aadg"]
+[ext_resource type="Texture2D" path="res://art/angler_hit_6.png" id="15_v07xe"]
+[ext_resource type="Texture2D" path="res://art/angler_idle_1.png" id="16_8sl7t"]
+[ext_resource type="Texture2D" path="res://art/angler_idle_2.png" id="17_tedgd"]
+[ext_resource type="Texture2D" path="res://art/angler_idle_3.png" id="18_b3luy"]
+[ext_resource type="Texture2D" path="res://art/angler_idle_4.png" id="19_lg121"]
+[ext_resource type="Texture2D" path="res://art/angler_idle_5.png" id="20_y45yn"]
+[ext_resource type="Texture2D" path="res://art/angler_idle_6.png" id="21_r1xbu"]
+[ext_resource type="Texture2D" path="res://art/angler_idle_7.png" id="22_nst28"]
+[ext_resource type="Texture2D" path="res://art/angler_idle_8.png" id="23_j1jna"]
+[ext_resource type="Script" path="res://scripts/data/enemy_type.gd" id="24_imrla"]
+[ext_resource type="Texture2D" path="res://art/murkfin_hit_1.png" id="25_r77rv"]
+[ext_resource type="Texture2D" path="res://art/murkfin_hit_2.png" id="26_8h5jf"]
+[ext_resource type="Texture2D" path="res://art/murkfin_hit_3.png" id="27_7xftt"]
+[ext_resource type="Texture2D" path="res://art/murkfin_hit_4.png" id="28_fkuu1"]
+[ext_resource type="Texture2D" path="res://art/murkfin_hit_5.png" id="29_se4dc"]
+[ext_resource type="Texture2D" path="res://art/murkfin_hit_6.png" id="30_4ok82"]
+[ext_resource type="Texture2D" path="res://art/murkfin_idle_1.png" id="31_0mqkf"]
+[ext_resource type="Texture2D" path="res://art/murkfin_idle_2.png" id="32_wnrot"]
+[ext_resource type="Texture2D" path="res://art/murkfin_idle_3.png" id="33_of204"]
+[ext_resource type="Texture2D" path="res://art/murkfin_idle_4.png" id="34_a4vls"]
+[ext_resource type="Texture2D" path="res://art/murkfin_idle_5.png" id="35_if55d"]
+[ext_resource type="Texture2D" path="res://art/murkfin_idle_6.png" id="36_vks0k"]
+[ext_resource type="Texture2D" path="res://art/murkfin_idle_7.png" id="37_wxcdk"]
+[ext_resource type="Texture2D" path="res://art/murkfin_idle_8.png" id="38_airtd"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_pack.gd" id="39_faba2"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_hit_1.png" id="40_b01qp"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_hit_2.png" id="41_3n2r0"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_hit_3.png" id="42_lbd15"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_hit_4.png" id="43_e27cv"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_hit_5.png" id="44_xedb3"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_hit_6.png" id="45_tat1g"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_idle_1.png" id="46_3c1jo"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_idle_2.png" id="47_llhef"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_idle_3.png" id="48_r38xd"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_idle_4.png" id="49_e56ot"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_idle_5.png" id="50_h6urp"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_idle_6.png" id="51_0ky1v"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_idle_7.png" id="52_exsan"]
+[ext_resource type="Texture2D" path="res://art/razorjaw_idle_8.png" id="53_b2ou7"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_shield.gd" id="54_8b85e"]
+[ext_resource type="Texture2D" path="res://art/shellback_hit_1.png" id="55_6pjxt"]
+[ext_resource type="Texture2D" path="res://art/shellback_hit_2.png" id="56_qxhod"]
+[ext_resource type="Texture2D" path="res://art/shellback_hit_3.png" id="57_mr3qt"]
+[ext_resource type="Texture2D" path="res://art/shellback_hit_4.png" id="58_r6flg"]
+[ext_resource type="Texture2D" path="res://art/shellback_hit_5.png" id="59_yb7h3"]
+[ext_resource type="Texture2D" path="res://art/shellback_hit_6.png" id="60_ffns6"]
+[ext_resource type="Texture2D" path="res://art/shellback_idle_1.png" id="61_h6uwa"]
+[ext_resource type="Texture2D" path="res://art/shellback_idle_2.png" id="62_johao"]
+[ext_resource type="Texture2D" path="res://art/shellback_idle_3.png" id="63_sbg7j"]
+[ext_resource type="Texture2D" path="res://art/shellback_idle_4.png" id="64_4nrw8"]
+[ext_resource type="Texture2D" path="res://art/shellback_idle_5.png" id="65_h2vc6"]
+[ext_resource type="Texture2D" path="res://art/shellback_idle_6.png" id="66_ufvap"]
+[ext_resource type="Texture2D" path="res://art/shellback_idle_7.png" id="67_1r54b"]
+[ext_resource type="Texture2D" path="res://art/shellback_idle_8.png" id="68_r5bsd"]
+[ext_resource type="Script" path="res://scripts/abilities/ability_hide.gd" id="69_tv7fb"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_hit_1.png" id="70_iv3an"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_hit_2.png" id="71_dlr0b"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_hit_3.png" id="72_8h7p0"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_hit_4.png" id="73_t5w4v"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_hit_5.png" id="74_1n44g"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_hit_6.png" id="75_jgsjr"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_idle_1.png" id="76_gvdpr"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_idle_2.png" id="77_6ja04"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_idle_3.png" id="78_wb3tg"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_idle_4.png" id="79_as31r"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_idle_5.png" id="80_vi6ey"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_idle_6.png" id="81_w7h84"]
+[ext_resource type="Texture2D" path="res://art/drift_jelly_idle_7.png" id="82_vxrsq"]
+[ext_resource type="Texture2D" path="res://art/bitefin_hit_1.png" id="83_gvl3r"]
+[ext_resource type="Texture2D" path="res://art/bitefin_hit_2.png" id="84_u8gjl"]
+[ext_resource type="Texture2D" path="res://art/bitefin_hit_3.png" id="85_75nbi"]
+[ext_resource type="Texture2D" path="res://art/bitefin_hit_4.png" id="86_01xdk"]
+[ext_resource type="Texture2D" path="res://art/bitefin_hit_5.png" id="87_xc2bw"]
+[ext_resource type="Texture2D" path="res://art/bitefin_hit_6.png" id="88_kxof1"]
+[ext_resource type="Texture2D" path="res://art/bitefin_idle_1.png" id="89_j0r3j"]
+[ext_resource type="Texture2D" path="res://art/bitefin_idle_2.png" id="90_gytk7"]
+[ext_resource type="Texture2D" path="res://art/bitefin_idle_3.png" id="91_v62tx"]
+[ext_resource type="Texture2D" path="res://art/bitefin_idle_4.png" id="92_ql3sd"]
+[ext_resource type="Texture2D" path="res://art/bitefin_idle_5.png" id="93_1wfmr"]
+[ext_resource type="Texture2D" path="res://art/bitefin_idle_6.png" id="94_2djdb"]
+[ext_resource type="Texture2D" path="res://art/bitefin_idle_7.png" id="95_lpkri"]
+[ext_resource type="Texture2D" path="res://art/bitefin_idle_8.png" id="96_upucv"]
+[ext_resource type="Script" path="res://scripts/data/area_def.gd" id="97_tsqpv"]
+
+[sub_resource type="Resource" id="Resource_jxnmm"]
+script = ExtResource("7_htw6l")
+ratio = 0.1
+
+[sub_resource type="Resource" id="Resource_d3v48"]
+script = ExtResource("8_ujgx3")
+every = 2
+hp_ratio = 0.3
+min_row = 2
+max_row = 7
+minion_id = "bitefin"
+keep_clear = 2
+count = 2
+act_frames = Array[Texture2D]([])
+act_fps = 10.0
+
+[sub_resource type="Resource" id="Resource_ga7h6"]
+script = ExtResource("9_kqj86")
+parts = Array[ExtResource("6_iqayo")]([SubResource("Resource_jxnmm"), SubResource("Resource_d3v48")])
+
+[sub_resource type="Resource" id="Resource_rb1aq"]
+script = ExtResource("24_imrla")
+id = "angler"
+display_name = "Abyssal Angler"
+sprite = ExtResource("16_8sl7t")
+frames_idle = Array[Texture2D]([ExtResource("16_8sl7t"), ExtResource("17_tedgd"), ExtResource("18_b3luy"), ExtResource("19_lg121"), ExtResource("20_y45yn"), ExtResource("21_r1xbu"), ExtResource("22_nst28"), ExtResource("23_j1jna")])
+fps_idle = 7.0
+frames_hit = Array[Texture2D]([ExtResource("10_lpucv"), ExtResource("11_xtlxc"), ExtResource("12_srr3d"), ExtResource("13_pylob"), ExtResource("14_4aadg"), ExtResource("15_v07xe")])
+fps_hit = 12.0
+sprite_scale = 1.0
+hp_mult = 1.0
+tier = 5
+min_round = 1
+weight = 1.0
+ability = SubResource("Resource_ga7h6")
+description = "Lord of the drowned deep. Its wounds close if you let it breathe, and its lure calls the brood."
+face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
+
+[sub_resource type="Resource" id="Resource_lw406"]
+script = ExtResource("24_imrla")
+id = "murkfin"
+display_name = "Murkfin"
+sprite = ExtResource("31_0mqkf")
+frames_idle = Array[Texture2D]([ExtResource("31_0mqkf"), ExtResource("32_wnrot"), ExtResource("33_of204"), ExtResource("34_a4vls"), ExtResource("35_if55d"), ExtResource("36_vks0k"), ExtResource("37_wxcdk"), ExtResource("38_airtd")])
+fps_idle = 7.0
+frames_hit = Array[Texture2D]([ExtResource("25_r77rv"), ExtResource("26_8h5jf"), ExtResource("27_7xftt"), ExtResource("28_fkuu1"), ExtResource("29_se4dc"), ExtResource("30_4ok82")])
+fps_hit = 12.0
+sprite_scale = 1.0
+hp_mult = 0.7
+tier = 0
+min_round = 1
+weight = 40.0
+description = "Crawled up from the shallows with a rusty trident. Weak alone, but the tide brings more."
+face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
+
+[sub_resource type="Resource" id="Resource_v1h7v"]
+script = ExtResource("39_faba2")
+extra = 1
+
+[sub_resource type="Resource" id="Resource_ktrt4"]
+script = ExtResource("24_imrla")
+id = "razorjaw"
+display_name = "Razorjaw"
+sprite = ExtResource("46_3c1jo")
+frames_idle = Array[Texture2D]([ExtResource("46_3c1jo"), ExtResource("47_llhef"), ExtResource("48_r38xd"), ExtResource("49_e56ot"), ExtResource("50_h6urp"), ExtResource("51_0ky1v"), ExtResource("52_exsan"), ExtResource("53_b2ou7")])
+fps_idle = 7.0
+frames_hit = Array[Texture2D]([ExtResource("40_b01qp"), ExtResource("41_3n2r0"), ExtResource("42_lbd15"), ExtResource("43_e27cv"), ExtResource("44_xedb3"), ExtResource("45_tat1g")])
+fps_hit = 12.0
+sprite_scale = 1.0
+hp_mult = 0.8
+tier = 1
+min_round = 3
+weight = 22.0
+ability = SubResource("Resource_v1h7v")
+description = "Smells blood from a mile away. Next to another of its kind it swims faster, so split the school."
+face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
+
+[sub_resource type="Resource" id="Resource_wi5q2"]
+script = ExtResource("54_8b85e")
+ratio = 1.0
+
+[sub_resource type="Resource" id="Resource_ellm2"]
+script = ExtResource("24_imrla")
+id = "shellback"
+display_name = "Shellback"
+sprite = ExtResource("61_h6uwa")
+frames_idle = Array[Texture2D]([ExtResource("61_h6uwa"), ExtResource("62_johao"), ExtResource("63_sbg7j"), ExtResource("64_4nrw8"), ExtResource("65_h2vc6"), ExtResource("66_ufvap"), ExtResource("67_1r54b"), ExtResource("68_r5bsd")])
+fps_idle = 7.0
+frames_hit = Array[Texture2D]([ExtResource("55_6pjxt"), ExtResource("56_qxhod"), ExtResource("57_mr3qt"), ExtResource("58_r6flg"), ExtResource("59_yb7h3"), ExtResource("60_ffns6")])
+fps_hit = 12.0
+sprite_scale = 1.0
+hp_mult = 1.1
+tier = 2
+min_round = 6
+weight = 14.0
+ability = SubResource("Resource_wi5q2")
+description = "Hides behind one giant claw. The claw takes every blow until it cracks."
+face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
+
+[sub_resource type="Resource" id="Resource_inuso"]
+script = ExtResource("69_tv7fb")
+reduce = 0.4
+min_through = 0.2
+
+[sub_resource type="Resource" id="Resource_m6sp0"]
+script = ExtResource("24_imrla")
+id = "drift_jelly"
+display_name = "Drift Jelly"
+sprite = ExtResource("76_gvdpr")
+frames_idle = Array[Texture2D]([ExtResource("76_gvdpr"), ExtResource("77_6ja04"), ExtResource("78_wb3tg"), ExtResource("79_as31r"), ExtResource("80_vi6ey"), ExtResource("81_w7h84"), ExtResource("82_vxrsq")])
+fps_idle = 7.0
+frames_hit = Array[Texture2D]([ExtResource("70_iv3an"), ExtResource("71_dlr0b"), ExtResource("72_8h7p0"), ExtResource("73_t5w4v"), ExtResource("74_1n44g"), ExtResource("75_jgsjr")])
+fps_hit = 12.0
+sprite_scale = 1.0
+hp_mult = 0.9
+tier = 1
+min_round = 9
+weight = 12.0
+ability = SubResource("Resource_inuso")
+description = "More water than flesh. Weak hits sink right through it; strike hard."
+face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
+
+[sub_resource type="Resource" id="Resource_e5tjq"]
+script = ExtResource("24_imrla")
+id = "bitefin"
+display_name = "Bitefin"
+sprite = ExtResource("89_j0r3j")
+frames_idle = Array[Texture2D]([ExtResource("89_j0r3j"), ExtResource("90_gytk7"), ExtResource("91_v62tx"), ExtResource("92_ql3sd"), ExtResource("93_1wfmr"), ExtResource("94_2djdb"), ExtResource("95_lpkri"), ExtResource("96_upucv")])
+fps_idle = 7.0
+frames_hit = Array[Texture2D]([ExtResource("83_gvl3r"), ExtResource("84_u8gjl"), ExtResource("85_75nbi"), ExtResource("86_01xdk"), ExtResource("87_xc2bw"), ExtResource("88_kxof1")])
+fps_hit = 12.0
+sprite_scale = 0.78
+hp_mult = 1.0
+tier = 0
+min_round = 1
+weight = 1.0
+description = "Hatches by the hundred in the angler's shadow. All teeth, no fear."
+face_center = Vector2(-1, -1)
+hidden_in_book = false
+show_hp = true
+invulnerable = false
+
+[resource]
+script = ExtResource("97_tsqpv")
+id = "drowned_coast"
+display_name = "Drowned Coast"
+background = ExtResource("1_pv7w3")
+background_frames = Array[Texture2D]([ExtResource("2_21hm7"), ExtResource("3_lg3f2"), ExtResource("4_ey80n"), ExtResource("5_akrca")])
+background_fps = 3.0
+tint = Color(1, 1, 1, 1)
+theme = "sea"
+weather = ""
+enemies = Array[ExtResource("24_imrla")]([SubResource("Resource_lw406"), SubResource("Resource_ktrt4"), SubResource("Resource_ellm2"), SubResource("Resource_m6sp0")])
+minions = Array[ExtResource("24_imrla")]([SubResource("Resource_e5tjq")])
+boss = SubResource("Resource_rb1aq")
+boss_cols = 3
+boss_rows = 2
+boss_hp_mult = 18.0
+final_cols = 3
+final_rows = 3
+final_hp_mult = 30.0
+specials = Array[ExtResource("24_imrla")]([])

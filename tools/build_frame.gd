@@ -61,6 +61,7 @@ const SIDES := [
 	["wall_palisade", "", true],
 	["wall_frost", "_frost", false],
 	["wall_grave", "_grave", false],
+	["wall_sea", "_sea", false],      # ξύλα θάλασσας και κόκαλα φάλαινας με σχοινί
 ]
 
 
