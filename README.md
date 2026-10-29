@@ -1,107 +1,78 @@
 <div align="center">
 
-# 🐉 BBdragon
+# BBdragon
 
-**A pixel-art dragon arcade game where every shot bounces, every boss fights back, and every dragon evolves.**
+<img src="docs/media/promo.gif" alt="BBdragon gameplay" width="360">
 
-<img src="docs/media/promo.gif" alt="BBdragon gameplay trailer" width="360">
-
-### [▶ Play it in your browser](https://40panos.github.io/-dragon/)
-*Works on desktop and mobile — no install needed.*
-
-![Godot 4.3](https://img.shields.io/badge/Godot-4.3-478cbf?logo=godotengine&logoColor=white)
-![GDScript](https://img.shields.io/badge/GDScript-7.5k%20lines-355570)
-![Tests](https://img.shields.io/badge/tests-339%20passing-3fb950)
-![Status](https://img.shields.io/badge/status-in%20active%20development-f0883e)
+**[Play it in the browser](https://40panos.github.io/-dragon/)** (desktop or phone, nothing to install)
 
 </div>
 
----
+## About
 
-## What is this?
+This is a for-fun project I started to learn how to use AI tools to get the best result I can in a field I had never touched. I had never made a game before. No engine experience, no pixel art, no animation. I wanted to see how far I could get if I treated the AI tools as tools: I decide what to build and how it should look, they help me build it, and I check and fix what comes out.
 
-BBdragon is a **for-fun project I built to learn how far AI tools can take someone in a field they have never touched**. Before this I had never made a game — no engine experience, no pixel art, no animation. The goal was simple: use AI the way a professional would, as a set of tools I direct, review and push, and see how close I could get to a polished, *real-feeling* game.
-
-**It is still very much a work in progress** — and I am enjoying every bit of it.
+It's still ongoing and I keep adding to it.
 
 ## The game
 
-Inspired by the popular mobile game **BBTAN**: aim, fire a volley of bouncing projectiles and clear the board before the enemies reach you — but with dragons, evolving specials and bosses that fight back.
+It's inspired by the mobile game BBTAN. You aim, shoot a volley of bouncing projectiles and try to clear the enemies before they reach the bottom. In this version you play as a dragon, and the bosses fight back.
 
-| | |
-|:--|:--|
-| 🌍 **4 worlds** | Goblin Land, Frost Marches, Graveyard, Drowned Coast — each with its own floor, walls, weather, enemies and boss |
-| 🐲 **4 dragons** | Ember (fire), Frost (ice), Death (souls) and the Fisher (sea), each with its own projectiles, special and an **evolved form** that takes over when the special fires |
-| 👹 **28 creatures** | Riders that charge, knights with shields, warlocks that summon, wolves that hunt in packs, ghosts that shrug off weak hits, crabs, piranhas, jellyfish… |
-| 💀 **6 bosses** | Including two 3×3 giants with phases: *Grukk's Siege Tower* throws barricades, war drummers and powder kegs; the *Ice Wendigo* freezes your shots in mid-air and shatters them |
-| ✨ **Specials** | INFERNO (×3 damage), FREEZE (stop the world for 2 rounds), SWARM (a second full volley), HARPOON (spears pierce through everything) |
+What's in it so far:
+
+- 4 worlds: Goblin Land, Frost Marches, Graveyard and Drowned Coast, each with its own enemies, look and boss
+- 4 dragons (fire, ice, death and a sea one), each with its own projectiles, a special move and a bigger evolved form
+- 28 enemy types with different abilities: riders that charge, knights with shields, warlocks that summon, wolves that move in packs, ghosts that ignore weak hits
+- 6 bosses, two of them big 3x3 ones with phases. The Siege Tower throws barricades, drummers and powder kegs at you, and the Ice Wendigo can freeze your shots in mid-air
 
 <div align="center">
-<img src="docs/media/ember_inferno.png" width="190" alt="Ember's INFERNO">
-<img src="docs/media/goblin_wave.png" width="190" alt="Riders charging, shield knights, warlocks summoning">
-<img src="docs/media/siege_tower.png" width="190" alt="Grukk's Siege Tower">
-<img src="docs/media/wendigo_frozen_gaze.png" width="190" alt="The Ice Wendigo freezing projectiles">
+<img src="docs/media/ember_inferno.png" width="190" alt="Ember's special">
+<img src="docs/media/goblin_wave.png" width="190" alt="Riders charging">
+<img src="docs/media/siege_tower.png" width="190" alt="Siege Tower boss">
+<img src="docs/media/wendigo_frozen_gaze.png" width="190" alt="Ice Wendigo">
 <br>
-<img src="docs/media/death_swarm.png" width="190" alt="Death unmasked, SWARM">
-<img src="docs/media/siege_boulder.png" width="190" alt="The siege boulder">
-<img src="docs/media/angler_summon.png" width="190" alt="The Abyssal Angler and its brood">
-<img src="docs/media/fisher_harpoon.png" width="190" alt="The Fisher's evolved form and HARPOON">
+<img src="docs/media/death_swarm.png" width="190" alt="Death dragon">
+<img src="docs/media/siege_boulder.png" width="190" alt="Siege boulder">
+<img src="docs/media/angler_summon.png" width="190" alt="Abyssal Angler">
+<img src="docs/media/fisher_harpoon.png" width="190" alt="Fisher dragon">
 </div>
 
-## How it was made — AI as a toolkit, me as the director
+## How I made it
 
-- **Code — Claude Code (Anthropic)** as a pair programmer. I set the design, the rules and the quality bar; it wrote GDScript under them. Every feature lands with tests (339 of them), a real in-game screenshot check, and a descriptive commit — 85 commits so far.
-- **Art — PixelLab** for pixel-art generation: enemies, bosses, dragons, tiles, walls, animations. Raw AI art is never good enough on its own, so most of the work was building a **pipeline around it** (`tools/`, 30 scripts) that turns generations into game-ready assets:
-  - *Animation stabilizer* — re-aligns frames the model shifted by a pixel, restores untouched pixels and locks colors to the original palette. Idle loops went from 25–35% of pixels flickering between frames to 1–9%.
-  - *Tone matching* — evens out tiles that came back in different brightness so floors don't look like a chessboard.
-  - *Theme builders* — whole new world palettes (snow, graveyard, sea) generated from existing art by per-pixel recoloring, with deterministic snow, cobwebs and seaweed so animated frames never flicker.
-  - *Grid extraction* — turns an upscaled screenshot of a hand-picked design back into clean pixel art.
-- **Systems** — content is data-driven (Godot Resources): areas, enemies, dragons and abilities are composed without touching engine code. Abilities are modular hooks (charge, shield, summon, regenerate, pack, shatter…) that can be combined on a single enemy.
-- **Production** — GitHub Actions runs the tests and publishes a web build on every push; this trailer was recorded frame-perfect with Godot's Movie Maker, staged by a script, and encoded by a small custom GIF encoder.
-
-What I took away: AI is fast, but **taste, direction and verification are still the job**. Knowing what to ask for, spotting what's wrong, and building the checks that catch it is what turned generations into a game.
+- **Code:** written in Godot (GDScript) with Claude Code as a coding assistant. I made the design decisions and reviewed the changes. There are 339 automated tests, and every push builds and publishes the browser version through GitHub Actions.
+- **Art:** the sprites, tiles and animations started as PixelLab generations. Most of them needed cleanup before they looked right in the game, so I built a set of scripts in `tools/` to fix them. These scripts:
+  - stop animation frames from flickering
+  - even out tile colors so the floors don't look like a chessboard
+  - recolor existing art into new themes (snow, graveyard, sea)
+- **Content:** worlds, enemies, dragons and abilities are defined as data, so adding a new enemy or ability doesn't mean rewriting the game code.
 
 ## What's next
 
-- 🔁 **Roguelike runs** built around **dragon combinations**: elemental statuses (burn, chill, haunt, soaked), six cross-element reactions, allied dragons mixing their projectiles into your volley, and screen-clearing **Fusion specials**.
-- 🌳 Small per-dragon skill trees and new projectile types.
-- 🎵 More original music.
-- 📱 A proper mobile release.
+- Turning it into a roguelike where you combine dragons and their abilities into combos
+- Small skill trees and more projectile types
+- More music
+- A proper mobile release
 
-## Want to join?
+## Want to help?
 
-If you came across this and it made you smile — **I'd be really glad to have company**. I'd especially love to hear from:
+If you find this and want to work on it with me, I'd be really happy to hear from you, especially if you're an animator or pixel artist (real hand-made animation would make a huge difference) or a developer. Musicians and sound designers are welcome too.
 
-- 🎨 **Animators and pixel artists** — real hand-made animation would take this to another level.
-- 💻 **Developers** — gameplay, Godot, tools, anything.
-- 🎶 Musicians and sound designers.
-
-Open an [issue](https://github.com/40panos/-dragon/issues) or reach out through my [GitHub profile](https://github.com/40panos). No experience requirements — this started as a learning project and it stays one.
+Open an [issue](https://github.com/40panos/-dragon/issues) or message me through my [GitHub profile](https://github.com/40panos).
 
 ## Credits
 
-- 🎵 **Music** — composed by my friend **Theodoros Vakontios**. Thank you for giving the Goblin Land and the Graveyard their sound!
-- 🎨 Pixel art generated with [PixelLab](https://pixellab.ai), directed and post-processed for the game.
-- 🤖 Built with [Claude Code](https://claude.com/claude-code) by Anthropic.
-- 🛠️ Made with the [Godot Engine](https://godotengine.org).
-
----
+- Music by my friend **Theodoros Vakontios**, who made the Goblin Land and Graveyard tracks. Thank you!
+- Pixel art generated with [PixelLab](https://pixellab.ai) and cleaned up for the game
+- Coding assistance from [Claude Code](https://claude.com/claude-code)
+- Made with [Godot](https://godotengine.org)
 
 <details>
-<summary><b>Run it locally / project layout</b></summary>
+<summary>Running it locally</summary>
 
-1. Install **Godot 4.3** (standard build).
-2. **Import** → select `project.godot` in this folder → **F5**.
-3. Tests: `godot --headless --path . --script tests/run_tests.gd`
+1. Install Godot 4.3.
+2. Import `project.godot` from this folder and press F5.
+3. To run the tests: `godot --headless --path . --script tests/run_tests.gd`
 
-| Path | What's there |
-|---|---|
-| `scripts/main.gd` | game flow: rounds, aiming, volleys, bosses, transitions |
-| `scripts/entities/` | ball (projectile physics), block (enemy rendering & state) |
-| `scripts/abilities/` | modular enemy abilities |
-| `scripts/data/` | `AreaDef`, `EnemyType`, `DragonType` resources |
-| `data/` | the actual content: areas (with their enemies) and dragons |
-| `tools/` | the art pipeline and data writers |
-| `tests/` | the automated test suite |
+Main folders: `scripts/` (game code), `data/` (worlds, enemies, dragons), `tools/` (art scripts), `tests/`.
 
 </details>
